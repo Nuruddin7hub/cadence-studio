@@ -1,10 +1,11 @@
 import { chromium } from 'playwright-core';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import path from 'node:path';
 
-const server = spawn('npx', ['vite', 'preview', '--port', '4174', '--strictPort'], {
+const viteCli = path.join(process.cwd(), 'node_modules', 'vite', 'bin', 'vite.js');
+const server = spawn(process.execPath, [viteCli, 'preview', '--port', '4174', '--strictPort'], {
   cwd: process.cwd(),
-  stdio: ['ignore', 'pipe', 'pipe'],
-  shell: process.platform === 'win32',
+  stdio: 'ignore',
 });
 
 async function waitForServer(url, timeoutMs = 15000) {
@@ -54,31 +55,40 @@ try {
   await page.getByLabel('Exit availability mode').click();
   await page.waitForTimeout(150);
 
-  await page.getByRole('button', { name: 'Month', exact: true }).click();
+  await page.getByRole('radio', { name: 'Month', exact: true }).click();
   await page.waitForTimeout(150);
-  await page.getByRole('button', { name: 'Agenda', exact: true }).click();
+  await page.getByRole('radio', { name: 'Agenda', exact: true }).click();
   await page.waitForTimeout(150);
-  await page.getByRole('button', { name: 'Week', exact: true }).click();
+  await page.getByRole('radio', { name: 'Week', exact: true }).click();
   await page.waitForTimeout(150);
 
-  // 3. Tasks tab: Kanban, Matrix, Smart List + task completion toggle
+  // 3. Tasks tab: Kanban, Matrix, Smart List + SpringCheck completion toggle
   await page.getByRole('button', { name: 'Tasks', exact: true }).click();
-  await page.waitForTimeout(150);
-  await page.getByRole('button', { name: 'Kanban Board' }).click();
-  await page.waitForTimeout(150);
-  await page.getByRole('button', { name: 'Eisenhower Matrix' }).click();
-  await page.waitForTimeout(150);
-  await page.getByRole('button', { name: 'Smart List' }).click();
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(180);
+  await page.getByRole('radio', { name: 'Kanban Board' }).click();
+  await page.waitForTimeout(180);
+  await page.getByRole('radio', { name: 'Eisenhower Matrix' }).click();
+  await page.waitForTimeout(180);
+  await page.getByRole('radio', { name: 'Smart List' }).click();
+  await page.waitForTimeout(180);
   await page.getByLabel(/Complete Finalize unified timeline grid/i).first().click();
   await page.waitForTimeout(150);
 
-  // 4. Focus & Habits tab: Timer start/pause + Habit toggle + Daily Journal task extraction
+  // 4. Focus & Habits tab: Timer start/pause + RubberSegment interval + Focus Curtain + Habit toggle + Daily Journal task extraction
   await page.getByRole('button', { name: 'Focus & Habits' }).click();
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(180);
+  await page.getByRole('radio', { name: '5m', exact: true }).click();
+  await page.waitForTimeout(120);
+  await page.getByRole('radio', { name: '25m', exact: true }).click();
+  await page.waitForTimeout(120);
   await page.getByRole('button', { name: 'Start session' }).click();
   await page.waitForTimeout(1150);
   await page.getByRole('button', { name: 'Pause timer' }).click();
+
+  await page.getByRole('button', { name: 'Distraction-free mode' }).click();
+  await page.waitForTimeout(250);
+  await page.getByLabel('Exit focus curtain').click();
+  await page.waitForTimeout(150);
 
   await page.getByLabel(/2h Uninterrupted Deep Work on/i).first().click();
   await page.waitForTimeout(120);
@@ -135,5 +145,11 @@ try {
   console.log('ALL_INTERACTIONS_PASSED');
 } finally {
   if (browser) await browser.close();
-  server.kill();
+  if (server.pid) {
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      server.kill('SIGKILL');
+    }
+  }
 }

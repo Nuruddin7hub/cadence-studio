@@ -19,10 +19,10 @@ const SHOTS = [
   { id: 'S06', ref: 'cook/refs/R03_mobile.png', query: '?shot=mobile-dark', width: 375, height: 812 },
 ];
 
-const server = spawn('npx', ['vite', 'preview', '--port', '4173', '--strictPort'], {
+const viteCli = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
+const server = spawn(process.execPath, [viteCli, 'preview', '--port', '4173', '--strictPort'], {
   cwd: rootDir,
-  stdio: ['ignore', 'pipe', 'pipe'],
-  shell: process.platform === 'win32',
+  stdio: 'ignore',
 });
 
 async function waitForServer(url, timeoutMs = 15000) {
@@ -117,5 +117,11 @@ try {
   }
 } finally {
   if (browser) await browser.close();
-  server.kill();
+  if (server.pid) {
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      server.kill('SIGKILL');
+    }
+  }
 }

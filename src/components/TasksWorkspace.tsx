@@ -16,7 +16,7 @@ import type { EisenhowerQuadrant, TaskStatus, TaskViewMode } from '../types/work
 import { formatMinutes, formatReadableDate } from '../utils/date';
 import { parseQuickInput } from '../utils/nlp';
 import { PRIORITY_META } from '../utils/themeTokens';
-import { GlareHover, SpotlightCard } from '../lib/reactbits';
+import { AnimatedContent, GlareHover, RubberSegment, SpotlightCard, SpringCheck } from '../lib/reactbits';
 
 const KANBAN_COLS: { id: TaskStatus; label: string; accent: string }[] = [
   { id: 'backlog', label: 'Backlog', accent: '#848F9F' },
@@ -141,33 +141,26 @@ export const TasksWorkspace: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5">
-            {([
-              ['list', 'Smart List', ListTodo],
-              ['kanban', 'Kanban Board', Columns3],
-              ['matrix', 'Eisenhower Matrix', Grid2x2],
-            ] as [TaskViewMode, string, React.ComponentType<{ className?: string }>][]).map(
-              ([id, label, Icon]) => {
-                const active = taskViewMode === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setTaskViewMode(id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-colors"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
-                      color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
-                      boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
-                    }}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{label}</span>
-                  </button>
-                );
-              }
-            )}
-          </div>
+          <RubberSegment
+            items={[
+              { value: 'list', label: 'Smart List', icon: <ListTodo className="w-3.5 h-3.5" /> },
+              { value: 'kanban', label: 'Kanban Board', icon: <Columns3 className="w-3.5 h-3.5" /> },
+              { value: 'matrix', label: 'Eisenhower Matrix', icon: <Grid2x2 className="w-3.5 h-3.5" /> },
+            ]}
+            value={taskViewMode}
+            onChange={(val: string) => setTaskViewMode(val as TaskViewMode)}
+            size="sm"
+            equalSlots={false}
+            radius={10}
+            stretch={34}
+            squash={22}
+            trackColor={isDark ? '#151821' : '#eaedf3'}
+            thumbColor={isDark ? '#242938' : '#ffffff'}
+            textColor={isDark ? '#b4bccb' : '#4b5563'}
+            activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+            ariaLabel="Task workspace layout mode"
+            className="border"
+          />
         </div>
 
         {/* Natural Language Capture + Search & Single Filter Popover */}
@@ -322,7 +315,15 @@ export const TasksWorkspace: React.FC = () => {
 
         {/* MODE 1: SMART LIST */}
         {taskViewMode === 'list' && (
-          <div className="studio-card rounded-xl divide-y">
+          <AnimatedContent
+            key={`list-${activeList}-${tagFilter ?? 'all'}`}
+            trigger="load"
+            distance={10}
+            duration={0.32}
+            stagger={0.03}
+            ease="power2.out"
+            className="studio-card rounded-xl divide-y"
+          >
             {filteredTasks.map((task) => {
               const pMeta = PRIORITY_META[task.priority];
               const isExpanded = expandedId === task.id;
@@ -331,18 +332,21 @@ export const TasksWorkspace: React.FC = () => {
               return (
                 <div key={task.id} className="p-3.5 hover:bg-[var(--bg-hover)]/35 transition-colors">
                   <div className="flex items-start gap-3">
-                    <button
-                      type="button"
-                      onClick={() => toggleTaskComplete(task.id)}
-                      aria-label={`Complete ${task.title}`}
-                      className="mt-0.5 w-4.5 h-4.5 rounded-[5px] border flex items-center justify-center shrink-0 transition-colors"
-                      style={{
-                        borderColor: pMeta.color,
-                        backgroundColor: task.completed ? pMeta.color : 'transparent',
-                      }}
-                    >
-                      {task.completed && <Check className="w-3 h-3 text-white stroke-[3]" />}
-                    </button>
+                    <div className="mt-0.5 shrink-0">
+                      <SpringCheck
+                        checked={task.completed}
+                        onChange={() => toggleTaskComplete(task.id)}
+                        label=""
+                        strike="none"
+                        boxSize={18}
+                        boxRadius={5}
+                        color="var(--ink-primary)"
+                        fillColor={pMeta.color}
+                        checkColor="#ffffff"
+                        ariaLabel={`Complete ${task.title}`}
+                        className="[&]:min-h-0 [&]:gap-0"
+                      />
+                    </div>
 
                     <div
                       className="flex-1 min-w-0 cursor-pointer"
@@ -465,12 +469,20 @@ export const TasksWorkspace: React.FC = () => {
                 No tasks match this filter yet. Add one above using natural language.
               </div>
             )}
-          </div>
+          </AnimatedContent>
         )}
 
         {/* MODE 2: KANBAN BOARD */}
         {taskViewMode === 'kanban' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <AnimatedContent
+            key="kanban-grid"
+            trigger="load"
+            distance={14}
+            duration={0.34}
+            stagger={0.05}
+            ease="back.out(1.2)"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+          >
             {KANBAN_COLS.map((col) => {
               const items = filteredTasks.filter((t) => t.status === col.id);
               return (
@@ -523,13 +535,21 @@ export const TasksWorkspace: React.FC = () => {
                 </div>
               );
             })}
-          </div>
+          </AnimatedContent>
         )}
 
         {/* MODE 3: EISENHOWER PRIORITY MATRIX (Content-hugging hairline rows + bottom telemetry strip) */}
         {taskViewMode === 'matrix' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <AnimatedContent
+              key="matrix-grid"
+              trigger="load"
+              distance={14}
+              duration={0.34}
+              stagger={0.05}
+              ease="back.out(1.2)"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start"
+            >
               {MATRIX_QUADS.map((q) => {
                 const items = filteredTasks.filter((t) => !t.completed && t.quadrant === q.id);
                 return (
@@ -571,13 +591,21 @@ export const TasksWorkspace: React.FC = () => {
                             className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--bg-hover)]/45 cursor-grab active:cursor-grabbing transition-colors"
                           >
                             <div className="flex items-start gap-2.5 min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => toggleTaskComplete(task.id)}
-                                className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
-                                style={{ borderColor: q.accent }}
-                                aria-label={`Complete ${task.title}`}
-                              />
+                              <div className="mt-0.5 shrink-0">
+                                <SpringCheck
+                                  checked={task.completed}
+                                  onChange={() => toggleTaskComplete(task.id)}
+                                  label=""
+                                  strike="none"
+                                  boxSize={16}
+                                  boxRadius={4}
+                                  color="var(--ink-primary)"
+                                  fillColor={q.accent}
+                                  checkColor="#ffffff"
+                                  ariaLabel={`Complete ${task.title}`}
+                                  className="[&]:min-h-0 [&]:gap-0"
+                                />
+                              </div>
                               <div className="min-w-0">
                                 <p
                                   className="text-[13.5px] font-medium leading-snug"
@@ -649,7 +677,7 @@ export const TasksWorkspace: React.FC = () => {
                   </SpotlightCard>
                 );
               })}
-            </div>
+            </AnimatedContent>
 
             <div className="studio-card rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--ink-secondary)]">
               <span>Drag any task row between quadrants to reprioritize or click Block to schedule onto today&apos;s timeline.</span>

@@ -29,6 +29,7 @@ import {
   WEEKDAY_SHORT,
 } from '../utils/date';
 import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
+import { RubberSegment, SquishSwitch } from '../lib/reactbits';
 
 const START_HOUR = 6;
 const END_HOUR = 23;
@@ -234,17 +235,28 @@ export const CalendarView: React.FC = () => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => updatePreferences({ showSecondaryTz: !snapshot.preferences.showSecondaryTz })}
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11.5px] font-mono-num text-[var(--ink-secondary)] hover:bg-[var(--bg-hover)]"
+          <div
+            className="hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-[11.5px] font-mono-num text-[var(--ink-secondary)]"
             title="Toggle secondary timezone ruler"
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{snapshot.preferences.showSecondaryTz ? snapshot.preferences.secondaryTimezone : '+ UTC'}</span>
-          </button>
+            <Globe className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+            <span>{snapshot.preferences.showSecondaryTz ? snapshot.preferences.secondaryTimezone : 'UTC'}</span>
+            <SquishSwitch
+              checked={snapshot.preferences.showSecondaryTz}
+              onChange={(next: boolean) => updatePreferences({ showSecondaryTz: next })}
+              ariaLabel="Toggle secondary timezone ruler"
+              width={40}
+              height={22}
+              radius={11}
+              trackColor={isDark ? '#272a36' : '#d4d8e2'}
+              trackOnColor="#E74004"
+              thumbColor={isDark ? '#e2e6ef' : '#ffffff'}
+              thumbOnColor="#ffffff"
+              stretch={45}
+            />
+          </div>
 
-          <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex sm:hidden items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 w-full justify-between">
             {MODE_OPTIONS.map((m) => {
               const active = calendarMode === m.id;
               return (
@@ -252,18 +264,36 @@ export const CalendarView: React.FC = () => {
                   key={m.id}
                   type="button"
                   onClick={() => setCalendarMode(m.id)}
-                  className="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md text-[11.5px] sm:text-[12px] font-medium transition-colors whitespace-nowrap"
+                  className="flex-1 px-2 py-1.5 rounded-md text-[11.5px] font-medium transition-colors whitespace-nowrap"
                   style={{
                     backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
                     color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
                     boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
                   }}
                 >
-                  <span className="sm:hidden">{m.short}</span>
-                  <span className="hidden sm:inline">{m.label}</span>
+                  {m.short}
                 </button>
               );
             })}
+          </div>
+
+          <div className="hidden sm:block">
+            <RubberSegment
+              items={MODE_OPTIONS.map((m) => ({ value: m.id, label: m.label }))}
+              value={calendarMode}
+              onChange={(val: string) => setCalendarMode(val as CalendarMode)}
+              size="sm"
+              equalSlots={false}
+              radius={10}
+              stretch={34}
+              squash={22}
+              trackColor={isDark ? '#151821' : '#eaedf3'}
+              thumbColor={isDark ? '#242938' : '#ffffff'}
+              textColor={isDark ? '#b4bccb' : '#4b5563'}
+              activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+              ariaLabel="Calendar layout mode"
+              className="border"
+            />
           </div>
 
           <button

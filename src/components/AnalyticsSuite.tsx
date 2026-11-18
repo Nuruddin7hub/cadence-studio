@@ -5,7 +5,7 @@ import type { EventCategory } from '../types/workspace';
 import { addDays, getWeekDates, WEEKDAY_SHORT } from '../utils/date';
 import { buildIcsExport, buildJsonBackup, triggerFileDownload } from '../utils/ics';
 import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
-import { BorderGlow, CountUp, GlareHover, SpotlightCard } from '../lib/reactbits';
+import { AnimatedContent, BorderGlow, CountUp, GlareHover, HoldButton, SpotlightCard } from '../lib/reactbits';
 
 export const AnalyticsSuite: React.FC = () => {
   const {
@@ -143,7 +143,7 @@ export const AnalyticsSuite: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExportIcs}
-                className="studio-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="studio-card inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
               >
                 <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>Export .ics</span>
@@ -154,7 +154,7 @@ export const AnalyticsSuite: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExportJson}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Backup</span>
@@ -162,19 +162,26 @@ export const AnalyticsSuite: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Import</span>
               </button>
-              <button
-                type="button"
-                onClick={resetToSeed}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+              <HoldButton
+                size="sm"
+                radius={8}
+                holdTime={900}
+                fillColor="#E74004"
+                backgroundColor={isDark ? '#171a23' : '#f4f4f5'}
+                textColor={isDark ? '#adb6c4' : '#404856'}
+                fillTextColor="#ffffff"
+                doneLabel="Reset!"
+                icon={<RotateCcw className="w-3.5 h-3.5" />}
+                onHold={resetToSeed}
+                className="text-[12px]"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
+                Hold Reset
+              </HoldButton>
             </div>
             <input
               ref={fileInputRef}
@@ -190,8 +197,15 @@ export const AnalyticsSuite: React.FC = () => {
           </div>
         </div>
 
-        {/* Monochrome Obsidian KPI Row with SpotlightCard & CountUp */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Monochrome Obsidian KPI Row with Staggered AnimatedContent, SpotlightCard & CountUp */}
+        <AnimatedContent
+          trigger="load"
+          distance={14}
+          duration={0.38}
+          stagger={0.05}
+          ease="back.out(1.2)"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        >
           {[
             {
               label: 'Scheduled this week',
@@ -254,7 +268,7 @@ export const AnalyticsSuite: React.FC = () => {
               </div>
             </SpotlightCard>
           ))}
-        </div>
+        </AnimatedContent>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

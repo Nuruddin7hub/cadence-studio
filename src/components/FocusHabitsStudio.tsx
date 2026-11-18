@@ -9,19 +9,21 @@ import {
   Plus,
   RotateCcw,
   Trash2,
-  Volume2,
-  VolumeX,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { HabitItem } from '../types/workspace';
 import { addDays, formatReadableDate, WEEKDAY_TWO } from '../utils/date';
-import { BorderGlow, ElasticSlider, GlareHover, ShinyText, SpotlightCard } from '../lib/reactbits';
-
-function formatClock(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
+import {
+  AnimatedContent,
+  BellToggle,
+  Counter,
+  ElasticSlider,
+  ElectricBorder,
+  GlareHover,
+  RubberSegment,
+  ShinyText,
+  SpotlightCard,
+} from '../lib/reactbits';
 
 export const FocusHabitsStudio: React.FC = () => {
   const {
@@ -76,6 +78,8 @@ export const FocusHabitsStudio: React.FC = () => {
         ? snapshot.preferences.shortBreakMinutes
         : snapshot.preferences.longBreakMinutes) * 60;
   const pct = Math.max(0, Math.min(1, 1 - focusSecondsLeft / Math.max(1, totalSec)));
+  const focusMins = Math.floor(focusSecondsLeft / 60);
+  const focusSecs = focusSecondsLeft % 60;
 
   const todayFocusMins = useMemo(
     () =>
@@ -126,43 +130,58 @@ export const FocusHabitsStudio: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => updatePreferences({ soundEnabled: !snapshot.preferences.soundEnabled })}
-              className="studio-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium hover:bg-[var(--bg-hover)]"
-            >
-              {snapshot.preferences.soundEnabled ? (
-                <Volume2 className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
-              ) : (
-                <VolumeX className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
-              )}
-              <span>{snapshot.preferences.soundEnabled ? 'Chime On' : 'Chime Muted'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFocusCurtainOpen(true)}
-              className="studio-card inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              <Maximize2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-              <span>Distraction-free mode</span>
-            </button>
+            <BellToggle
+              size="sm"
+              radius={10}
+              offLabel="Chime Muted"
+              onLabel="Chime On"
+              clapper
+              waves
+              pressed={snapshot.preferences.soundEnabled}
+              onChange={(on: boolean) => updatePreferences({ soundEnabled: on })}
+              color={isDark ? '#c5ccd8' : '#374151'}
+              background={isDark ? '#161922' : '#ffffff'}
+              onColor="#ffffff"
+              onBackground="#E74004"
+              className="border"
+            />
+            <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="8px" className="inline-flex">
+              <button
+                type="button"
+                onClick={() => setFocusCurtainOpen(true)}
+                className="studio-card inline-flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-[12px] font-semibold text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>Distraction-free mode</span>
+              </button>
+            </GlareHover>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Balanced Pomodoro Focus Engine with BorderGlow, GlareHover & ElasticSlider */}
-          <BorderGlow
-            className="lg:col-span-5"
-            colors={['#E74004', '#F4C46C', '#14A4FC']}
-            glowColor="18 92 52"
-            backgroundColor="var(--bg-surface)"
+        <AnimatedContent
+          trigger="load"
+          distance={14}
+          duration={0.36}
+          stagger={0.05}
+          ease="back.out(1.2)"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch"
+        >
+          {/* Balanced Pomodoro Focus Engine with ElectricBorder (ignites when timer runs), Rolling Counter, GlareHover & ElasticSlider */}
+          <ElectricBorder
+            className="lg:col-span-5 h-full"
+            active={focusRunning}
+            color="#E74004"
+            speed={1.65}
+            chaos={0.28}
+            strands={3}
+            intensity={1.0}
+            glow={0.55}
+            thickness={1.4}
             borderRadius={16}
-            glowRadius={32}
-            glowIntensity={isDark ? 0.6 : 0.25}
-            fillOpacity={0.25}
+            theme={isDark ? 'dark' : 'light'}
           >
             <section className="studio-card rounded-2xl p-5 w-full h-full flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <h2 className="font-display font-bold text-[15px]">Pomodoro Session</h2>
                   <p className="text-[12px] text-[var(--ink-muted)] font-mono-num">
@@ -173,27 +192,24 @@ export const FocusHabitsStudio: React.FC = () => {
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 p-0.5 rounded-lg border bg-[var(--bg-inset)]">
-                  {([
-                    ['focus', '25m'],
-                    ['short_break', '5m'],
-                    ['long_break', '15m'],
-                  ] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setFocusMode(mode)}
-                      className="px-2.5 py-1 rounded-md text-[11.5px] font-mono-num font-medium transition-colors"
-                      style={{
-                        backgroundColor: focusMode === mode ? 'var(--bg-surface)' : 'transparent',
-                        color: focusMode === mode ? 'var(--ink-primary)' : 'var(--ink-muted)',
-                        boxShadow: focusMode === mode ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <RubberSegment
+                  items={[
+                    { value: 'focus', label: '25m' },
+                    { value: 'short_break', label: '5m' },
+                    { value: 'long_break', label: '15m' },
+                  ]}
+                  value={focusMode}
+                  onChange={(val: string) => setFocusMode(val as 'focus' | 'short_break' | 'long_break')}
+                  size="sm"
+                  radius={9}
+                  stretch={34}
+                  squash={22}
+                  trackColor={isDark ? '#151821' : '#eaedf3'}
+                  thumbColor={isDark ? '#242938' : '#ffffff'}
+                  textColor={isDark ? '#b4bccb' : '#4b5563'}
+                  activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+                  ariaLabel="Pomodoro duration preset"
+                />
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-5 py-1">
@@ -210,11 +226,14 @@ export const FocusHabitsStudio: React.FC = () => {
                       strokeLinecap="round"
                       strokeDasharray={2 * Math.PI * 66}
                       strokeDashoffset={2 * Math.PI * 66 * (1 - pct)}
+                      className="transition-all duration-300"
                     />
                   </svg>
                   <div className="absolute text-center">
-                    <div className="font-mono-num text-[26px] font-bold tracking-tight">
-                      {formatClock(focusSecondsLeft)}
+                    <div className="inline-flex items-center justify-center font-mono-num text-[26px] font-bold tracking-tight text-[var(--ink-primary)]">
+                      <Counter value={focusMins} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" />
+                      <span className="pb-0.5 text-[var(--accent-primary)]">:</span>
+                      <Counter value={focusSecs} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" />
                     </div>
                     <div className="text-[10.5px] text-[var(--ink-muted)]">
                       {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
@@ -313,7 +332,7 @@ export const FocusHabitsStudio: React.FC = () => {
                 </div>
               </div>
             </section>
-          </BorderGlow>
+          </ElectricBorder>
 
           {/* Habit Streak Matrix with SpotlightCard */}
           <SpotlightCard
@@ -419,7 +438,7 @@ export const FocusHabitsStudio: React.FC = () => {
                                   type="button"
                                   onClick={() => toggleHabitDate(h.id, dKey)}
                                   aria-label={`${h.name} on ${dKey}`}
-                                  className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center transition-colors"
+                                  className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center hover:scale-110 active:scale-90 transition-all duration-150"
                                   style={{
                                     backgroundColor: checked
                                       ? `color-mix(in srgb, ${pillColor} 16%, transparent)`
@@ -458,10 +477,18 @@ export const FocusHabitsStudio: React.FC = () => {
               </div>
             </div>
           </SpotlightCard>
-        </div>
+        </AnimatedContent>
 
         {/* Clean Hairline-Divided Daily Journal & Rebalanced Recent Focus Log with SpotlightCard */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <AnimatedContent
+          trigger="load"
+          distance={14}
+          duration={0.38}
+          delay={0.08}
+          stagger={0.06}
+          ease="back.out(1.2)"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-5"
+        >
           <SpotlightCard
             theme={isDark ? 'dark' : 'light'}
             spotlightColor={isDark ? 'rgba(231, 64, 4, 0.11)' : 'rgba(231, 64, 4, 0.06)'}
@@ -584,7 +611,7 @@ export const FocusHabitsStudio: React.FC = () => {
               </ul>
             </div>
           </SpotlightCard>
-        </div>
+        </AnimatedContent>
       </div>
     </div>
   );

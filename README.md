@@ -23,11 +23,11 @@ npm run dev
 npm run build                        # TypeScript check + Vite production bundle
 node scripts/slop-scan.mjs           # AI-slop, banned palette, and em-dash scanner
 node scripts/verify-interactions.mjs # Headless Chrome end-to-end Playwright verification
-node scripts/render-stills.mjs r07-final
+node scripts/render-stills.mjs r08-lively
 ```
 
 ## Credits & Design System Tooling
 
 - **Design References**: Studied layout structure, typography scale, dark/light contrast, and hierarchy via **Inspo MCP** (`https://inspomcp.dev/`).
-- **Iterative Visual Loop**: Built and audited across 5 Cook rounds + 2 React Bits visual passes using the **Cook** skill (`https://github.com/Leonxlnx/cook`).
-- **Animated Components**: `@react-bits/*-JS-CSS` (`Aurora`, `DotGrid`, `ClickSpark`, `BorderGlow`, `SpotlightCard`, `GlareHover`, `GradientText`, `BlurText`, `CountUp`, `ElasticSlider`, `Magnet`, `MagicBento`, `CardSwap`, `Folder`, `Dock`, `FadeContent`, `DecryptedText`, `ShinyText`, `TextType`), palette-tuned to Cadence Studio tokens and `prefers-reduced-motion` safe.
+- **Iterative Visual Loop**: Built and audited across 5 Cook rounds + 3 React Bits polish & motion waves using the **Cook** skill (`https://github.com/Leonxlnx/cook`).
+- **Animated Components**: 33 `@react-bits/*-JS-CSS` components (`AnimatedContent`, `AnimatedList`, `Aurora`, `BellToggle`, `BlurText`, `BorderGlow`, `CardSwap`, `ClickSpark`, `CountUp`, `Counter`, `DecryptedText`, `Dock`, `DotGrid`, `ElasticSlider`, `ElectricBorder`, `FadeContent`, `Folder`, `GlareHover`, `GradientText`, `HoldButton`, `LineWaves`, `MagicBento`, `Magnet`, `RotatingText`, `RubberSegment`, `ScrollReveal`, `ScrollVelocity`, `ShinyText`, `SpotlightCard`, `SpringCheck`, `SquishSwitch`, `TextType`, `TiltedCard`), palette-tuned to Cadence Studio tokens and `prefers-reduced-motion` safe.

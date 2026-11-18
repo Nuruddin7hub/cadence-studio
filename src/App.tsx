@@ -19,11 +19,12 @@ const WorkspaceShell: React.FC = () => {
 
   return (
     <ClickSpark
-      sparkColor={['#E74004', '#F4C46C', '#FFFFFF']}
-      sparkSize={8}
-      sparkRadius={15}
-      sparkCount={7}
-      duration={320}
+      sparkColor={['#E74004', '#F4C46C', '#14A4FC', '#FFFFFF']}
+      sparkSize={10}
+      sparkRadius={22}
+      sparkCount={9}
+      duration={420}
+      glow={0.45}
       className="min-h-screen h-screen"
     >
       <div className="min-h-screen h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--ink-primary)] pb-14 md:pb-0">

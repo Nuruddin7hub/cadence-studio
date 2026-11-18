@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [complete]
-Best so far: round 07 (`r07-final`), `cook/stills/r07-final/`, built cleanly after `f6f1d28`
+Best so far: round 08 (`r08-lively`), `cook/stills/r08-lively/`, built and verified with full React Bits motion & micro-interaction upgrade
 
 ## Decisions
 
@@ -308,3 +308,28 @@ Measured after final app code edit (`r07-final`):
 - Secret scan (`git grep`): `SECRET_SCAN_EXIT:1` (0 matches).
 
 Stop check: floor [yes - 7 iterations across Phase 1 & Phase 2] | final checks [yes - build, slop-scan, stills, interactions, secret grep all clean] | git push [skipped locally per instruction] -> ready to present to user.
+
+---
+
+## Round 08-lively (Lively Motion, Tactile Controls & WebGL Shader Wave)
+
+Time: 18:55 to 19:30 +08:00
+Focus: Expand `@react-bits/*-JS-CSS` kinetic micro-interactions, WebGL active state electricity, floating 3D perspective, rolling mechanical counters, velocity marquee, and staggered entrances across all views per user request ("make it a lot more livelier and more animated")
+
+Changes:
+- Installed 10 additional `@react-bits/*-JS-CSS` components via `npx shadcn@latest add`: `SpringCheck`, `RubberSegment`, `SquishSwitch`, `BellToggle`, `HoldButton`, `ElectricBorder`, `ScrollVelocity`, `LineWaves`, `ScrollReveal`, `RotatingText`; removed purple fallback defaults (`#5227FF`, `#a855f7`) in `HoldButton` and `RotatingText`; registered all 33 React Bits components in `src/lib/reactbits.ts`.
+- Upgraded global `ClickSpark` (`src/App.tsx`) to multi-hue ember/amber/sky/white sparks (`sparkSize={10}`, `sparkRadius={22}`, `sparkCount={9}`, `glow={0.45}`).
+- Upgraded `ProductivityOverview.tsx`: cranked `DotGrid` (`clickShock`, `swell={1.0}`, `glow={0.6}`) + `Aurora` (`amplitude={0.85}`, `speed={0.85}`), added inline `RotatingText` word-flip badge in subtitle, wrapped Hero Showcase in floating 3D `TiltedCard` (`floating`, `glare={0.28}`, `rotateAmplitude={4.5}`) over animated `BorderGlow`, rolling `Counter` timer in showcase chrome, added `ScrollVelocity` kinetic ticker marquee (`fadeEdges`, `pauseOnHover`, `outlineAlternate`), enabled `enableStars` + `enableTilt` on `MagicBento`, layered `LineWaves` WebGL backdrop behind `Folder` + `CardSwap`, and staggered section reveals with `AnimatedContent`.
+- Upgraded `CalendarView.tsx`: switched desktop view switcher (`Day`/`3-Day`/`Workweek`/`Week`/`Month`/`Agenda`) to bouncy `RubberSegment` (`border` framed) and replaced desktop `+ UTC` toggle with elastic `SquishSwitch`.
+- Upgraded `TasksWorkspace.tsx`: switched view modes to bordered `RubberSegment`, replaced task checkboxes in Smart List & Matrix with physics-based `SpringCheck`, and staggered Smart List, Kanban, and Matrix entrances with `AnimatedContent`.
+- Upgraded `FocusHabitsStudio.tsx` & `FocusCurtain.tsx`: swapped chime control to animated clapper `BellToggle`, duration selector (`25m`/`5m`/`15m`) to `RubberSegment`, timer numerals to rolling `Counter` digits, active focus border to WebGL `ElectricBorder` (`active={focusRunning}` so light-theme idle cards stay hairline-clean while active sessions spark), and fullscreen `FocusCurtain` with live `LineWaves` + `ElectricBorder` + `48px` rolling `Counter`.
+- Upgraded `AnalyticsSuite.tsx`: replaced `Reset` button with `HoldButton` (`holdTime={900}` ember fill + `Backup`/`Import`/`Export .ics` `h-9` alignment) and staggered KPI entrance with `AnimatedContent`.
+- Fixed Windows child-process `taskkill /T /F` cleanup in `scripts/render-stills.mjs` and `scripts/verify-interactions.mjs` + updated Playwright locators for `role="radio"` and `Distraction-free mode` Focus Curtain round-trip.
+
+Stills: `cook/stills/r08-lively/` | Side by side: `cook/compare/r08-lively/`
+
+Measured (`r08-lively`):
+- `npm run build`: exited 0 (`✓ built in 9.58s`, `tsc -b && vite build`, `8178` modules, `dist/assets/index-CG58CE6e.css` `124.38 kB`, `dist/assets/index-QgwUOMz8.js` `991.26 kB`).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
+- `node scripts/render-stills.mjs r08-lively`: `S01` 2442ms, `S02` 2180ms, `S03` 1978ms, `S04` 1330ms, `S05` 1631ms, `S06` 1283ms; `overflow: false`, `errors: []` across all 6 captures.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.

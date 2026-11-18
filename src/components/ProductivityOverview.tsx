@@ -13,11 +13,13 @@ import {
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
+  AnimatedContent,
   Aurora,
   BlurText,
   BorderGlow,
   CardSwap,
   CountUp,
+  Counter,
   DecryptedText,
   Dock,
   DotGrid,
@@ -25,11 +27,15 @@ import {
   Folder,
   GlareHover,
   GradientText,
+  LineWaves,
   MagicBento,
   Magnet,
+  RotatingText,
+  ScrollVelocity,
   ShinyText,
   SpotlightCard,
   TextType,
+  TiltedCard,
 } from '../lib/reactbits';
 
 const SHORTCUTS = [
@@ -201,29 +207,29 @@ export const ProductivityOverview: React.FC = () => {
       >
         <div className="absolute inset-0">
           <DotGrid
-            dotSize={2}
-            gap={26}
-            baseColor={isDark ? '#1B2030' : '#D5D9E4'}
+            dotSize={2.5}
+            gap={24}
+            baseColor={isDark ? '#1E2436' : '#CDD2DF'}
             activeColor="#E74004"
-            opacity={isDark ? 0.45 : 0.28}
-            glow={0.25}
-            swell={0.45}
-            clickShock={false}
+            opacity={isDark ? 0.65 : 0.4}
+            glow={0.6}
+            swell={1.0}
+            clickShock
           />
         </div>
         <Aurora
-          colorStops={['#E74004', '#C97A04', '#14A4FC']}
-          amplitude={0.45}
-          blend={0.55}
-          speed={0.4}
-          height={0.38}
-          opacity={isDark ? 0.22 : 0.08}
+          colorStops={['#E74004', '#F4C46C', '#14A4FC']}
+          amplitude={0.85}
+          blend={0.62}
+          speed={0.85}
+          height={0.48}
+          opacity={isDark ? 0.42 : 0.14}
           lightMode={!isDark}
         />
       </div>
 
-      {/* Centered Cron + Linear Hero Framed Cleanly Within 844px (Zero Eyebrow Pill) */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pt-10 pb-8 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
+      {/* Centered Cron + Linear Hero Framed Cleanly Above the Fold (Zero Eyebrow Pill) */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pt-11 pb-10 flex flex-col items-center justify-center gap-7 text-center">
         <div className="flex flex-col items-center pt-1">
           <h1
             className="font-extrabold tracking-tight leading-[1.02] max-w-4xl flex flex-col items-center"
@@ -258,9 +264,25 @@ export const ProductivityOverview: React.FC = () => {
             </GradientText>
           </h1>
 
-          <p className="mt-4 text-[16px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl">
-            Time-blocking calendar, natural-language task lists, Kanban, Pomodoro sprints, and habits in one workspace.
-          </p>
+          <div className="mt-4 text-[16px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
+            <span>One unified workspace built around</span>
+            <RotatingText
+              texts={[
+                'Time-Blocking Calendars',
+                'Natural-Language Tasks',
+                'Pomodoro Sprints',
+                '7-Day Habit Streaks',
+                '.ics Ownership',
+              ]}
+              effect="flip"
+              rotationInterval={2200}
+              staggerDuration={0.015}
+              splitBy="words"
+              highlight
+              highlightColor="#E74004"
+              mainClassName="px-2.5 py-0.5 rounded-md text-[13.5px] font-semibold"
+            />
+          </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
             <Magnet padding={36} magnetStrength={4}>
@@ -290,32 +312,43 @@ export const ProductivityOverview: React.FC = () => {
           </div>
         </div>
 
-        {/* Richly Illuminated Framed Studio Showcase wrapped with React Bits BorderGlow */}
-        <BorderGlow
-          className="mt-7 w-full max-w-5xl"
-          colors={['#E74004', '#F4C46C', '#14A4FC']}
-          glowColor="18 92 52"
-          backgroundColor="var(--bg-surface)"
-          borderRadius={16}
-          glowRadius={36}
-          glowIntensity={isDark ? 0.65 : 0.3}
-          fillOpacity={0.28}
-        >
-          <div
+        {/* Floating 3D TiltedCard + Animated BorderGlow Live Studio Showcase */}
+        <div className="w-full max-w-5xl">
+          <TiltedCard
+            containerWidth="100%"
+            containerHeight="382px"
+            imageWidth="100%"
+            imageHeight="382px"
+            rotateAmplitude={4.5}
+            scaleOnHover={1.015}
+            glare={0.28}
+            floating
+            flipOnClick={false}
+            showTooltip={false}
+            radius={16}
+            altText="Open Live Studio calendar workspace"
             onClick={() => setActiveTab('planner')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') setActiveTab('planner');
-            }}
-            className="relative w-full rounded-2xl border bg-[var(--bg-surface)] overflow-hidden text-left cursor-pointer"
-            style={{
-              borderColor: 'var(--rule-strong)',
-              boxShadow: isDark
-                ? '0 32px 80px rgba(0, 0, 0, 0.72), 0 0 80px -22px rgba(231, 64, 4, 0.22), inset 0 1px 0 rgba(255,255,255,0.12)'
-                : 'var(--shadow-panel)',
-            }}
           >
+            <BorderGlow
+              animated
+              className="w-full h-full"
+              colors={['#E74004', '#F4C46C', '#14A4FC']}
+              glowColor="18 92 52"
+              backgroundColor="var(--bg-surface)"
+              borderRadius={16}
+              glowRadius={36}
+              glowIntensity={isDark ? 0.72 : 0.35}
+              fillOpacity={0.28}
+            >
+              <div
+                className="relative w-full h-full rounded-2xl border bg-[var(--bg-surface)] overflow-hidden text-left cursor-pointer"
+                style={{
+                  borderColor: 'var(--rule-strong)',
+                  boxShadow: isDark
+                    ? '0 32px 80px rgba(0, 0, 0, 0.72), 0 0 80px -22px rgba(231, 64, 4, 0.22), inset 0 1px 0 rgba(255,255,255,0.12)'
+                    : 'var(--shadow-panel)',
+                }}
+              >
             {/* Window Chrome */}
             <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/75">
               <div className="flex items-center gap-2">
@@ -452,7 +485,10 @@ export const ProductivityOverview: React.FC = () => {
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                     <span>Deep Focus</span>
-                    <span className="font-mono-num text-[var(--accent-primary)]">25:00</span>
+                    <span className="inline-flex items-center font-mono-num text-[var(--accent-primary)]">
+                      <Counter value={25} minDigits={2} fontSize={12} fontWeight={700} textColor="var(--accent-primary)" />
+                      <span>:00</span>
+                    </span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-2 border border-[var(--rule-hairline)]">
                     <div className="text-[11px] font-medium text-[var(--ink-primary)]">
@@ -491,38 +527,66 @@ export const ProductivityOverview: React.FC = () => {
               />
             </div>
           </div>
-        </BorderGlow>
+            </BorderGlow>
+          </TiltedCard>
+        </div>
       </section>
 
       {/* 4-Stat Live Telemetry Strip with React Bits CountUp & FadeContent */}
       <section className="max-w-6xl mx-auto px-6 sm:px-10 py-14 border-y">
         <FadeContent duration={0.4} threshold={0.02}>
-          <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10">
-            {metrics.map((m) => (
-              <li key={m.label}>
-                <p
-                  className="font-display font-bold leading-none tracking-tight tabular-nums"
-                  style={{ fontSize: 'clamp(2.4rem, 5vw, 3.4rem)' }}
-                >
-                  <CountUp to={m.value} duration={0.85} />
-                </p>
-                <p className="mt-3 text-[13px] text-[var(--ink-secondary)]">{m.label}</p>
-              </li>
-            ))}
-          </ul>
+          <AnimatedContent
+            container="#overview-scroll"
+            distance={14}
+            duration={0.38}
+            stagger={0.05}
+            ease="back.out(1.2)"
+          >
+            <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10">
+              {metrics.map((m) => (
+                <li key={m.label}>
+                  <p
+                    className="font-display font-bold leading-none tracking-tight tabular-nums"
+                    style={{ fontSize: 'clamp(2.4rem, 5vw, 3.4rem)' }}
+                  >
+                    <CountUp to={m.value} duration={0.85} />
+                  </p>
+                  <p className="mt-3 text-[13px] text-[var(--ink-secondary)]">{m.label}</p>
+                </li>
+              ))}
+            </ul>
+          </AnimatedContent>
         </FadeContent>
       </section>
 
+      {/* Kinetic Feature Ticker Marquee */}
+      <div className="border-b py-3.5 bg-[var(--bg-surface)]/50 overflow-hidden select-none">
+        <ScrollVelocity
+          texts={[
+            '15m Snap Timeline · Natural-Language Capture · Kanban & Matrix · ',
+            'Pomodoro Sprint Engine · 7-Day Habit Streaks · .ics Ownership · ',
+          ]}
+          velocity={48}
+          numCopies={4}
+          fadeEdges
+          pauseOnHover
+          outlineAlternate
+          className="font-display font-bold tracking-tight text-[19px] sm:text-[22px] px-2 text-[var(--ink-secondary)] opacity-75"
+        />
+      </div>
+
       {/* MagicBento Interactive Feature Grid */}
       <section id="overview-features" className="max-w-6xl mx-auto px-6 sm:px-10 py-16 border-b space-y-8">
-        <div>
-          <h2 className="font-display font-bold text-[30px] tracking-tight">
-            Built so every minute and every commitment shares one source of truth
-          </h2>
-          <p className="text-[14px] text-[var(--ink-secondary)] mt-1.5">
-            Select any tile to jump directly into the live tool inside Cadence Studio.
-          </p>
-        </div>
+        <AnimatedContent container="#overview-scroll" distance={18} duration={0.4} ease="power2.out">
+          <div>
+            <h2 className="font-display font-bold text-[30px] tracking-tight">
+              Built so every minute and every commitment shares one source of truth
+            </h2>
+            <p className="text-[14px] text-[var(--ink-secondary)] mt-1.5">
+              Select any tile to jump directly into the live tool inside Cadence Studio.
+            </p>
+          </div>
+        </AnimatedContent>
 
         <MagicBento
           items={bentoItems}
@@ -534,16 +598,28 @@ export const ProductivityOverview: React.FC = () => {
           glowColor="231, 64, 4"
           enableSpotlight
           enableBorderGlow
-          enableStars={false}
-          enableTilt={false}
+          enableStars
+          enableTilt
           clickEffect
           intro={false}
         />
       </section>
 
-      {/* Interactive Workspace Spaces (Folder) + Workflow Card Deck (CardSwap) */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-16 border-b">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      {/* Interactive Workspace Spaces (Folder) + Workflow Card Deck (CardSwap) with LineWaves Backdrop */}
+      <section className="relative overflow-hidden border-b">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+          <LineWaves
+            color1="#E74004"
+            color2="#F4C46C"
+            color3="#14A4FC"
+            speed={0.42}
+            lineCount={40}
+            opacity={isDark ? 0.22 : 0.08}
+            lightMode={!isDark}
+          />
+        </div>
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-6 space-y-6">
             <div>
               <h2 className="font-display font-bold text-[26px] tracking-tight">
@@ -661,6 +737,7 @@ export const ProductivityOverview: React.FC = () => {
                 </div>
               </SpotlightCard>
             </CardSwap>
+          </div>
           </div>
         </div>
       </section>
