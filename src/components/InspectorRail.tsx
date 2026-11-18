@@ -319,11 +319,13 @@ export const InspectorRail: React.FC = () => {
                       onChange={(e) => updateEvent(selectedEvent.id, { durationMinutes: Number(e.target.value) })}
                       className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] text-[11.5px]"
                     >
-                      {[30, 45, 60, 90, 120, 135, 180].map((m) => (
-                        <option key={m} value={m} className="bg-[var(--bg-surface)]">
-                          {m} min
-                        </option>
-                      ))}
+                      {Array.from(new Set([15, 30, 45, 60, 90, 120, 135, 150, 180, selectedEvent.durationMinutes]))
+                        .sort((a, b) => a - b)
+                        .map((m) => (
+                          <option key={m} value={m} className="bg-[var(--bg-surface)]">
+                            {m} min
+                          </option>
+                        ))}
                     </select>
                   </label>
                 </div>

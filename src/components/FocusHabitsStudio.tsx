@@ -314,10 +314,20 @@ export const FocusHabitsStudio: React.FC = () => {
                       <th className="py-2 pr-3 font-medium">Habit</th>
                       {last7Days.map((dKey) => {
                         const d = new Date(`${dKey}T00:00:00`);
+                        const isToday = dKey === todayKey;
                         return (
                           <th key={dKey} className="py-2 px-1 text-center font-medium">
-                            <div>{WEEKDAY_TWO[d.getDay()]}</div>
-                            <div className={dKey === todayKey ? 'text-[var(--accent-primary)] font-bold' : ''}>
+                            <div style={{ color: isToday ? 'var(--accent-primary)' : 'var(--ink-secondary)' }}>
+                              {WEEKDAY_TWO[d.getDay()]}
+                            </div>
+                            <div
+                              className="mt-0.5 mx-auto w-5 h-5 rounded flex items-center justify-center"
+                              style={{
+                                backgroundColor: isToday ? 'var(--accent-primary)' : 'transparent',
+                                color: isToday ? '#FFFFFF' : 'var(--ink-primary)',
+                                fontWeight: isToday ? 700 : 500,
+                              }}
+                            >
                               {d.getDate()}
                             </div>
                           </th>
@@ -334,7 +344,14 @@ export const FocusHabitsStudio: React.FC = () => {
                         if (h.history[addDays(todayKey, -i)]) streak++;
                         else if (i > 0) break;
                       }
-                      const pillColor = h.category === 'health' ? '#149E56' : 'var(--accent-primary)';
+                      const pillColor =
+                        h.category === 'health'
+                          ? '#149E56'
+                          : h.category === 'craft'
+                            ? '#0B8CE0'
+                            : h.category === 'mindset'
+                              ? '#C97A04'
+                              : 'var(--accent-primary)';
 
                       return (
                         <tr key={h.id} className="group hover:bg-[var(--bg-hover)]/35">
@@ -494,7 +511,7 @@ export const FocusHabitsStudio: React.FC = () => {
 
               <ul className="divide-y pt-1">
                 {snapshot.focusHistory.slice(0, 5).map((s) => (
-                  <li key={s.id} className="py-3 flex items-center justify-between gap-3 text-[12.5px]">
+                  <li key={s.id} className="py-2.5 flex items-center justify-between gap-3 text-[12.5px]">
                     <div className="min-w-0">
                       <p className="font-medium text-[var(--ink-primary)] leading-snug">{s.taskTitle}</p>
                       <p className="text-[11px] font-mono-num text-[var(--ink-muted)] mt-0.5">{s.date}</p>

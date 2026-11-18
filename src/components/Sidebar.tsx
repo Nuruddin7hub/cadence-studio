@@ -86,7 +86,7 @@ export const Sidebar: React.FC = () => {
   const unscheduledQueue = useMemo(() => {
     return snapshot.tasks
       .filter((t) => !t.completed && !t.scheduledDate)
-      .slice(0, 3);
+      .slice(0, 2);
   }, [snapshot.tasks]);
 
   const smartLists: {
@@ -122,12 +122,12 @@ export const Sidebar: React.FC = () => {
       : WEEKDAY_TWO;
 
   const content = (
-    <div className="h-full flex flex-col overflow-y-auto px-2.5 py-2.5 pb-6 space-y-3 text-[12px]">
-      {/* Mini Calendar (Cron style) */}
+    <div className="h-full flex flex-col overflow-y-auto px-2.5 py-2.5 pb-4 space-y-2.5 text-[12px]">
+      {/* Mini Calendar (Cron style, clean single-line header) */}
       <section aria-label="Mini calendar">
-        <div className="flex items-center justify-between px-1 mb-2">
-          <span className="font-display font-semibold text-[13px] text-[var(--ink-primary)]">
-            {MONTH_NAMES[activeMonth]} {activeYear}
+        <div className="flex items-center justify-between px-1 mb-1.5 gap-1">
+          <span className="font-display font-semibold text-[13px] text-[var(--ink-primary)] whitespace-nowrap">
+            {MONTH_NAMES[activeMonth].slice(0, 3)} {activeYear}
           </span>
           <div className="flex items-center gap-0.5">
             <button

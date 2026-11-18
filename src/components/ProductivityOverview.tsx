@@ -39,24 +39,13 @@ export const ProductivityOverview: React.FC = () => {
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-[var(--bg-canvas)] studio-spotlight-dark">
-      {/* Centered Cron + Linear Inspired Hero Framed Cleanly Within 844px */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-8 pb-8 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
-        <div className="flex flex-col items-center">
-          <button
-            type="button"
-            onClick={() => setActiveTab('planner')}
-            className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-[12px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--bg-surface)]/85 mb-5 transition-colors"
-            style={{ borderColor: 'var(--rule-strong)' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-            <span>Cadence Studio · Unified Calendar & To-Do</span>
-            <ArrowRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-          </button>
-
+      {/* Centered Cron + Linear Inspired Hero Framed Cleanly Within Viewport (Zero Eyebrow Pill) */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-10 pb-8 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
+        <div className="flex flex-col items-center pt-1">
           <h1
             className="font-display font-extrabold tracking-tight leading-[1.0] max-w-4xl"
             style={{
-              fontSize: 'clamp(2.6rem, 5.2vw, 4.45rem)',
+              fontSize: 'clamp(2.45rem, 4.35vw, 3.85rem)',
               letterSpacing: '-0.035em',
               background: isDark
                 ? 'linear-gradient(180deg, #FFFFFF 45%, #A6AEBC 100%)'
@@ -70,11 +59,11 @@ export const ProductivityOverview: React.FC = () => {
             Finally in one studio.
           </h1>
 
-          <p className="mt-3.5 text-[15.5px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl">
+          <p className="mt-4 text-[16px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl">
             Time-blocking calendar, natural-language task lists, Kanban, Pomodoro sprints, and habits in one workspace.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
             <button
               type="button"
               onClick={() => setActiveTab('planner')}
@@ -89,7 +78,7 @@ export const ProductivityOverview: React.FC = () => {
               onClick={() => setCommandOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13.5px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-surface)]/70 transition-colors"
             >
-              <span>Command Bar (Ctrl+K)</span>
+              <span>Command Bar (⌘K)</span>
             </button>
           </div>
         </div>
@@ -154,15 +143,15 @@ export const ProductivityOverview: React.FC = () => {
               </div>
             </div>
 
-            {/* Center Time-Blocked Timeline with Authentic Hour Gridlines & Proportional Blocks */}
-            <div className="md:col-span-6 p-3.5 bg-[var(--bg-canvas)]/80 relative flex flex-col">
+            {/* Center Time-Blocked Timeline with Authentic Hour Gridlines & Vertical Day Rules */}
+            <div className="md:col-span-6 p-3.5 bg-[var(--bg-canvas)]/85 relative flex flex-col">
               <div className="grid grid-cols-3 gap-2.5 pb-2 border-b text-[11px] font-semibold">
-                <div className="text-[var(--ink-secondary)] pl-7">Tue 17</div>
+                <div className="text-[var(--ink-secondary)] pl-8">Tue 17</div>
                 <div className="text-[var(--accent-primary)]">Wed 18 · Today</div>
                 <div className="text-[var(--ink-secondary)]">Thu 19</div>
               </div>
 
-              <div className="relative flex-1 mt-1 pl-7">
+              <div className="relative flex-1 mt-1 pl-8">
                 {/* Faint hour lines */}
                 {[
                   { label: '9 AM', top: '4%' },
@@ -175,52 +164,54 @@ export const ProductivityOverview: React.FC = () => {
                     className="absolute left-0 right-0 flex items-center pointer-events-none"
                     style={{ top: line.top }}
                   >
-                    <span className="w-7 text-[9px] font-mono-num text-[var(--ink-muted)]">{line.label}</span>
+                    <span className="w-8 text-[9px] font-mono-num text-[var(--ink-secondary)] opacity-75">
+                      {line.label}
+                    </span>
                     <div className="flex-1 border-t border-[var(--rule-hairline)]" />
                   </div>
                 ))}
 
                 {/* Current time indicator */}
-                <div className="absolute left-7 right-0 top-[34%] flex items-center z-20 pointer-events-none">
+                <div className="absolute left-8 right-0 top-[34%] flex items-center z-20 pointer-events-none">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] -ml-0.5" />
                   <div className="flex-1 h-[1.5px] bg-[var(--accent-primary)]" />
                 </div>
 
-                {/* 3 Day Columns */}
-                <div className="grid grid-cols-3 gap-2.5 h-full relative z-10">
-                  <div className="relative h-full">
-                    <div className="absolute inset-x-0 top-[8%] h-[28%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">9:30 AM</div>
+                {/* 3 Day Columns with clean subtle column hairlines */}
+                <div className="grid grid-cols-3 gap-2.5 h-full relative z-10 border-l border-[var(--rule-hairline)] pl-1.5">
+                  <div className="relative h-full border-r border-[var(--rule-hairline)] pr-1.5">
+                    <div className="absolute inset-x-0 right-1.5 top-[8%] h-[28%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">9:30 AM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Q4 Roadmap Sync</div>
                     </div>
-                    <div className="absolute inset-x-0 top-[56%] h-[32%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">1:30 PM</div>
+                    <div className="absolute inset-x-0 right-1.5 top-[56%] h-[32%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">1:30 PM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Ship NLP Parser</div>
                     </div>
                   </div>
 
-                  <div className="relative h-full">
-                    <div className="absolute inset-x-0 top-[4%] h-[36%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.12)]" style={{ borderLeftColor: '#E74004' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">9:00 AM</div>
+                  <div className="relative h-full border-r border-[var(--rule-hairline)] pr-1.5 bg-[rgba(231,64,4,0.025)] rounded-sm">
+                    <div className="absolute inset-x-0 right-1.5 top-[4%] h-[36%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.12)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">9:00 AM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Unified Timeline UI</div>
                     </div>
-                    <div className="absolute inset-x-0 top-[44%] h-[22%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">12:00 PM</div>
+                    <div className="absolute inset-x-0 right-1.5 top-[44%] h-[22%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">12:00 PM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Design Review</div>
                     </div>
-                    <div className="absolute inset-x-0 top-[70%] h-[26%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">2:30 PM</div>
+                    <div className="absolute inset-x-0 right-1.5 top-[70%] h-[26%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">2:30 PM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Analytics Curves</div>
                     </div>
                   </div>
 
                   <div className="relative h-full">
                     <div className="absolute inset-x-0 top-[14%] h-[24%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">10:00 AM</div>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">10:00 AM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Arch Walkthrough</div>
                     </div>
                     <div className="absolute inset-x-0 top-[52%] h-[34%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">1:00 PM</div>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">1:00 PM</div>
                       <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Cmd+K Shortcuts</div>
                     </div>
                   </div>
@@ -233,25 +224,33 @@ export const ProductivityOverview: React.FC = () => {
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                   <span>Deep Focus</span>
-                  <span className="font-mono-num text-[var(--accent-amber)]">25:00</span>
+                  <span className="font-mono-num text-[var(--accent-primary)]">25:00</span>
                 </div>
-                <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-1.5">
+                <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-2 border border-[var(--rule-hairline)]">
                   <div className="text-[11px] font-medium text-[var(--ink-primary)]">
                     Timeline drag & 15m snap
                   </div>
                   <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
                     <div className="h-full w-2/3 rounded-full bg-[var(--accent-primary)]" />
                   </div>
+                  <div className="flex items-center justify-between text-[10px] font-mono-num text-[var(--ink-secondary)]">
+                    <span>Sprint 2 of 4</span>
+                    <span>50 / 120m</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-3 border-t">
-                <div className="text-[11px] font-medium text-[var(--ink-muted)]">Habit streaks</div>
-                <div className="flex items-center justify-between text-[11.5px]">
+              <div className="space-y-1.5 pt-2.5 border-t border-[var(--rule-hairline)]">
+                <div className="text-[11px] font-medium text-[var(--ink-secondary)]">Habit streaks</div>
+                <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
                   <span>2h Deep Work</span>
-                  <span className="font-mono-num text-[var(--accent-emerald)]">2d</span>
+                  <span className="font-mono-num text-[var(--accent-primary)]">2d</span>
                 </div>
-                <div className="flex items-center justify-between text-[11.5px]">
+                <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
+                  <span>Inbox Zero</span>
+                  <span className="font-mono-num text-[var(--accent-sky)]">1d</span>
+                </div>
+                <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
                   <span>Movement Session</span>
                   <span className="font-mono-num text-[var(--accent-emerald)]">2d</span>
                 </div>

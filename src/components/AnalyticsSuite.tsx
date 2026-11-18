@@ -259,7 +259,7 @@ export const AnalyticsSuite: React.FC = () => {
               </div>
             </div>
 
-            <div className="pl-9 pt-4">
+            <div className="pl-9 pt-5">
               <div className="relative h-40">
                 {/* Exact Mathematical Percentage Y-Axis Guide Lines */}
                 <div className="absolute inset-0 pointer-events-none">
@@ -271,7 +271,7 @@ export const AnalyticsSuite: React.FC = () => {
                         className="absolute left-0 right-0 flex items-center"
                         style={{ bottom: `${bottomPct}%` }}
                       >
-                        <span className="-ml-9 w-7 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)] translate-y-1/2">
+                        <span className="-ml-9 w-7 text-right font-mono-num text-[10.5px] text-[var(--ink-secondary)] opacity-80 translate-y-1/2">
                           {tick}h
                         </span>
                         <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)] ml-2" />
@@ -285,19 +285,21 @@ export const AnalyticsSuite: React.FC = () => {
                     const totalPct = Math.min(100, (bar.totalHours / maxDayHours) * 100);
                     const deepPct = Math.min(100, (bar.deepHours / maxDayHours) * 100);
                     return (
-                      <div key={bar.date} className="flex flex-col items-center h-full justify-end">
-                        <span className="mb-1 font-mono-num text-[10.5px] font-medium text-[var(--ink-primary)]">
-                          {bar.totalHours}h
-                        </span>
+                      <div key={bar.date} className="relative flex flex-col items-center h-full justify-end">
                         <div
                           className="w-full max-w-[38px] rounded-t-md relative transition-all"
                           style={{
                             height: `${totalPct}%`,
                             minHeight: bar.totalHours > 0 ? '4px' : '0px',
-                            backgroundColor: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(15,23,42,0.16)',
-                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
+                            backgroundColor: isDark ? 'rgba(148,163,184,0.34)' : 'rgba(15,23,42,0.18)',
+                            boxShadow: isDark
+                              ? 'inset 0 1px 0 rgba(255,255,255,0.22)'
+                              : 'inset 0 1px 0 rgba(255,255,255,0.6)',
                           }}
                         >
+                          <span className="absolute -top-5 left-1/2 -translate-x-1/2 font-mono-num text-[10.5px] font-medium text-[var(--ink-primary)] whitespace-nowrap">
+                            {bar.totalHours}h
+                          </span>
                           {bar.deepHours > 0 && (
                             <div
                               className="absolute bottom-0 left-0 right-0 rounded-t-sm"
@@ -346,9 +348,9 @@ export const AnalyticsSuite: React.FC = () => {
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${Math.max(5, Math.round((item.hours / maxCatHours) * 100))}%`,
-                        backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : 'var(--ink-secondary)',
-                        opacity: item.cat === 'deep' ? 1 : 0.72,
+                        width: `${Math.max(6, Math.round((item.hours / maxCatHours) * 100))}%`,
+                        backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : '#8E99AB',
+                        opacity: item.cat === 'deep' ? 1 : 0.78,
                       }}
                     />
                   </div>

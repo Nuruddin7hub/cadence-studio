@@ -41,8 +41,8 @@ html.light {
   --bg-hover: #eceef1;
   --bg-inset: #f6f6f8;
   --ink-primary: #0f1115;
-  --ink-secondary: #48505e;
-  --ink-muted: #646e7d;
+  --ink-secondary: #404856;
+  --ink-muted: #525c6b;
   --rule-hairline: rgba(15, 23, 42, 0.065);
   --rule-strong: rgba(15, 23, 42, 0.13);
   --surface-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.95);

@@ -252,7 +252,7 @@ export const CalendarView: React.FC = () => {
                   key={m.id}
                   type="button"
                   onClick={() => setCalendarMode(m.id)}
-                  className="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1 rounded-md text-[11.5px] sm:text-[12px] font-medium transition-colors whitespace-nowrap"
+                  className="flex-1 sm:flex-initial px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md text-[11.5px] sm:text-[12px] font-medium transition-colors whitespace-nowrap"
                   style={{
                     backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
                     color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
@@ -280,15 +280,15 @@ export const CalendarView: React.FC = () => {
       {/* TIME GRID VIEWS */}
       {showTimeGrid && (
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Opaque Sticky Day Headers */}
+          {/* Opaque Sticky Day Headers aligned to scrollable body scrollbar gutter */}
           <div
-            className="grid border-b bg-[var(--bg-surface)] shrink-0 z-30"
+            className="grid border-b bg-[var(--bg-surface)] shrink-0 z-30 md:pr-[6px]"
             style={{
               gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
               borderColor: 'var(--rule-hairline)',
             }}
           >
-            <div className="border-r px-1.5 py-2 flex items-end justify-end gap-1 text-[9.5px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
+            <div className="border-r px-1.5 py-2 pb-2.5 flex items-end justify-end gap-1 text-[9.5px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
               {snapshot.preferences.showSecondaryTz && <span className="hidden sm:inline opacity-75">UTC</span>}
               <span>GMT+8</span>
             </div>
@@ -303,9 +303,17 @@ export const CalendarView: React.FC = () => {
                 <div
                   key={dKey}
                   onClick={() => setSelectedDate(dKey)}
-                  className="border-r last:border-r-0 px-2 py-2 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]/40 bg-[var(--bg-surface)]"
+                  className="border-r last:border-r-0 px-2 py-2 cursor-pointer transition-colors hover:bg-[var(--bg-hover)]/40"
+                  style={{
+                    backgroundColor: isToday
+                      ? isDark
+                        ? 'rgba(231,64,4,0.045)'
+                        : 'rgba(231,64,4,0.035)'
+                      : 'var(--bg-surface)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.075)' : 'rgba(15,23,42,0.07)',
+                  }}
                 >
-                  <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center justify-center gap-1.5">
                     <span
                       className="text-[11.5px] font-medium"
                       style={{ color: isToday ? 'var(--accent-primary)' : 'var(--ink-secondary)' }}
@@ -359,7 +367,7 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Scrollable Hourly Grid */}
-          <div className="flex-1 overflow-y-auto relative pt-3 pb-16 sm:pb-6">
+          <div className="flex-1 overflow-y-scroll relative pt-3 pb-20 sm:pb-6">
             <div
               className="grid relative"
               style={{
@@ -400,9 +408,10 @@ export const CalendarView: React.FC = () => {
                     style={{
                       backgroundColor: isToday
                         ? isDark
-                          ? 'rgba(255,255,255,0.016)'
-                          : 'rgba(231,64,4,0.018)'
+                          ? 'rgba(231,64,4,0.025)'
+                          : 'rgba(231,64,4,0.022)'
                         : 'transparent',
+                      borderColor: isDark ? 'rgba(255,255,255,0.075)' : 'rgba(15,23,42,0.07)',
                     }}
                   >
                     {hours.map((h) => {
@@ -536,15 +545,23 @@ export const CalendarView: React.FC = () => {
                               </button>
                             )}
                             <div className="min-w-0 flex-1">
-                              <div className="text-[11px] font-semibold leading-[1.25] line-clamp-2 flex items-center gap-1">
-                                <span className="truncate">{event.title}</span>
+                              <div
+                                className={`text-[11px] font-semibold leading-[1.22] ${
+                                  height >= 48 ? 'line-clamp-2' : 'truncate'
+                                }`}
+                              >
+                                {event.title}
                                 {!linkedTask && isDone && (
-                                  <Check className="w-3 h-3 text-[var(--accent-emerald)] shrink-0" />
+                                  <Check className="inline-block w-3 h-3 ml-1 text-[var(--accent-emerald)] align-text-bottom" />
                                 )}
                               </div>
-                              {height >= 42 && (
-                                <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-80 font-mono-num truncate">
-                                  <span>{formatMinutes(event.startMinutes, true)}</span>
+                              {height >= 34 && (
+                                <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-85 font-mono-num truncate">
+                                  <span>
+                                    {calendarMode !== 'week' && height >= 92
+                                      ? formatTimeRange(event.startMinutes, event.durationMinutes)
+                                      : formatMinutes(event.startMinutes, true)}
+                                  </span>
                                   {event.videoLink && <Video className="w-2.5 h-2.5 shrink-0" />}
                                   {event.recurrence !== 'none' && <Repeat className="w-2.5 h-2.5 shrink-0" />}
                                 </div>

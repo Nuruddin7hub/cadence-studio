@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [pending Phase 1 completion]
-Best so far: round 04, `cook/stills/r04/`, commit `pending-r04`
+Best so far: round 05, `cook/stills/r05/`, commit `pending-r05`
 
 ## Decisions
 
@@ -199,3 +199,48 @@ Top gaps from critics:
 
 Stop check: bar [no] | floor [yes - 4 rounds completed] | stills approved [no] | final checked [no] -> next round (Round 05 Cook Polish before Phase 2 React Bits)
 Next focus: Delete S05 eyebrow pill & enrich S05 preview time gutter + Deep Focus panel; fix S01 header-body alignment, `line-clamp-2` wrapping, `Nov 2026` single-line sidebar + clean queue fit, default single TZ (`GMT+8`), and S06 45m start times + bottom padding; fix S04 absolute bar labels, brighter slate scheduled bars, exact `25.5h` sum & seeded backlog completions; expand S03 focus log to fill card height cleanly; pin S02 quadrant footers and clean seed copy.
+
+---
+
+## Round 05
+
+Time: 18:06 to 18:14 +08:00 | total elapsed 0.75h
+Usage: not readable
+Focus: Eliminate S05 eyebrow pill, fix S01 header-body scrollbar alignment + line-clamp wrapping, fix S04 exact bar height & 25.5h math, reconcile S03 focus log height & We 18 highlight, and balance S02 quadrants
+
+Changes:
+- Removed S05 eyebrow pill (`BRIEF.md` Rule 19 strict compliance), tightened Hero `<h1>` sizing (`clamp(2.45rem, 4.35vw, 3.85rem)`), aligned `Command Bar (⌘K)` wording, and enriched preview time gutter + `Deep Focus` / `Habit streaks` panels (`src/components/ProductivityOverview.tsx`).
+- Aligned Week header `md:pr-[6px]` with scrollable grid body, centered `Wed [18]` pill + vertical dividers, removed inner `<span className="truncate">` blocking `line-clamp-2` on >=48px events, showed start times on 35m+ blocks (`src/components/CalendarView.tsx`), and added `150` min option to Inspector duration selector (`src/components/InspectorRail.tsx`).
+- Compacted sidebar header (`Nov 2026`) and queue count (`2` items) so `Queue` + `Calendars` fit cleanly at 900px (`src/components/Sidebar.tsx`).
+- Fixed S04 flexbox bar height compression by moving bar value labels (`bottom: 100%` `-top-5`) out of flex flow, brightened scheduled bars & category tracks (`src/components/AnalyticsSuite.tsx`), and balanced seed durations/tasks/sprints so `25.5h` reconciles cleanly to `0.1h` across all panels with 4 focus sprints totaling `150m` (`src/data/seed.ts`).
+- Highlighted `We 18` column and tightened focus log padding in `src/components/FocusHabitsStudio.tsx`, pinned Matrix quick-add footers in `src/components/TasksWorkspace.tsx`, and strengthened light-mode muted contrast (`src/index.css`).
+
+Stills: `cook/stills/r05/` | Side by side: `cook/compare/r05/`
+
+Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Alpha inherit + Beta flash + Gamma pro; mapped `match / hierarchy / craft / discipline / taste`)
+
+| Shot | Match | Hierarchy | Craft | Discipline | Taste | Motion | vs last round |
+|---|---|---|---|---|---|---|---|
+| S01 | 91 | 93 | 90 | 95 | 93 | not scored | +13 / +11 / +14 / +1 / +12 |
+| S02 | 88 | 92 | 92 | 96 | 92 | not scored | +2 / +4 / +7 / +3 / +5 |
+| S03 | 91 | 92 | 94 | 95 | 94 | not scored | +7 / +6 / +11 / +1 / +9 |
+| S04 | 90 | 92 | 90 | 94 | 92 | not scored | +6 / +5 / +9 / +0 / +7 |
+| S05 | 84 | 90 | 87 | 95 | 89 | not scored | +4 / +4 / +8 / +5 / +6 |
+| S06 | 91 | 95 | 91 | 96 | 94 | not scored | +2 / +4 / +3 / +1 / +4 |
+
+Raw critic medians before calibration: identical (calibration offset none).
+
+Measured (command and result):
+- `npm run build`: exited 0 in 4.17s (`dist/assets/index-CLcmm-7T.js` 402.90 kB, `index-efVTJHR9.css` 42.40 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 24 files clean`.
+- `node scripts/render-stills.mjs r05`: S01 1412ms, S02 1395ms, S03 1295ms, S04 1301ms, S05 1417ms, S06 1337ms; overflow `false`, errors `[]`.
+- `python cook/color_check.py`: S01 vs R01 sat `+0.189` bright `-0.040`; S02 vs R04 sat `-0.083` bright `-0.192`; S03 vs R03 sat `-0.004` bright `+0.007`; S04 vs R05 sat `+0.185` bright `+0.036`; S05 vs R01 sat `+0.206` bright `-0.041`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+
+Top gaps from critics:
+1. S05 micro-details: `Today Queue` badge shows `4` beside 5 items (`4 open` clarifies); subtle optical kerning gap before `.` in `Finally in one studio.` (`ml-[-0.04em]`).
+2. S01/S06 current-time dot at `11:30 AM` (`nowMinutes=690`) sits flush against `Deep Work` bottom border & clips left edge (`-ml-0.5` inside `overflow-hidden`); `+ UTC` clearer than `1 TZ`; Inspector `Milestone` pill wraps alone onto row 2.
+3. S02 quadrant card stretch left dark void above pinned quick-add (`items-start` hugs content tighter); S03 duplicate `50m today` subtitle in `Pomodoro Session`; S04 `Other scheduled` legend wording clarity.
+
+Stop check: bar [almost; clean Phase 1 foundation ready for final micro-fix + Phase 2 React Bits Effects] | floor [yes - 5 Cook rounds completed] | stills approved [pending final review] | final checked [pending Phase 2 React Bits]
+Next focus: Apply quick micro-polish items (11:45 AM unclipped time needle, `studio.` kerning, `4 open`, `Other scheduled`, `Pomodoro` subtitle, `items-start` Matrix content fit, `+ UTC` label, `Milestone` wrap) AND layer the full suite of React Bits Effects (`@react-bits/*-JS-CSS`) across Overview, Cards, Typography, Micro controls, and Workspace views.
