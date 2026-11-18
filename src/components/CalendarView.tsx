@@ -361,14 +361,14 @@ export const CalendarView: React.FC = () => {
 
       {/* Scannable Category Spotlight & Live Today Status Strip */}
       <div
-        className="px-3 sm:px-4 py-1.5 border-b flex items-center justify-between gap-3 bg-[var(--bg-surface)]/55 overflow-x-auto no-scrollbar shrink-0"
+        className="px-3 sm:px-4 py-1.5 border-b flex items-center justify-between gap-2 bg-[var(--bg-surface)]/55 overflow-x-auto no-scrollbar shrink-0"
         style={{ borderColor: 'var(--rule-hairline)' }}
       >
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => setCategoryFilter(null)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium border transition-all"
             style={{
               backgroundColor: categoryFilter === null ? 'var(--bg-elevated)' : 'transparent',
               borderColor: categoryFilter === null ? 'var(--rule-strong)' : 'var(--rule-hairline)',
@@ -389,14 +389,14 @@ export const CalendarView: React.FC = () => {
                 key={cat}
                 type="button"
                 onClick={() => setCategoryFilter(active ? null : cat)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all hover:scale-[1.02]"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium border transition-all hover:scale-[1.02]"
                 style={{
                   backgroundColor: active ? (isDark ? meta.bgDark : meta.bgLight) : 'transparent',
                   borderColor: active ? meta.bar : 'var(--rule-hairline)',
                   color: active ? (isDark ? meta.textDark : meta.textLight) : 'var(--ink-secondary)',
                 }}
               >
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: meta.bar }} />
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: meta.bar }} />
                 <span>{meta.label}</span>
                 <span className="font-mono-num text-[10px] opacity-80">{count}</span>
               </button>
@@ -404,12 +404,12 @@ export const CalendarView: React.FC = () => {
           })}
         </div>
 
-        <div className="hidden md:flex items-center gap-3 shrink-0 text-[11.5px]">
+        <div className="hidden md:flex items-center gap-2 shrink-0 text-[11px]">
           {focusRunning && (
             <button
               type="button"
               onClick={() => setFocusCurtainOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10.5px] font-medium transition-colors"
               style={{
                 borderColor: 'rgba(231, 64, 4, 0.45)',
                 backgroundColor: 'rgba(231, 64, 4, 0.14)',
@@ -417,24 +417,23 @@ export const CalendarView: React.FC = () => {
               }}
               title="Open distraction-free Focus Curtain"
             >
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-1.5 w-1.5">
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[var(--accent-primary)]" />
               </span>
               <Flame className="w-3 h-3 text-[var(--accent-primary)]" />
-              <ShinyText text={`Focusing ${focusTimerLabel}`} color="var(--ink-primary)" shineColor="#FFFFFF" speed={2.2} />
+              <ShinyText text={`Focus ${focusTimerLabel}`} color="var(--ink-primary)" shineColor="#FFFFFF" speed={2.2} />
             </button>
           )}
 
-          <div className="flex items-center gap-2 text-[var(--ink-secondary)]">
+          <div className="flex items-center gap-1.5 text-[var(--ink-secondary)]">
             <span className="font-mono-num">
               {selectedDate === todayKey ? 'Today' : SHORT_MONTH_NAMES[selectedDateObj.getMonth()] + ' ' + selectedDateObj.getDate()}:{' '}
               <strong className="text-[var(--ink-primary)] font-semibold">
                 {Math.round((selectedDayBookedMins / 60) * 10) / 10}h
-              </strong>{' '}
-              booked
+              </strong>
             </span>
-            <div className="w-16 h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+            <div className="w-10 h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -443,7 +442,7 @@ export const CalendarView: React.FC = () => {
                 }}
               />
             </div>
-            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] font-mono-num text-[10.5px] text-[var(--ink-secondary)]">
+            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] font-mono-num text-[10px] text-[var(--ink-secondary)]">
               {todayOpenTasks} due
             </span>
           </div>
@@ -723,6 +722,11 @@ export const CalendarView: React.FC = () => {
                         ((linkedTask && activeFocusTaskId === linkedTask.id) ||
                           (!activeFocusTaskId && isToday && event.category === 'deep' && event.id === 'ev-wed-1'));
                       const isDimmed = categoryFilter !== null && event.category !== categoryFilter;
+                      const edgeTone = isFocusLinked
+                        ? 'var(--accent-primary)'
+                        : isDark
+                          ? style.borderDark
+                          : style.borderLight;
 
                       return (
                         <div
@@ -746,15 +750,10 @@ export const CalendarView: React.FC = () => {
                             background: isDark
                               ? `linear-gradient(155deg, ${style.bgDark} 0%, rgba(17, 19, 25, 0.72) 100%)`
                               : `linear-gradient(155deg, ${style.bgLight} 0%, rgba(255, 255, 255, 0.85) 100%)`,
-                            border: `1px solid ${
-                              isFocusLinked
-                                ? 'var(--accent-primary)'
-                                : isDark
-                                  ? style.borderDark
-                                  : style.borderLight
-                            }`,
-                            borderLeftWidth: '3px',
-                            borderLeftColor: style.bar,
+                            borderTop: `1px solid ${edgeTone}`,
+                            borderRight: `1px solid ${edgeTone}`,
+                            borderBottom: `1px solid ${edgeTone}`,
+                            borderLeft: `3px solid ${style.bar}`,
                             color: isDark ? style.textDark : style.textLight,
                             opacity: isDone ? 0.58 : isDimmed ? 0.22 : 1,
                             boxShadow: isFocusLinked

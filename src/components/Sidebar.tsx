@@ -377,7 +377,9 @@ export const Sidebar: React.FC = () => {
                 className="group flex items-start gap-1.5 px-2 py-1.5 rounded-lg border border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all duration-150"
                 style={{
                   backgroundColor: 'var(--bg-elevated)',
-                  borderColor: 'var(--rule-hairline)',
+                  borderTopColor: 'var(--rule-hairline)',
+                  borderRightColor: 'var(--rule-hairline)',
+                  borderBottomColor: 'var(--rule-hairline)',
                   borderLeftColor: pMeta.color,
                 }}
               >
