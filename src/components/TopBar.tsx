@@ -10,6 +10,7 @@ import {
   Menu,
   Moon,
   Plus,
+  Search,
   Share2,
   Sun,
   Timer,
@@ -66,8 +67,11 @@ export const TopBar: React.FC = () => {
     setQuickDraft('');
   };
 
-  // Dedicated clean editorial header on Overview tab (matching Cron R01 & Linear R05)
+  // Dedicated clean editorial header on Overview landing (Cron R01 / Linear R05 craft)
   if (activeTab === 'overview') {
+    const jumpTo = (id: string) => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    };
     return (
       <header
         className="sticky top-0 z-40 h-14 border-b px-4 sm:px-8 flex items-center justify-between gap-4 backdrop-blur-md"
@@ -100,39 +104,39 @@ export const TopBar: React.FC = () => {
             </span>
           </button>
 
-          <div className="flex items-center gap-5 sm:gap-7">
-            <nav className="hidden md:flex items-center gap-6 text-[13px] font-medium text-[var(--ink-secondary)]">
-              {TABS.filter((t) => t.id !== 'overview').map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveTab(t.id)}
-                  className="hover:text-[var(--ink-primary)] transition-colors"
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
+          <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[var(--ink-secondary)]">
+            <button type="button" onClick={() => jumpTo('overview-features')} className="hover:text-[var(--ink-primary)] transition-colors">
+              Features
+            </button>
+            <button type="button" onClick={() => jumpTo('overview-shortcuts')} className="hover:text-[var(--ink-primary)] transition-colors">
+              Shortcuts
+            </button>
+            <button type="button" onClick={() => setActiveTab('tasks')} className="hover:text-[var(--ink-primary)] transition-colors">
+              Tasks & Matrix
+            </button>
+            <button type="button" onClick={() => setActiveTab('analytics')} className="hover:text-[var(--ink-primary)] transition-colors">
+              Analytics
+            </button>
+          </nav>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-                aria-label="Toggle dark or light theme"
-              >
-                {snapshot.preferences.theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('planner')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
-                style={{ backgroundColor: 'var(--accent-primary)' }}
-              >
-                <span>Open Studio</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+              aria-label="Toggle dark or light theme"
+            >
+              {snapshot.preferences.theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('planner')}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
+              style={{ backgroundColor: 'var(--accent-primary)' }}
+            >
+              <span>Open Studio</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </header>
@@ -143,20 +147,22 @@ export const TopBar: React.FC = () => {
     <header
       className="sticky top-0 z-40 h-14 border-b px-3 sm:px-5 flex items-center justify-between gap-3 backdrop-blur-md"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--bg-surface) 94%, transparent)',
         borderColor: 'var(--rule-hairline)',
       }}
     >
       {/* Left: Brand mark & primary views */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <button
-          type="button"
-          onClick={() => setMobileSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-          aria-label="Open workspace sidebar"
-        >
-          <Menu className="w-4 h-4" />
-        </button>
+        {activeTab === 'planner' && (
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+            aria-label="Open workspace sidebar"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
 
         <button
           type="button"
@@ -205,48 +211,65 @@ export const TopBar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Center: Search-First NLP Quick Capture + Cmd+K */}
-      <form
-        onSubmit={handleQuickSubmit}
-        className="hidden sm:flex flex-1 max-w-md relative items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors focus-within:border-[var(--accent-primary)]"
-        style={{
-          backgroundColor: 'var(--bg-inset)',
-          borderColor: 'var(--rule-hairline)',
-        }}
-      >
-        <Plus className="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]" />
-        <input
-          type="text"
-          value={quickDraft}
-          onChange={(e) => setQuickDraft(e.target.value)}
-          placeholder="Quick add: 'Review 2pm 45m !p1 #work'"
-          aria-label="Quick capture task or event"
-          className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
-        />
-        {parsedPreview && (
-          <div className="hidden xl:flex items-center gap-1 shrink-0">
-            {parsedPreview.startMinutes !== undefined && (
-              <span className="px-1.5 py-0.5 rounded text-[10.5px] font-mono-num bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]">
-                {formatMinutes(parsedPreview.startMinutes, true)}
-              </span>
-            )}
-            {parsedPreview.priority && (
-              <span className="px-1.5 py-0.5 rounded text-[10.5px] font-mono-num bg-[var(--accent-amber-soft)] text-[var(--accent-amber)]">
-                {parsedPreview.priority}
-              </span>
-            )}
-          </div>
-        )}
+      {/* Center: Quick capture OR Search button on Tasks view (never duplicates Tasks inline bar!) */}
+      {activeTab === 'tasks' ? (
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          title="Open Command Palette (Ctrl+K / Cmd+K)"
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-mono-num text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] shrink-0"
+          className="hidden sm:flex flex-1 max-w-sm items-center justify-between gap-2 px-3 py-1.5 rounded-lg border text-[12.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)] bg-[var(--bg-inset)] transition-colors"
         >
-          <Command className="w-3 h-3" />
-          <span>K</span>
+          <span className="inline-flex items-center gap-2">
+            <Search className="w-3.5 h-3.5" />
+            <span>Jump to any event, view, or command...</span>
+          </span>
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-mono-num">
+            <Command className="w-3 h-3" />
+            <span>K</span>
+          </span>
         </button>
-      </form>
+      ) : (
+        <form
+          onSubmit={handleQuickSubmit}
+          className="hidden sm:flex flex-1 max-w-md relative items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors focus-within:border-[var(--accent-primary)]"
+          style={{
+            backgroundColor: 'var(--bg-inset)',
+            borderColor: 'var(--rule-hairline)',
+          }}
+        >
+          <Plus className="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]" />
+          <input
+            type="text"
+            value={quickDraft}
+            onChange={(e) => setQuickDraft(e.target.value)}
+            placeholder="Quick add: 'Review 2pm 45m !p1 #work'"
+            aria-label="Quick capture task or event"
+            className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
+          />
+          {parsedPreview && (
+            <div className="hidden xl:flex items-center gap-1 shrink-0">
+              {parsedPreview.startMinutes !== undefined && (
+                <span className="px-1.5 py-0.5 rounded text-[10.5px] font-mono-num bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]">
+                  {formatMinutes(parsedPreview.startMinutes, true)}
+                </span>
+              )}
+              {parsedPreview.priority && (
+                <span className="px-1.5 py-0.5 rounded text-[10.5px] font-mono-num bg-[var(--accent-amber-soft)] text-[var(--accent-amber)]">
+                  {parsedPreview.priority}
+                </span>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setCommandOpen(true)}
+            title="Open Command Palette (Ctrl+K / Cmd+K)"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-mono-num text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] shrink-0"
+          >
+            <Command className="w-3 h-3" />
+            <span>K</span>
+          </button>
+        </form>
+      )}
 
       {/* Right: Availability share, Notifications, Theme toggle */}
       <div className="flex items-center gap-1.5 shrink-0 relative">

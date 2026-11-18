@@ -36,7 +36,6 @@ export const AnalyticsSuite: React.FC = () => {
       return {
         cat,
         label: EVENT_CATEGORY_STYLES[cat].label,
-        color: cat === 'deep' ? '#E74004' : cat === 'meeting' ? '#64748B' : '#475569',
         hours: Math.round((mins / 60) * 10) / 10,
         count,
       };
@@ -71,8 +70,11 @@ export const AnalyticsSuite: React.FC = () => {
       const items = snapshot.tasks.filter((t) => t.listId === list);
       const done = items.filter((t) => t.completed).length;
       const mins = items.filter((t) => !t.completed).reduce((a, t) => a + t.estimatedMinutes, 0);
+      const color =
+        list === 'work' ? '#E74004' : list === 'design' ? '#14A4FC' : list === 'inbox' ? '#848F9F' : '#F4C46C';
       return {
         list,
+        color,
         label:
           list === 'work'
             ? 'Product & Engineering'
@@ -83,6 +85,7 @@ export const AnalyticsSuite: React.FC = () => {
                 : 'Personal & Life',
         total: items.length,
         done,
+        pct: items.length ? Math.round((done / items.length) * 100) : 0,
         remainingMins: mins,
       };
     });
@@ -115,10 +118,12 @@ export const AnalyticsSuite: React.FC = () => {
     pushToast('Exported workspace JSON backup', undefined, false, 'success');
   };
 
+  const isDark = snapshot.preferences.theme === 'dark';
+
   return (
     <div className="flex-1 min-w-0 overflow-y-auto p-5 sm:p-6 space-y-5 bg-[var(--bg-canvas)] studio-spotlight-dark">
       <div className="max-w-7xl mx-auto space-y-5">
-        {/* Header & Consolidated Portability Toolbar */}
+        {/* Header & Restrained Linear-Style Portability Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-bold text-[22px] tracking-tight text-[var(--ink-primary)]">
@@ -133,10 +138,9 @@ export const AnalyticsSuite: React.FC = () => {
             <button
               type="button"
               onClick={handleExportIcs}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white"
-              style={{ backgroundColor: 'var(--accent-primary)' }}
+              className="studio-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>Export .ics</span>
             </button>
 
@@ -180,10 +184,10 @@ export const AnalyticsSuite: React.FC = () => {
           </div>
         </div>
 
-        {/* Restrained Monochrome Linear-Style KPI Row */}
+        {/* Monochrome Obsidian KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Scheduled this week', value: `${stats.scheduledHours}h`, delta: '20 blocks' },
+            { label: 'Scheduled this week', value: `${stats.scheduledHours}h`, delta: `${snapshot.events.length} blocks` },
             {
               label: 'Task completion rate',
               value: `${stats.completionRate}%`,
@@ -216,7 +220,7 @@ export const AnalyticsSuite: React.FC = () => {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Weekly Load with Y-axis Gridlines */}
+          {/* Weekly Load with Dedicated Top Label Row & Visible Track Bars */}
           <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display font-bold text-[15px]">Weekly Load & Deep Focus Balance</h2>
@@ -226,58 +230,76 @@ export const AnalyticsSuite: React.FC = () => {
                   Deep focus
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-[var(--rule-strong)]" />
+                  <span
+                    className="w-2.5 h-2.5 rounded-sm"
+                    style={{ backgroundColor: isDark ? 'rgba(148,163,184,0.34)' : 'rgba(15,23,42,0.18)' }}
+                  />
                   Total scheduled
                 </span>
               </div>
             </div>
 
-            <div className="relative pt-2 pl-8">
-              {/* Horizontal Y-Axis Guide Lines */}
-              <div className="absolute inset-x-0 top-2 bottom-7 pl-8 flex flex-col justify-between pointer-events-none">
-                {[8, 6, 4, 2, 0].map((tick) => (
-                  <div key={tick} className="flex items-center gap-2 w-full">
-                    <span className="-ml-8 w-6 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)]">
-                      {tick}h
-                    </span>
-                    <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)]" />
-                  </div>
+            <div className="pl-9">
+              {/* Top Bar Values Row cleanly ABOVE the 8h axis line */}
+              <div className="grid grid-cols-7 gap-3 pb-2 text-center">
+                {stats.dailyBars.map((bar) => (
+                  <span key={`top-${bar.date}`} className="font-mono-num text-[11px] font-medium text-[var(--ink-secondary)]">
+                    {bar.totalHours}h
+                  </span>
                 ))}
               </div>
 
-              <div className="relative z-10 grid grid-cols-7 gap-3 items-end h-44">
-                {stats.dailyBars.map((bar) => {
-                  const totalPct = Math.min(100, Math.round((bar.totalHours / maxDayHours) * 100));
-                  const deepPct = Math.min(100, Math.round((bar.deepHours / maxDayHours) * 100));
-                  return (
-                    <div key={bar.date} className="flex flex-col items-center gap-1.5 h-full justify-end">
-                      <span className="font-mono-num text-[11px] font-medium text-[var(--ink-secondary)]">
-                        {bar.totalHours}h
+              <div className="relative h-36">
+                {/* Horizontal Y-Axis Guide Lines */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {[8, 6, 4, 2, 0].map((tick) => (
+                    <div key={tick} className="flex items-center gap-2 w-full">
+                      <span className="-ml-9 w-7 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)]">
+                        {tick}h
                       </span>
-                      <div className="w-full max-w-[38px] h-32 rounded-lg bg-[var(--bg-inset)]/80 border relative overflow-hidden flex flex-col justify-end">
-                        <div
-                          className="w-full rounded-t-sm relative"
-                          style={{
-                            height: `${Math.max(4, totalPct)}%`,
-                            backgroundColor: 'var(--rule-strong)',
-                          }}
-                        >
+                      <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)]" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="relative z-10 grid grid-cols-7 gap-3 h-full items-end">
+                  {stats.dailyBars.map((bar) => {
+                    const totalPct = Math.min(100, Math.round((bar.totalHours / maxDayHours) * 100));
+                    const deepPct = Math.min(100, Math.round((bar.deepHours / maxDayHours) * 100));
+                    return (
+                      <div key={bar.date} className="flex flex-col items-center h-full justify-end">
+                        <div className="w-full max-w-[38px] h-full flex items-end">
                           <div
-                            className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                            className="w-full rounded-t-md relative transition-all"
                             style={{
-                              height:
-                                bar.totalHours > 0
-                                  ? `${Math.min(100, Math.round((deepPct / Math.max(1, totalPct)) * 100))}%`
-                                  : '0%',
-                              backgroundColor: 'var(--accent-primary)',
+                              height: `${Math.max(5, totalPct)}%`,
+                              backgroundColor: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(15,23,42,0.16)',
+                              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
                             }}
-                          />
+                          >
+                            {bar.deepHours > 0 && (
+                              <div
+                                className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                                style={{
+                                  height: `${Math.min(100, Math.round((deepPct / Math.max(1, totalPct)) * 100))}%`,
+                                  backgroundColor: 'var(--accent-primary)',
+                                }}
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[12px] font-medium text-[var(--ink-secondary)]">{bar.label}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-3 pt-2 text-center">
+                {stats.dailyBars.map((bar) => (
+                  <span key={`lbl-${bar.date}`} className="text-[12px] font-medium text-[var(--ink-secondary)]">
+                    {bar.label}
+                  </span>
+                ))}
               </div>
             </div>
           </section>
@@ -297,16 +319,16 @@ export const AnalyticsSuite: React.FC = () => {
                   <div className="flex items-center justify-between text-[12.5px]">
                     <span className="font-medium text-[var(--ink-primary)]">{item.label}</span>
                     <span className="font-mono-num text-[var(--ink-secondary)]">
-                      {item.hours}h · {item.count} blocks
+                      {item.hours}h · {item.count} {item.count === 1 ? 'block' : 'blocks'}
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${Math.max(4, Math.round((item.hours / maxCatHours) * 100))}%`,
+                        width: `${Math.max(5, Math.round((item.hours / maxCatHours) * 100))}%`,
                         backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : 'var(--ink-secondary)',
-                        opacity: item.cat === 'deep' ? 1 : 0.65,
+                        opacity: item.cat === 'deep' ? 1 : 0.72,
                       }}
                     />
                   </div>
@@ -316,7 +338,7 @@ export const AnalyticsSuite: React.FC = () => {
           </section>
         </div>
 
-        {/* Lower Telemetry Table (eliminates bottom dead space, inspired by inspo-mcp spec sheet) */}
+        {/* Rich Executive Backlog Table with Progress Bars & Color Indicators */}
         <section className="studio-card rounded-2xl overflow-hidden">
           <div className="px-5 py-3.5 border-b flex items-center justify-between">
             <h2 className="font-display font-bold text-[14.5px]">Project Backlog & Remaining Effort</h2>
@@ -327,17 +349,36 @@ export const AnalyticsSuite: React.FC = () => {
               <thead>
                 <tr className="border-b text-[11.5px] text-[var(--ink-muted)]">
                   <th className="py-2.5 px-5 font-medium">Workspace List</th>
-                  <th className="py-2.5 px-4 font-medium">Completed</th>
-                  <th className="py-2.5 px-4 font-medium">Open Tasks</th>
+                  <th className="py-2.5 px-4 font-medium">Progress</th>
+                  <th className="py-2.5 px-4 font-medium text-right">Completed</th>
+                  <th className="py-2.5 px-4 font-medium text-right">Open Tasks</th>
                   <th className="py-2.5 px-5 text-right font-medium">Queued Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {stats.listBreakdown.map((row) => (
                   <tr key={row.list} className="hover:bg-[var(--bg-hover)]/35 transition-colors">
-                    <td className="py-3 px-5 font-medium text-[var(--ink-primary)]">{row.label}</td>
-                    <td className="py-3 px-4 font-mono-num text-[var(--ink-secondary)]">{row.done}</td>
-                    <td className="py-3 px-4 font-mono-num text-[var(--ink-secondary)]">{row.total - row.done}</td>
+                    <td className="py-3 px-5 font-medium text-[var(--ink-primary)]">
+                      <span className="inline-flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                        <span>{row.label}</span>
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 w-48">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.max(6, row.pct)}%`, backgroundColor: row.color }}
+                          />
+                        </div>
+                        <span className="font-mono-num text-[11px] text-[var(--ink-muted)] w-8 text-right">
+                          {row.pct}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono-num text-[var(--ink-secondary)]">{row.done}</td>
+                    <td className="py-3 px-4 text-right font-mono-num text-[var(--ink-secondary)]">{row.total - row.done}</td>
                     <td className="py-3 px-5 text-right font-mono-num text-[var(--ink-primary)]">
                       {row.remainingMins} min
                     </td>

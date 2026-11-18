@@ -21,7 +21,7 @@ const WorkspaceShell: React.FC = () => {
       <TopBar />
 
       <main className="flex-1 min-h-0 flex overflow-hidden">
-        {(activeTab === 'planner' || activeTab === 'tasks') && <Sidebar />}
+        {activeTab === 'planner' && <Sidebar />}
 
         {activeTab === 'planner' && (
           <>

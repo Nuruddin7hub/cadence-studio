@@ -86,7 +86,7 @@ export const Sidebar: React.FC = () => {
   const unscheduledQueue = useMemo(() => {
     return snapshot.tasks
       .filter((t) => !t.completed && !t.scheduledDate)
-      .slice(0, 4);
+      .slice(0, 3);
   }, [snapshot.tasks]);
 
   const smartLists: {

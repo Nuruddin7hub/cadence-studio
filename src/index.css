@@ -2,18 +2,18 @@
 
 :root,
 html.dark {
-  --bg-canvas: #090a0d;
-  --bg-surface: #101217;
-  --bg-elevated: #161921;
-  --bg-hover: #1d212b;
-  --bg-inset: #07080a;
+  --bg-canvas: #090a0e;
+  --bg-surface: #111319;
+  --bg-elevated: #171a23;
+  --bg-hover: #1f2330;
+  --bg-inset: #0b0d12;
   --ink-primary: #f6f7f9;
   --ink-secondary: #adb6c4;
-  --ink-muted: #848e9f;
+  --ink-muted: #848f9f;
   --rule-hairline: rgba(255, 255, 255, 0.08);
   --rule-strong: rgba(255, 255, 255, 0.16);
-  --surface-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --surface-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.075);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --accent-primary: #e74004;
   --accent-primary-hover: #f2531b;
   --accent-primary-soft: rgba(231, 64, 4, 0.14);
@@ -25,7 +25,7 @@ html.dark {
   --accent-emerald-soft: rgba(44, 204, 116, 0.13);
   --accent-coral: #d9534f;
   --accent-coral-soft: rgba(217, 83, 79, 0.14);
-  --shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.56);
+  --shadow-panel: 0 20px 50px rgba(0, 0, 0, 0.6);
   --color-bg: var(--bg-canvas);
   --color-fg: var(--ink-primary);
   --color-fg-muted: var(--ink-secondary);
@@ -35,22 +35,22 @@ html.dark {
 }
 
 html.light {
-  --bg-canvas: #f7f8fa;
+  --bg-canvas: #fafafb;
   --bg-surface: #ffffff;
-  --bg-elevated: #f1f3f6;
-  --bg-hover: #e9ecf1;
-  --bg-inset: #f2f4f7;
+  --bg-elevated: #f3f4f6;
+  --bg-hover: #eaedf1;
+  --bg-inset: #f4f5f7;
   --ink-primary: #0f1115;
   --ink-secondary: #48505e;
-  --ink-muted: #687282;
-  --rule-hairline: rgba(15, 23, 42, 0.085);
-  --rule-strong: rgba(15, 23, 42, 0.16);
-  --surface-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px -6px rgba(15, 23, 42, 0.05);
+  --ink-muted: #646e7d;
+  --rule-hairline: rgba(15, 23, 42, 0.08);
+  --rule-strong: rgba(15, 23, 42, 0.15);
+  --surface-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -8px rgba(15, 23, 42, 0.07);
   --accent-primary: #e74004;
   --accent-primary-hover: #cf3802;
   --accent-primary-soft: rgba(231, 64, 4, 0.09);
-  --accent-amber: #d6950e;
+  --accent-amber: #b87b06;
   --accent-amber-soft: rgba(214, 149, 14, 0.13);
   --accent-sky: #0b8ce0;
   --accent-sky-soft: rgba(11, 140, 224, 0.1);
@@ -104,14 +104,14 @@ html.light {
 
 .studio-spotlight-dark {
   background-image:
-    radial-gradient(65% 48% at 50% -6%, rgba(231, 64, 4, 0.14), transparent 72%),
-    radial-gradient(40% 35% at 82% 8%, rgba(20, 164, 252, 0.07), transparent 70%);
+    radial-gradient(62% 45% at 50% -4%, rgba(231, 64, 4, 0.16), transparent 72%),
+    radial-gradient(45% 38% at 85% 6%, rgba(20, 164, 252, 0.085), transparent 70%);
 }
 
 html.light .studio-spotlight-dark {
   background-image:
-    radial-gradient(65% 48% at 50% -6%, rgba(231, 64, 4, 0.06), transparent 72%),
-    radial-gradient(40% 35% at 82% 8%, rgba(20, 164, 252, 0.06), transparent 70%);
+    radial-gradient(62% 45% at 50% -4%, rgba(231, 64, 4, 0.045), transparent 72%),
+    radial-gradient(45% 38% at 85% 6%, rgba(20, 164, 252, 0.05), transparent 70%);
 }
 
 ::-webkit-scrollbar {

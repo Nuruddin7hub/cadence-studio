@@ -12,7 +12,7 @@ const SHORTCUTS = [
 ];
 
 export const ProductivityOverview: React.FC = () => {
-  const { snapshot, setActiveTab, setCommandOpen, toggleTheme } = useWorkspace();
+  const { snapshot, setActiveTab, setCommandOpen } = useWorkspace();
 
   const metrics = useMemo(() => {
     const activeTasks = snapshot.tasks.filter((t) => !t.completed).length;
@@ -27,63 +27,68 @@ export const ProductivityOverview: React.FC = () => {
     ];
   }, [snapshot.events.length, snapshot.focusHistory.length, snapshot.habits.length, snapshot.tasks]);
 
-  const previewTasks = snapshot.tasks.slice(0, 4);
+  const previewTasks = snapshot.tasks.slice(0, 5);
+  const isDark = snapshot.preferences.theme === 'dark';
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-[var(--bg-canvas)] studio-spotlight-dark">
-      {/* Centered Cron + Superlist Inspired Hero Complete Within First Viewport (1440x900) */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-10 pb-10 flex flex-col items-center text-center">
-        <button
-          type="button"
-          onClick={() => setActiveTab('planner')}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[12px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--bg-surface)]/80 mb-6 transition-colors"
-          style={{ borderColor: 'var(--rule-strong)' }}
-        >
-          <span>Cadence Studio · Calendar, To-Do & Deep Focus</span>
-          <ArrowRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-        </button>
-
-        <h1
-          className="font-display font-extrabold tracking-tight leading-[1.02] text-[var(--ink-primary)] max-w-4xl"
-          style={{ fontSize: 'clamp(2.6rem, 5.2vw, 4.4rem)', letterSpacing: '-0.035em' }}
-        >
-          Calendar, tasks, and focus.
-          <br />
-          <span style={{ color: 'var(--accent-primary)' }}>Finally in one studio.</span>
-        </h1>
-
-        <p className="mt-4 text-[16px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl">
-          Multi-view time blocking, natural-language task capture, Kanban and Eisenhower prioritization,
-          Pomodoro sprints, habit streaks, and daily notes built into one keyboard-first workspace.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+      {/* Centered Cron + Linear Inspired Hero Sized Cleanly Within 844px (100vh - 56px) */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-9 pb-12 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
+        <div className="flex flex-col items-center">
           <button
             type="button"
             onClick={() => setActiveTab('planner')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
-            style={{ backgroundColor: 'var(--accent-primary)' }}
+            className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-[12px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--bg-surface)]/85 mb-5 transition-colors"
+            style={{ borderColor: 'var(--rule-strong)' }}
           >
-            <span>Open Live Studio</span>
-            <ArrowRight className="w-4 h-4" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+            <span>Cadence Studio · Unified Calendar & To-Do</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
           </button>
-          <button
-            type="button"
-            onClick={() => setCommandOpen(true)}
-            className="studio-card inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-medium hover:bg-[var(--bg-hover)]"
+
+          <h1
+            className="font-display font-extrabold tracking-tight leading-[1.0] max-w-4xl"
+            style={{
+              fontSize: 'clamp(2.5rem, 5vw, 4.3rem)',
+              letterSpacing: '-0.035em',
+              background: isDark
+                ? 'linear-gradient(180deg, #FFFFFF 45%, #A6AEBC 100%)'
+                : 'linear-gradient(180deg, #0F1115 45%, #48505E 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
           >
-            <span>Open Command Bar (Ctrl+K)</span>
-          </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="studio-card inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-          >
-            <span>{snapshot.preferences.theme === 'dark' ? 'Daylight Paper' : 'Obsidian Dark'}</span>
-          </button>
+            Calendar, tasks, and focus.
+            <br />
+            Finally in one studio.
+          </h1>
+
+          <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--ink-secondary)] max-w-xl">
+            Time-blocking calendar, natural-language task lists, Kanban and Eisenhower prioritization,
+            Pomodoro deep work, and habit streaks in one keyboard-first workspace.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('planner')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
+              style={{ backgroundColor: 'var(--accent-primary)' }}
+            >
+              <span>Open Live Studio</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              className="studio-card inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-medium hover:bg-[var(--bg-hover)]"
+            >
+              <span>Command Bar (Ctrl+K)</span>
+            </button>
+          </div>
         </div>
 
-        {/* Framed Interactive Live Workspace Showcase Anchoring Lower Fold (Cron/Morgen/Linear craft) */}
+        {/* Richly Populated Framed Studio + Mobile Companion Showcase (Cron R01 inspiration) */}
         <div
           onClick={() => setActiveTab('planner')}
           role="button"
@@ -91,45 +96,51 @@ export const ProductivityOverview: React.FC = () => {
           onKeyDown={(e) => {
             if (e.key === 'Enter') setActiveTab('planner');
           }}
-          className="mt-9 w-full max-w-5xl rounded-2xl border bg-[var(--bg-surface)] overflow-hidden text-left cursor-pointer transition-transform hover:scale-[1.005]"
+          className="relative mt-7 w-full max-w-5xl rounded-2xl border bg-[var(--bg-surface)] overflow-hidden text-left cursor-pointer"
           style={{
             borderColor: 'var(--rule-strong)',
-            boxShadow: '0 24px 64px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+            boxShadow: isDark
+              ? '0 28px 72px rgba(0, 0, 0, 0.7), 0 0 80px -20px rgba(231, 64, 4, 0.22), inset 0 1px 0 rgba(255,255,255,0.1)'
+              : 'var(--shadow-panel)',
           }}
         >
-          {/* Subtle Chrome Window Strip */}
-          <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/60">
+          {/* Window Chrome */}
+          <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/70">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
               <span className="ml-2 text-[12px] font-medium text-[var(--ink-secondary)]">
-                Wednesday, November 18 · Week 47
+                November 2026 · Week 47 · Wednesday 18
               </span>
             </div>
-            <span className="font-mono-num text-[11px] text-[var(--accent-amber)]">Click to enter workspace →</span>
+            <div className="flex items-center gap-3 text-[11px] font-mono-num text-[var(--ink-muted)]">
+              <span className="hidden sm:inline">25:00 Focus active</span>
+              <span className="text-[var(--accent-primary)] font-medium">Enter live studio →</span>
+            </div>
           </div>
 
-          {/* Crisp Mini Studio Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x">
-            <div className="md:col-span-4 p-4 space-y-2.5 bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between text-[12px] font-semibold text-[var(--ink-secondary)]">
+          {/* 3-Zone Product Showcase */}
+          <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x h-[285px]">
+            {/* Left Task Queue */}
+            <div className="md:col-span-3 p-3.5 space-y-2.5 bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                 <span>Today Queue</span>
-                <span className="font-mono-num text-[11px] text-[var(--accent-primary)]">{previewTasks.length} items</span>
+                <span className="font-mono-num text-[var(--accent-primary)]">4</span>
               </div>
               <div className="space-y-1.5">
                 {previewTasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--bg-elevated)]/70 text-[12px]">
+                  <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg-elevated)]/65 text-[11.5px]">
                     <span
-                      className="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0"
+                      className="w-3 h-3 rounded border flex items-center justify-center shrink-0"
                       style={{
                         borderColor: t.completed ? 'var(--accent-emerald)' : 'var(--accent-primary)',
                         backgroundColor: t.completed ? 'var(--accent-emerald)' : 'transparent',
                       }}
                     >
-                      {t.completed && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                      {t.completed && <Check className="w-2 h-2 text-white stroke-[3]" />}
                     </span>
-                    <span className={`truncate ${t.completed ? 'line-through text-[var(--ink-muted)]' : 'text-[var(--ink-primary)]'}`}>
+                    <span className={`truncate ${t.completed ? 'opacity-50' : 'text-[var(--ink-primary)]'}`}>
                       {t.title}
                     </span>
                   </div>
@@ -137,35 +148,38 @@ export const ProductivityOverview: React.FC = () => {
               </div>
             </div>
 
-            <div className="md:col-span-8 p-4 grid grid-cols-3 gap-2.5 bg-[var(--bg-canvas)]/70">
+            {/* Center Time-Blocked Timeline */}
+            <div className="md:col-span-6 p-3.5 grid grid-cols-3 gap-2.5 bg-[var(--bg-canvas)]/75 relative">
               {[
                 {
                   day: 'Tue 17',
                   blocks: [
-                    { time: '9:30 AM', title: 'Q4 Roadmap Alignment', color: '#14A4FC' },
-                    { time: '1:30 PM', title: 'Ship NLP Quick Parser', color: '#E74004' },
+                    { time: '9:30 AM', title: 'Q4 Roadmap Alignment', color: '#14A4FC', h: 'h-16' },
+                    { time: '1:30 PM', title: 'Ship NLP Quick Parser', color: '#E74004', h: 'h-20' },
+                    { time: '6:00 PM', title: 'Strength Conditioning', color: '#2CCC74', h: 'h-12' },
                   ],
                 },
                 {
                   day: 'Wed 18 · Today',
                   today: true,
                   blocks: [
-                    { time: '9:00 AM', title: 'Deep Work: Unified Timeline', color: '#E74004' },
-                    { time: '12:00 PM', title: 'Design Systems Review', color: '#14A4FC' },
-                    { time: '2:30 PM', title: 'Focus Block: Analytics', color: '#E74004' },
+                    { time: '9:00 AM', title: 'Deep Work: Unified Timeline', color: '#E74004', h: 'h-20' },
+                    { time: '12:00 PM', title: 'Design Systems Review', color: '#14A4FC', h: 'h-14' },
+                    { time: '2:30 PM', title: 'Focus Block: Analytics', color: '#E74004', h: 'h-16' },
                   ],
                 },
                 {
                   day: 'Thu 19',
                   blocks: [
-                    { time: '10:00 AM', title: 'Architecture Walkthrough', color: '#14A4FC' },
-                    { time: '1:00 PM', title: 'Deep Focus: Cmd+K Flows', color: '#E74004' },
+                    { time: '10:00 AM', title: 'Architecture Walkthrough', color: '#14A4FC', h: 'h-16' },
+                    { time: '1:00 PM', title: 'Deep Focus: Cmd+K Flows', color: '#E74004', h: 'h-20' },
+                    { time: '7:00 PM', title: 'Dinner with Sam', color: '#F4C46C', h: 'h-12' },
                   ],
                 },
               ].map((col) => (
-                <div key={col.day} className="space-y-2">
+                <div key={col.day} className="space-y-1.5">
                   <div
-                    className="text-[11.5px] font-semibold pb-1.5 border-b"
+                    className="text-[11px] font-semibold pb-1 border-b"
                     style={{ color: col.today ? 'var(--accent-primary)' : 'var(--ink-secondary)' }}
                   >
                     {col.day}
@@ -174,23 +188,55 @@ export const ProductivityOverview: React.FC = () => {
                     {col.blocks.map((b) => (
                       <div
                         key={b.title}
-                        className="p-2 rounded-md border-l-2 bg-[var(--bg-surface)] text-left"
+                        className={`p-2 rounded-md border-l-2 bg-[var(--bg-surface)] text-left ${b.h}`}
                         style={{ borderLeftColor: b.color }}
                       >
-                        <div className="font-mono-num text-[10px] text-[var(--ink-muted)]">{b.time}</div>
-                        <div className="text-[11.5px] font-medium text-[var(--ink-primary)] truncate">{b.title}</div>
+                        <div className="font-mono-num text-[9.5px] text-[var(--ink-muted)]">{b.time}</div>
+                        <div className="text-[11px] font-medium text-[var(--ink-primary)] line-clamp-2 leading-tight mt-0.5">
+                          {b.title}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Right Focus & Habits Mini-Panel */}
+            <div className="hidden md:flex md:col-span-3 p-3.5 flex-col justify-between bg-[var(--bg-surface)]">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
+                  <span>Deep Focus</span>
+                  <span className="font-mono-num text-[var(--accent-amber)]">25:00</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-1.5">
+                  <div className="text-[11px] font-medium text-[var(--ink-primary)]">
+                    Finalize unified timeline grid
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                    <div className="h-full w-2/3 rounded-full bg-[var(--accent-primary)]" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-3 border-t">
+                <div className="text-[11px] font-medium text-[var(--ink-muted)]">Habit streaks</div>
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span>2h Deep Work</span>
+                  <span className="font-mono-num text-[var(--accent-emerald)]">2d</span>
+                </div>
+                <div className="flex items-center justify-between text-[11.5px]">
+                  <span>Movement Session</span>
+                  <span className="font-mono-num text-[var(--accent-emerald)]">2d</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 4-Stat Live Telemetry Strip */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-14 border-y">
+      {/* 4-Stat Live Telemetry Strip Cleanly Below the Fold */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-16 border-y">
         <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10">
           {metrics.map((m) => (
             <li key={m.label}>
@@ -207,7 +253,7 @@ export const ProductivityOverview: React.FC = () => {
       </section>
 
       {/* Asymmetric Feature Bento Grid */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-20 border-b">
+      <section id="overview-features" className="max-w-6xl mx-auto px-6 sm:px-10 py-20 border-b">
         <div className="mb-10">
           <h2 className="font-display font-bold text-[30px] tracking-tight">
             Built so every minute and every commitment shares one source of truth
@@ -273,7 +319,7 @@ export const ProductivityOverview: React.FC = () => {
       </section>
 
       {/* Keyboard Shortcuts Spec Sheet */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-16">
+      <section id="overview-shortcuts" className="max-w-6xl mx-auto px-6 sm:px-10 py-16">
         <div className="flex items-center gap-2.5 mb-6">
           <Keyboard className="w-5 h-5 text-[var(--accent-primary)]" />
           <h2 className="font-display font-bold text-[22px] tracking-tight">Keyboard Command Reference</h2>

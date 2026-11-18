@@ -162,13 +162,10 @@ export const CalendarView: React.FC = () => {
 
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
   const showTimeGrid = calendarMode !== 'month' && calendarMode !== 'agenda';
-  const nowTopPx = ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
-
-  // Compact single-gutter width on mobile (52px) vs dual-TZ desktop (82px)
-  const gutterCol = snapshot.preferences.showSecondaryTz ? '52px' : '52px';
+  const nowTopPx = ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT + 12;
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-canvas)] overflow-hidden">
+    <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-canvas)] overflow-hidden relative">
       {/* Calendar Header Toolbar */}
       <div
         className="px-3 sm:px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-surface)]"
@@ -201,7 +198,7 @@ export const CalendarView: React.FC = () => {
             </button>
           </div>
 
-          <h2 className="font-display font-bold text-[16px] sm:text-[18px] tracking-tight text-[var(--ink-primary)] truncate">
+          <h2 className="font-display font-bold text-[15.5px] sm:text-[18px] tracking-tight text-[var(--ink-primary)] truncate">
             {headerTitle}
           </h2>
         </div>
@@ -282,18 +279,18 @@ export const CalendarView: React.FC = () => {
 
       {/* TIME GRID VIEWS */}
       {showTimeGrid && (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Opaque Sticky Day Headers */}
           <div
             className="grid border-b bg-[var(--bg-surface)] shrink-0 z-20"
             style={{
-              gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '78px' : gutterCol} repeat(${visibleDates.length}, minmax(0, 1fr))`,
+              gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '74px' : '54px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
               borderColor: 'var(--rule-hairline)',
             }}
           >
-            <div className="border-r px-2 py-2 flex items-end justify-end gap-1.5 text-[10px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
+            <div className="border-r px-1.5 py-2 flex items-end justify-end gap-1 text-[9.5px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
               {snapshot.preferences.showSecondaryTz && <span className="hidden sm:inline opacity-75">UTC</span>}
-              <span>+08</span>
+              <span>GMT+8</span>
             </div>
 
             {visibleDates.map((dKey) => {
@@ -338,11 +335,12 @@ export const CalendarView: React.FC = () => {
                           <button
                             key={ev.id}
                             type="button"
+                            title={ev.title}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelection({ type: 'event', id: ev.id });
                             }}
-                            className="w-full text-left px-1.5 py-0.5 rounded text-[11px] font-medium truncate border-l-2"
+                            className="w-full text-left px-1.5 py-0.5 rounded text-[10.5px] font-medium truncate border-l-2"
                             style={{
                               backgroundColor: isDark ? style.bgDark : style.bgLight,
                               borderLeftColor: style.bar,
@@ -361,23 +359,23 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Scrollable Hourly Grid */}
-          <div className="flex-1 overflow-y-auto relative">
+          <div className="flex-1 overflow-y-auto relative pb-16 sm:pb-6">
             <div
-              className="grid relative pt-2"
+              className="grid relative pt-3"
               style={{
-                gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '78px' : gutterCol} repeat(${visibleDates.length}, minmax(0, 1fr))`,
-                height: `${hours.length * HOUR_HEIGHT + 8}px`,
+                gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '74px' : '54px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
+                height: `${hours.length * HOUR_HEIGHT + 16}px`,
               }}
             >
               {/* Time Gutter */}
-              <div className="border-r relative bg-[var(--bg-surface)]/30">
+              <div className="border-r relative bg-[var(--bg-surface)]/25">
                 {hours.map((h) => (
                   <div
                     key={h}
-                    className="relative pr-2 flex items-start justify-end text-[10.5px] font-mono-num text-[var(--ink-muted)]"
+                    className="relative pr-2 flex items-start justify-end text-[10px] font-mono-num text-[var(--ink-muted)]"
                     style={{ height: `${HOUR_HEIGHT}px` }}
                   >
-                    <span className="-translate-y-2 flex items-center gap-1.5">
+                    <span className="-translate-y-2 flex items-center gap-1">
                       {snapshot.preferences.showSecondaryTz && (
                         <span className="hidden sm:inline opacity-65 text-[9.5px]">
                           {formatSecondaryTzHour(h, snapshot.preferences.secondaryTimezone)}
@@ -402,7 +400,7 @@ export const CalendarView: React.FC = () => {
                     style={{
                       backgroundColor: isToday
                         ? isDark
-                          ? 'rgba(255,255,255,0.015)'
+                          ? 'rgba(255,255,255,0.016)'
                           : 'rgba(231,64,4,0.018)'
                         : 'transparent',
                     }}
@@ -444,7 +442,7 @@ export const CalendarView: React.FC = () => {
                           className="border-b transition-colors cursor-pointer"
                           style={{
                             height: `${HOUR_HEIGHT}px`,
-                            borderColor: 'var(--rule-hairline)',
+                            borderColor: isDark ? 'rgba(255,255,255,0.065)' : 'rgba(15,23,42,0.07)',
                             backgroundColor: avail
                               ? 'var(--accent-emerald-soft)'
                               : dragHoverCell === cellId
@@ -462,13 +460,13 @@ export const CalendarView: React.FC = () => {
                     })}
 
                     {/* Current Time Indicator */}
-                    {isToday && nowTopPx >= 0 && nowTopPx <= hours.length * HOUR_HEIGHT && (
+                    {isToday && nowTopPx >= 0 && nowTopPx <= hours.length * HOUR_HEIGHT + 12 && (
                       <div
                         className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
                         style={{ top: `${nowTopPx}px` }}
                       >
                         <span
-                          className="w-2 h-2 rounded-full -ml-1 shrink-0"
+                          className="w-2 h-2 rounded-full ml-0.5 shrink-0"
                           style={{ backgroundColor: 'var(--accent-primary)' }}
                         />
                         <div className="flex-1 h-[1.5px]" style={{ backgroundColor: 'var(--accent-primary)' }} />
@@ -478,21 +476,33 @@ export const CalendarView: React.FC = () => {
                     {/* Positioned Event Blocks */}
                     {positioned.map(({ event, col, totalCols }) => {
                       const style = EVENT_CATEGORY_STYLES[event.category];
-                      const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+                      const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT + 12;
                       const height = Math.max(24, (event.durationMinutes / 60) * HOUR_HEIGHT - 2);
-                      const widthPct = 100 / totalCols;
-                      const leftPct = col * widthPct;
+
+                      // In single-day mode (mobile or desktop Day), stagger overlaps cleanly so titles never slice at 50%
+                      const isDayCascade = calendarMode === 'day' && totalCols > 1;
+                      const leftExpr = isDayCascade
+                        ? col === 0
+                          ? '4px'
+                          : '18%'
+                        : `calc(${(col * 100) / totalCols}% + 2px)`;
+                      const widthExpr = isDayCascade
+                        ? col === 0
+                          ? 'calc(84% - 4px)'
+                          : 'calc(80% - 4px)'
+                        : `calc(${100 / totalCols}% - 4px)`;
+
                       const isSelected = selection?.type === 'event' && selection.id === event.id;
                       const linkedTask = event.linkedTaskId
                         ? snapshot.tasks.find((t) => t.id === event.linkedTaskId)
                         : undefined;
                       const isDone = linkedTask ? linkedTask.completed : Boolean(event.completed);
-                      const doneSubs = linkedTask ? linkedTask.subtasks.filter((s) => s.done).length : 0;
 
                       return (
                         <div
                           key={event.id}
                           draggable
+                          title={`${event.title} (${formatTimeRange(event.startMinutes, event.durationMinutes)})`}
                           onDragStart={(e) => {
                             e.dataTransfer.setData('text/cadence-event-id', event.id);
                             e.dataTransfer.effectAllowed = 'move';
@@ -501,19 +511,24 @@ export const CalendarView: React.FC = () => {
                             e.stopPropagation();
                             setSelection({ type: 'event', id: event.id });
                           }}
-                          className="group absolute z-10 rounded-md px-1.5 py-1 overflow-hidden cursor-pointer select-none transition-shadow flex flex-col justify-between"
+                          className="group absolute rounded-md px-1.5 py-1 overflow-hidden cursor-pointer select-none transition-shadow flex flex-col justify-between backdrop-blur-[2px]"
                           style={{
+                            zIndex: 10 + col,
                             top: `${top + 1}px`,
                             height: `${height}px`,
-                            left: `calc(${leftPct}% + 2px)`,
-                            width: `calc(${widthPct}% - 4px)`,
+                            left: leftExpr,
+                            width: widthExpr,
                             backgroundColor: isDark ? style.bgDark : style.bgLight,
-                            border: `1px solid ${isSelected ? style.bar : isDark ? style.borderDark : style.borderLight}`,
-                            borderLeftWidth: '3px',
+                            border: `1px solid ${isDark ? style.borderDark : style.borderLight}`,
+                            borderLeftWidth: '2.5px',
                             borderLeftColor: style.bar,
                             color: isDark ? style.textDark : style.textLight,
-                            opacity: isDone ? 0.6 : 1,
-                            boxShadow: isSelected ? `0 0 0 1px ${style.bar}` : 'none',
+                            opacity: isDone ? 0.62 : 1,
+                            boxShadow: isSelected
+                              ? '0 0 0 1px rgba(255,255,255,0.28), 0 4px 12px rgba(0,0,0,0.35)'
+                              : isDayCascade && col > 0
+                                ? '0 4px 12px rgba(0,0,0,0.35)'
+                                : 'none',
                           }}
                         >
                           <div className="flex items-start gap-1.5 min-w-0">
@@ -535,14 +550,13 @@ export const CalendarView: React.FC = () => {
                               </button>
                             )}
                             <div className="min-w-0 flex-1">
-                              <div
-                                className={`text-[11px] font-semibold leading-[1.25] ${
-                                  height >= 48 ? 'line-clamp-2' : 'truncate'
-                                } ${isDone ? 'line-through' : ''}`}
-                              >
-                                {event.title}
+                              <div className="text-[11px] font-semibold leading-[1.25] line-clamp-2 flex items-center gap-1">
+                                <span className="truncate">{event.title}</span>
+                                {!linkedTask && isDone && (
+                                  <Check className="w-3 h-3 text-[var(--accent-emerald)] shrink-0" />
+                                )}
                               </div>
-                              {height >= 46 && (
+                              {height >= 42 && (
                                 <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-80 font-mono-num truncate">
                                   <span>{formatMinutes(event.startMinutes, true)}</span>
                                   {event.videoLink && <Video className="w-2.5 h-2.5 shrink-0" />}
@@ -552,11 +566,18 @@ export const CalendarView: React.FC = () => {
                             </div>
                           </div>
 
-                          {height >= 92 && (event.notes || (linkedTask && linkedTask.subtasks.length > 0)) && (
-                            <div className="text-[10px] opacity-75 truncate pt-1 border-t border-white/10">
-                              {linkedTask && linkedTask.subtasks.length > 0
-                                ? `${doneSubs}/${linkedTask.subtasks.length} subtasks`
-                                : event.notes}
+                          {/* Rich Subtask List Inside Tall Blocks (e.g. 2h+ blocks) */}
+                          {height >= 98 && linkedTask && linkedTask.subtasks.length > 0 && (
+                            <div className="mt-1 pt-1 border-t border-white/10 space-y-0.5 overflow-hidden">
+                              {linkedTask.subtasks.slice(0, 2).map((st) => (
+                                <div key={st.id} className="flex items-center gap-1 text-[10px] opacity-80 truncate">
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: st.done ? 'var(--accent-emerald)' : 'var(--ink-muted)' }}
+                                  />
+                                  <span className="truncate">{st.title}</span>
+                                </div>
+                              ))}
                             </div>
                           )}
 
@@ -573,6 +594,14 @@ export const CalendarView: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Bottom soft scroll gradient above mobile tab bar / bottom edge */}
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 z-20"
+            style={{
+              background: 'linear-gradient(to top, var(--bg-canvas), transparent)',
+            }}
+          />
         </div>
       )}
 

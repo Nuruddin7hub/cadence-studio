@@ -54,6 +54,7 @@ export const InspectorRail: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [railTab, setRailTab] = useState<'inspect' | 'notes'>('inspect');
   const [newSubtask, setNewSubtask] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const selectedEvent = useMemo(
     () => (selection?.type === 'event' ? snapshot.events.find((e) => e.id === selection.id) : undefined),
@@ -106,12 +107,12 @@ export const InspectorRail: React.FC = () => {
 
   return (
     <aside
-      className="hidden xl:flex w-[282px] shrink-0 border-l bg-[var(--bg-surface)] flex-col overflow-hidden"
+      className="hidden xl:flex w-[280px] shrink-0 border-l bg-[var(--bg-surface)] flex-col overflow-hidden"
       style={{ borderColor: 'var(--rule-hairline)' }}
     >
-      {/* Compact Docked Focus Mini-Engine */}
+      {/* Compact Docked Focus Mini-Engine (No duplicate title select beneath it!) */}
       <section className="p-3.5 border-b shrink-0">
-        <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
             <h3 className="font-display font-semibold text-[13px]">Focus Timer</h3>
@@ -202,29 +203,41 @@ export const InspectorRail: React.FC = () => {
               >
                 <RotateCcw className="w-3 h-3" />
               </button>
+              <button
+                type="button"
+                onClick={() => setPickerOpen((v) => !v)}
+                className="ml-auto text-[10.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+              >
+                Switch
+              </button>
             </div>
           </div>
         </div>
 
-        <select
-          value={activeFocusTaskId ?? ''}
-          onChange={(e) => setActiveFocusTaskId(e.target.value || null)}
-          aria-label="Focus task selector"
-          className="mt-2 w-full px-2 py-1 rounded-md bg-[var(--bg-inset)] text-[11px] text-[var(--ink-secondary)] focus:outline-none cursor-pointer"
-        >
-          <option value="">Attach a task...</option>
-          {snapshot.tasks
-            .filter((t) => !t.completed)
-            .map((t) => (
-              <option key={t.id} value={t.id} className="bg-[var(--bg-surface)] text-[var(--ink-primary)]">
-                {t.title}
-              </option>
-            ))}
-        </select>
+        {pickerOpen && (
+          <select
+            value={activeFocusTaskId ?? ''}
+            onChange={(e) => {
+              setActiveFocusTaskId(e.target.value || null);
+              setPickerOpen(false);
+            }}
+            aria-label="Focus task selector"
+            className="mt-2 w-full px-2 py-1 rounded-md bg-[var(--bg-inset)] text-[11px] text-[var(--ink-secondary)] focus:outline-none cursor-pointer"
+          >
+            <option value="">Free focus block</option>
+            {snapshot.tasks
+              .filter((t) => !t.completed)
+              .map((t) => (
+                <option key={t.id} value={t.id} className="bg-[var(--bg-surface)] text-[var(--ink-primary)]">
+                  {t.title}
+                </option>
+              ))}
+          </select>
+        )}
       </section>
 
-      {/* Clean Inspector vs Daily Notes Segmented Switcher (zero bottom clipping!) */}
-      <div className="px-3.5 pt-2.5 pb-2 border-b flex items-center gap-1 shrink-0">
+      {/* Inspector vs Daily Notes Switcher */}
+      <div className="px-3.5 pt-2 pb-2 border-b flex items-center gap-1 shrink-0">
         <button
           type="button"
           onClick={() => setRailTab('inspect')}
@@ -250,12 +263,12 @@ export const InspectorRail: React.FC = () => {
         </button>
       </div>
 
-      {/* Scrollable Inspector or Daily Notes Body */}
-      <div className="flex-1 overflow-y-auto p-3.5">
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto p-3.5 pb-6">
         {railTab === 'inspect' ? (
-          <div className="space-y-3 text-[12.5px]">
+          <div className="space-y-2.5 text-[12.5px]">
             {selectedEvent && (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono-num text-[var(--ink-muted)]">
                     {selectedEvent.allDay ? 'All day' : formatTimeRange(selectedEvent.startMinutes, selectedEvent.durationMinutes)}
@@ -294,7 +307,7 @@ export const InspectorRail: React.FC = () => {
                       type="date"
                       value={selectedEvent.date}
                       onChange={(e) => updateEvent(selectedEvent.id, { date: e.target.value })}
-                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11.5px]"
+                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11px]"
                     />
                   </label>
                   <label className="space-y-1">
@@ -302,7 +315,7 @@ export const InspectorRail: React.FC = () => {
                     <select
                       value={selectedEvent.durationMinutes}
                       onChange={(e) => updateEvent(selectedEvent.id, { durationMinutes: Number(e.target.value) })}
-                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] text-[12px]"
+                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] text-[11.5px]"
                     >
                       {[30, 45, 60, 90, 120, 135, 180].map((m) => (
                         <option key={m} value={m} className="bg-[var(--bg-surface)]">
@@ -318,7 +331,7 @@ export const InspectorRail: React.FC = () => {
                   <select
                     value={selectedEvent.recurrence}
                     onChange={(e) => updateEvent(selectedEvent.id, { recurrence: e.target.value as RecurrenceRule })}
-                    className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11.5px] focus:outline-none"
+                    className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px] focus:outline-none"
                   >
                     <option value="none" className="bg-[var(--bg-surface)]">No repeat</option>
                     <option value="daily" className="bg-[var(--bg-surface)]">Daily</option>
@@ -337,7 +350,7 @@ export const InspectorRail: React.FC = () => {
                         key={cat}
                         type="button"
                         onClick={() => updateEvent(selectedEvent.id, { category: cat })}
-                        className="px-2 py-0.5 rounded-full text-[11px] transition-colors"
+                        className="px-2 py-0.5 rounded-full text-[10.5px] transition-colors"
                         style={{
                           backgroundColor: active ? m.bgDark : 'var(--bg-inset)',
                           color: active ? m.bar : 'var(--ink-secondary)',
@@ -361,7 +374,7 @@ export const InspectorRail: React.FC = () => {
             )}
 
             {selectedTask && (
-              <div className="pt-3 border-t space-y-2.5">
+              <div className="pt-2.5 border-t space-y-2">
                 <div className="flex items-start gap-2">
                   <button
                     type="button"
@@ -374,19 +387,16 @@ export const InspectorRail: React.FC = () => {
                   >
                     {selectedTask.completed && <Check className="w-3 h-3 text-white stroke-[3]" />}
                   </button>
-                  <input
-                    type="text"
-                    value={selectedTask.title}
-                    onChange={(e) => updateTask(selectedTask.id, { title: e.target.value })}
-                    className="flex-1 bg-transparent font-medium text-[var(--ink-primary)] focus:outline-none"
-                  />
+                  <span className="flex-1 font-medium text-[12.5px] leading-snug text-[var(--ink-primary)]">
+                    {selectedTask.title}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
                   <select
                     value={selectedTask.priority}
                     onChange={(e) => updateTask(selectedTask.id, { priority: e.target.value as TaskPriority })}
-                    className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11.5px]"
+                    className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px]"
                   >
                     <option value="p1" className="bg-[var(--bg-surface)]">P1 Critical</option>
                     <option value="p2" className="bg-[var(--bg-surface)]">P2 High</option>
@@ -398,7 +408,7 @@ export const InspectorRail: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => scheduleTaskToCalendar(selectedTask.id, selectedDate, 15 * 60)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-elevated)] text-[11.5px] hover:bg-[var(--bg-hover)]"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-elevated)] text-[11px] hover:bg-[var(--bg-hover)]"
                     >
                       <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                       <span>Block {formatMinutes(15 * 60, true)}</span>
@@ -422,7 +432,7 @@ export const InspectorRail: React.FC = () => {
                       key={st.id}
                       type="button"
                       onClick={() => toggleSubtask(selectedTask.id, st.id)}
-                      className="w-full flex items-center gap-2 text-left py-1 px-1.5 rounded hover:bg-[var(--bg-hover)] text-[12px]"
+                      className="w-full flex items-center gap-2 text-left py-1 px-1.5 rounded hover:bg-[var(--bg-hover)] text-[11.5px]"
                     >
                       <span
                         className="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0"
