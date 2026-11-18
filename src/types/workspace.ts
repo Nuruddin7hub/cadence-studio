@@ -141,6 +141,9 @@ export interface AccountProfile {
   name: string;
   email: string;
   avatarColor: string;
+  avatarUrl?: string;
+  authProvider?: 'local' | 'google';
+  googleSub?: string;
   roleTitle?: string;
   createdAt: string;
   updatedAt: string;

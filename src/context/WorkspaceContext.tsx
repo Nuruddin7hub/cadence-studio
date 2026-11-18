@@ -45,9 +45,16 @@ import {
   saveWorkspaceForAccount,
   setStarterBannerDismissed as persistStarterDismissed,
   signInLocalAccount,
+  signInOrRegisterGoogleAccount,
   switchToGuestWorkspace,
   updateLocalProfile,
 } from '../utils/authStorage';
+import {
+  clearCustomGoogleClientId,
+  getConfiguredGoogleClientId,
+  type GoogleUserClaims,
+  saveCustomGoogleClientId,
+} from '../utils/googleAuth';
 import { triggerFileDownload } from '../utils/ics';
 import { parseQuickInput } from '../utils/nlp';
 import { playSubtleChime } from '../utils/sound';
@@ -114,6 +121,13 @@ interface WorkspaceContextValue {
     includeStarter?: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  googleClientId: string;
+  setCustomGoogleClientId: (clientId: string) => { ok: boolean; error?: string };
+  clearGoogleClientIdConfig: () => void;
+  signInWithGoogleUser: (
+    claims: GoogleUserClaims,
+    carryGuestData?: boolean
+  ) => Promise<void>;
   switchToGuest: () => Promise<void>;
   updateProfile: (
     patch: Partial<Pick<AccountProfile, 'name' | 'email' | 'avatarColor' | 'roleTitle'>>
@@ -237,6 +251,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [accountModalTab, setAccountModalTab] = useState<AccountModalTab>(
     initialVault.activeAccount ? 'profile' : 'signup'
   );
+  const [googleClientId, setGoogleClientIdState] = useState<string>(() => getConfiguredGoogleClientId());
   const [storageStats, setStorageStats] = useState<StorageStats>({
     engine: 'IndexedDB Vault',
     persisted: false,
@@ -1072,6 +1087,56 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [pushToast, todayKey]
   );
 
+  const setCustomGoogleClientId = useCallback(
+    (clientId: string): { ok: boolean; error?: string } => {
+      const res = saveCustomGoogleClientId(clientId);
+      if (!res.ok) return { ok: false, error: res.error };
+      setGoogleClientIdState(res.clientId);
+      pushToast('Google Sign-In Client ID saved', 'Ready to sign in with Google', false, 'success');
+      return { ok: true };
+    },
+    [pushToast]
+  );
+
+  const clearGoogleClientIdConfig = useCallback(() => {
+    clearCustomGoogleClientId();
+    setGoogleClientIdState(getConfiguredGoogleClientId());
+    pushToast('Cleared custom Google Client ID');
+  }, [pushToast]);
+
+  const signInWithGoogleUser = useCallback(
+    async (claims: GoogleUserClaims, carryGuestData = true) => {
+      const res = await signInOrRegisterGoogleAccount({
+        sub: claims.sub,
+        email: claims.email,
+        name: claims.name,
+        picture: claims.picture,
+        initialSnapshot: snapshot,
+        carryGuestData,
+      });
+
+      activeAccountIdRef.current = res.account.id;
+      hasLocalMutationRef.current = true;
+      undoStackRef.current = [];
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
+      setSnapshot(res.snapshot);
+      setSelection(null);
+      setActiveFocusTaskId(null);
+      setSelectedDate(todayKey);
+      setStarterBannerDismissed(Boolean(readSyncSessionMeta().dismissedStarterIds?.[res.account.id]));
+      setAccountModalTab('profile');
+      setAccountModalOpen(false);
+      pushToast(
+        res.isNewAccount ? `Welcome, ${res.account.name}` : `Signed in with Google as ${res.account.name}`,
+        res.account.email,
+        false,
+        'success'
+      );
+    },
+    [pushToast, snapshot, todayKey]
+  );
+
   const switchToGuest = useCallback(async () => {
     const guestSnap = await switchToGuestWorkspace();
     activeAccountIdRef.current = GUEST_ACCOUNT_ID;
@@ -1107,6 +1172,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!currentUser) return { ok: false, error: 'Sign in first to update your password.' };
       const res = await changeLocalPassword(currentUser.id, currentPassword, newPassword);
       if (!res.ok) return { ok: false, error: res.error };
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
       pushToast('Password updated cleanly', undefined, false, 'success');
       return { ok: true };
     },
@@ -1261,6 +1328,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     importStarterChecklist,
     signUp,
     signIn,
+    googleClientId,
+    setCustomGoogleClientId,
+    clearGoogleClientIdConfig,
+    signInWithGoogleUser,
     switchToGuest,
     updateProfile,
     changePassword,

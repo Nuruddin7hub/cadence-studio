@@ -48,9 +48,26 @@ try {
     throw new Error('Found leftover static template copy on Overview');
   }
 
-  // 2. Create real local Account (IndexedDB + localStorage Vault)
+  // 2. Verify Google Sign-In UI + Client ID validation, then Create real local Account (IndexedDB + localStorage Vault)
   await page.getByRole('button', { name: 'Create Free Account' }).click();
   await page.waitForTimeout(200);
+
+  await page.getByRole('button', { name: /Continue with Google/i }).click();
+  await page.waitForTimeout(150);
+  const googlePanelText = await page.locator('[role="dialog"]').innerText();
+  if (!googlePanelText.includes('https://nuruddin7hub.github.io')) {
+    throw new Error('Google OAuth setup panel missing authorized JavaScript origin guidance');
+  }
+  await page.getByLabel('Google OAuth Client ID').fill('not-a-valid-id');
+  await page.getByRole('button', { name: 'Enable Google' }).click();
+  await page.waitForTimeout(100);
+  if (!(await page.locator('[role="alert"]').innerText()).includes('apps.googleusercontent.com')) {
+    throw new Error('Invalid Google Client ID did not trigger validation alert');
+  }
+  // Dismiss Google setup back cleanly so modal stays crisp
+  await page.getByRole('button', { name: /Continue with Google/i }).click();
+  await page.waitForTimeout(100);
+
   await page.getByPlaceholder('Alex Rivera').fill('Nadia Chen');
   await page.getByPlaceholder('you@domain.com').fill('nadia@studio.dev');
   const pwInputs = page.getByPlaceholder('••••••');

@@ -182,12 +182,22 @@ function toPublicAccount(rec: StoredAccountRecord): AccountProfile {
     name: rec.name,
     email: rec.email,
     avatarColor: rec.avatarColor,
+    avatarUrl: rec.avatarUrl,
+    authProvider: rec.authProvider ?? (rec.googleSub ? 'google' : 'local'),
+    googleSub: rec.googleSub,
     roleTitle: rec.roleTitle,
     createdAt: rec.createdAt,
     updatedAt: rec.updatedAt,
     lastLoginAt: rec.lastLoginAt,
     hasPassword: Boolean(rec.passwordHash && rec.salt),
   };
+}
+
+async function readWorkspaceRecord(accountId: string, fallbackTheme: ThemeMode = 'dark'): Promise<WorkspaceSnapshot> {
+  const idbWs = await idbGet<StoredWorkspaceRecord>(STORE_WORKSPACES, accountId);
+  const lsWs = readLsJson<StoredWorkspaceRecord | null>(`${LS_WS_PREFIX}${accountId}`, null);
+  const chosen = idbWs && lsWs ? (idbWs.updatedAt >= lsWs.updatedAt ? idbWs : lsWs) : idbWs ?? lsWs;
+  return normalizeSnapshot(chosen?.snapshot, fallbackTheme);
 }
 
 function generateSalt(byteLen = 16): string {
@@ -423,6 +433,7 @@ export async function createLocalAccount(params: {
     name: cleanName,
     email: cleanEmail,
     avatarColor: params.avatarColor || AVATAR_COLORS[existing.length % AVATAR_COLORS.length],
+    authProvider: 'local',
     roleTitle: params.roleTitle?.trim() || undefined,
     createdAt: now,
     updatedAt: now,
@@ -466,14 +477,16 @@ export async function signInLocalAccount(params: {
   const records = readStoredAccountRecordsSync();
   const target = records.find((a) => a.email.toLowerCase() === cleanEmail);
   if (!target) {
-    return { ok: false, error: 'No local account found for that email on this browser.' };
+    return { ok: false, error: 'No account found for that email on this browser.' };
   }
 
-  if (target.passwordHash && target.salt) {
-    const attemptHash = await hashPassword(params.password, target.salt);
-    if (!constantTimeEqual(attemptHash, target.passwordHash)) {
-      return { ok: false, error: 'Incorrect password. Please try again.' };
-    }
+  if (!target.passwordHash || !target.salt) {
+    return { ok: false, error: 'This account uses Google Sign-In. Click Continue with Google above.' };
+  }
+
+  const attemptHash = await hashPassword(params.password, target.salt);
+  if (!constantTimeEqual(attemptHash, target.passwordHash)) {
+    return { ok: false, error: 'Incorrect password. Please try again.' };
   }
 
   const now = new Date().toISOString();
@@ -486,10 +499,7 @@ export async function signInLocalAccount(params: {
   session.activeAccountId = target.id;
   writeSyncSessionMeta(session);
 
-  const idbWs = await idbGet<StoredWorkspaceRecord>(STORE_WORKSPACES, target.id);
-  const lsWs = readLsJson<StoredWorkspaceRecord | null>(`${LS_WS_PREFIX}${target.id}`, null);
-  const chosen = idbWs ?? lsWs;
-  const snapshot = normalizeSnapshot(chosen?.snapshot);
+  const snapshot = await readWorkspaceRecord(target.id);
 
   return {
     ok: true,
@@ -499,14 +509,98 @@ export async function signInLocalAccount(params: {
   };
 }
 
+export async function signInOrRegisterGoogleAccount(params: {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+  initialSnapshot: WorkspaceSnapshot;
+  carryGuestData: boolean;
+}): Promise<{
+  account: AccountProfile;
+  accounts: AccountProfile[];
+  snapshot: WorkspaceSnapshot;
+  isNewAccount: boolean;
+}> {
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = params.name.trim() || cleanEmail.split('@')[0];
+  const records = readStoredAccountRecordsSync();
+  const existing = records.find(
+    (a) => (a.googleSub && a.googleSub === params.sub) || a.email.toLowerCase() === cleanEmail
+  );
+
+  const now = new Date().toISOString();
+  if (existing) {
+    const updated: StoredAccountRecord = {
+      ...existing,
+      name: cleanName || existing.name,
+      email: cleanEmail,
+      avatarUrl: params.picture ?? existing.avatarUrl,
+      googleSub: params.sub,
+      authProvider: 'google',
+      lastLoginAt: now,
+      updatedAt: now,
+    };
+    const nextRecords = records.map((r) => (r.id === existing.id ? updated : r));
+    writeStoredAccountRecords(nextRecords);
+    await idbPut(STORE_ACCOUNTS, updated);
+
+    const session = readSyncSessionMeta();
+    session.activeAccountId = existing.id;
+    writeSyncSessionMeta(session);
+    requestPersistentStorageOnce();
+
+    const snapshot = await readWorkspaceRecord(existing.id, params.initialSnapshot.preferences.theme);
+    return {
+      account: toPublicAccount(updated),
+      accounts: nextRecords.map(toPublicAccount),
+      snapshot,
+      isNewAccount: false,
+    };
+  }
+
+  const id = `acct-g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const created: StoredAccountRecord = {
+    id,
+    name: cleanName,
+    email: cleanEmail,
+    avatarColor: AVATAR_COLORS[records.length % AVATAR_COLORS.length],
+    avatarUrl: params.picture,
+    authProvider: 'google',
+    googleSub: params.sub,
+    createdAt: now,
+    updatedAt: now,
+    lastLoginAt: now,
+    hasPassword: false,
+  };
+
+  const nextRecords = [created, ...records];
+  writeStoredAccountRecords(nextRecords);
+  await idbPut(STORE_ACCOUNTS, created);
+
+  const accountSnapshot = params.carryGuestData
+    ? params.initialSnapshot
+    : createEmptyWorkspace(params.initialSnapshot.preferences.theme);
+  await saveWorkspaceForAccount(id, accountSnapshot);
+
+  const session = readSyncSessionMeta();
+  session.activeAccountId = id;
+  writeSyncSessionMeta(session);
+  requestPersistentStorageOnce();
+
+  return {
+    account: toPublicAccount(created),
+    accounts: nextRecords.map(toPublicAccount),
+    snapshot: accountSnapshot,
+    isNewAccount: true,
+  };
+}
+
 export async function switchToGuestWorkspace(): Promise<WorkspaceSnapshot> {
   const session = readSyncSessionMeta();
   session.activeAccountId = GUEST_ACCOUNT_ID;
   writeSyncSessionMeta(session);
-
-  const idbWs = await idbGet<StoredWorkspaceRecord>(STORE_WORKSPACES, GUEST_ACCOUNT_ID);
-  const lsWs = readLsJson<StoredWorkspaceRecord | null>(`${LS_WS_PREFIX}${GUEST_ACCOUNT_ID}`, null);
-  return normalizeSnapshot((idbWs ?? lsWs)?.snapshot);
+  return readWorkspaceRecord(GUEST_ACCOUNT_ID);
 }
 
 export async function updateLocalProfile(
@@ -556,7 +650,10 @@ export async function changeLocalPassword(
   accountId: string,
   currentPassword: string,
   newPassword: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; account: AccountProfile; accounts: AccountProfile[] }
+  | { ok: false; error: string }
+> {
   if (newPassword.length < 6) {
     return { ok: false, error: 'New password must be at least 6 characters.' };
   }
@@ -583,7 +680,11 @@ export async function changeLocalPassword(
   const nextRecords = records.map((r) => (r.id === accountId ? updated : r));
   writeStoredAccountRecords(nextRecords);
   await idbPut(STORE_ACCOUNTS, updated);
-  return { ok: true };
+  return {
+    ok: true,
+    account: toPublicAccount(updated),
+    accounts: nextRecords.map(toPublicAccount),
+  };
 }
 
 export async function deleteLocalAccount(accountId: string): Promise<{

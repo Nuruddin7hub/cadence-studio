@@ -21,13 +21,7 @@ import type { WorkspaceTab } from '../types/workspace';
 import { formatMinutes } from '../utils/date';
 import { parseQuickInput } from '../utils/nlp';
 import { Magnet } from '../lib/reactbits';
-
-function getUserInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'U';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
+import { UserAvatar } from './UserAvatar';
 
 const TABS: { id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'planner', label: 'Planner', icon: Calendar },
@@ -151,12 +145,7 @@ export const TopBar: React.FC = () => {
                 className="inline-flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border text-[12px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] transition-colors"
                 style={{ borderColor: 'var(--rule-strong)' }}
               >
-                <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                  style={{ backgroundColor: currentUser.avatarColor }}
-                >
-                  {getUserInitials(currentUser.name)}
-                </span>
+                <UserAvatar user={currentUser} sizeClass="w-6 h-6" textClass="text-[10px]" />
                 <span className="hidden sm:inline max-w-[110px] truncate">{currentUser.name}</span>
               </button>
             ) : (
@@ -420,13 +409,7 @@ export const TopBar: React.FC = () => {
         >
           {currentUser ? (
             <>
-              <span
-                aria-hidden="true"
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                style={{ backgroundColor: currentUser.avatarColor }}
-              >
-                {getUserInitials(currentUser.name)}
-              </span>
+              <UserAvatar user={currentUser} sizeClass="w-6 h-6" textClass="text-[10px]" />
               <span className="hidden xl:inline max-w-[90px] truncate text-[var(--ink-primary)] font-medium">
                 {currentUser.name.split(' ')[0]}
               </span>
