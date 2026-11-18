@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   CalendarPlus,
+  Clock,
   Copy,
   Maximize2,
   PanelRightClose,
@@ -11,9 +12,10 @@ import {
   RotateCcw,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
-import type { EventCategory, RecurrenceRule, TaskPriority } from '../types/workspace';
+import type { CalendarEvent, EisenhowerQuadrant, EventCategory, RecurrenceRule, TaskPriority, TaskStatus } from '../types/workspace';
 import { formatMinutes, formatTimeRange } from '../utils/date';
 import { EVENT_CATEGORY_STYLES, PRIORITY_META } from '../utils/themeTokens';
 import {
@@ -215,9 +217,9 @@ export const InspectorRail: React.FC = () => {
                 />
               </svg>
               <span className="absolute inline-flex items-center font-mono-num text-[11px] font-bold text-[var(--ink-primary)]">
-                <Counter value={focusMins} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" />
+                <Counter value={focusMins} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
                 <span className="text-[var(--accent-primary)]">:</span>
-                <Counter value={focusSecs} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" />
+                <Counter value={focusSecs} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
               </span>
             </div>
 
@@ -580,5 +582,347 @@ export const InspectorRail: React.FC = () => {
         </AnimatedContent>
       </div>
     </aside>
+  );
+};
+
+export const MobileInspectorSheet: React.FC = () => {
+  const {
+    snapshot,
+    selectedDate,
+    selection,
+    mobileInspectorOpen,
+    setMobileInspectorOpen,
+    updateEvent,
+    deleteEvent,
+    duplicateEvent,
+    updateTask,
+    deleteTask,
+    toggleTaskComplete,
+    toggleSubtask,
+    addSubtask,
+    scheduleTaskToCalendar,
+    moveTaskKanban,
+    moveTaskQuadrant,
+    setActiveFocusTaskId,
+    setFocusRunning,
+    setActiveTab,
+    pushToast,
+  } = useWorkspace();
+
+  const [newSubtask, setNewSubtask] = useState('');
+
+  if (!mobileInspectorOpen || !selection) return null;
+
+  const isDark = snapshot.preferences.theme === 'dark';
+  const selectedEvent: CalendarEvent | undefined =
+    selection.type === 'event' ? snapshot.events.find((e) => e.id === selection.id) : undefined;
+  const selectedTask =
+    selection.type === 'task'
+      ? snapshot.tasks.find((t) => t.id === selection.id)
+      : selectedEvent?.linkedTaskId
+        ? snapshot.tasks.find((t) => t.id === selectedEvent.linkedTaskId)
+        : undefined;
+
+  if (!selectedEvent && !selectedTask) return null;
+
+  const nudgeTime = (deltaMins: number) => {
+    if (!selectedEvent) return;
+    const nextStart = Math.max(6 * 60, Math.min(22 * 60 + 30, selectedEvent.startMinutes + deltaMins));
+    updateEvent(selectedEvent.id, { startMinutes: nextStart });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 xl:hidden bg-black/60 backdrop-blur-[2px] flex items-end justify-center"
+      onClick={() => setMobileInspectorOpen(false)}
+    >
+      <div
+        className="w-full max-w-lg rounded-t-2xl border-t p-4 pb-6 space-y-3.5 max-h-[82vh] overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--rule-strong)',
+          boxShadow: 'var(--shadow-panel)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full bg-[var(--rule-strong)] mx-auto mb-1" />
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[12px] font-mono-num text-[var(--ink-secondary)]">
+            <Clock className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            <span>
+              {selectedEvent
+                ? selectedEvent.allDay
+                  ? 'All day event'
+                  : formatTimeRange(selectedEvent.startMinutes, selectedEvent.durationMinutes)
+                : 'Task inspector'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileInspectorOpen(false)}
+            className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+            aria-label="Close inspector"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {selectedEvent && (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={selectedEvent.title}
+              onChange={(e) => updateEvent(selectedEvent.id, { title: e.target.value })}
+              aria-label="Event title"
+              className="w-full px-3 py-2 rounded-xl bg-[var(--bg-inset)] border font-semibold text-[14px] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+            />
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => nudgeTime(-30)}
+                className="px-2.5 py-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[11.5px] font-mono-num"
+              >
+                -30m
+              </button>
+              <button
+                type="button"
+                onClick={() => nudgeTime(30)}
+                className="px-2.5 py-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[11.5px] font-mono-num"
+              >
+                +30m
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedTask) setActiveFocusTaskId(selectedTask.id);
+                  setFocusRunning(true);
+                  setMobileInspectorOpen(false);
+                  setActiveTab('focus');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold text-white"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                <Play className="w-3 h-3" />
+                <span>Focus block</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => duplicateEvent(selectedEvent.id)}
+                className="p-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[var(--ink-secondary)]"
+                aria-label="Duplicate block"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteEvent(selectedEvent.id)}
+                className="ml-auto p-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[var(--accent-coral)]"
+                aria-label="Delete block"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-[11.5px]">
+              <label className="space-y-1">
+                <span className="text-[var(--ink-muted)] block">Date</span>
+                <input
+                  type="date"
+                  value={selectedEvent.date}
+                  onChange={(e) => updateEvent(selectedEvent.id, { date: e.target.value })}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[11px]"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[var(--ink-muted)] block">Start</span>
+                <select
+                  value={selectedEvent.startMinutes}
+                  onChange={(e) => updateEvent(selectedEvent.id, { startMinutes: Number(e.target.value) })}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[11px]"
+                >
+                  {Array.from({ length: 34 }, (_, i) => (6 * 60) + i * 30).map((m) => (
+                    <option key={m} value={m} className="bg-[var(--bg-surface)]">
+                      {formatMinutes(m, true)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-[var(--ink-muted)] block">Duration</span>
+                <select
+                  value={selectedEvent.durationMinutes}
+                  onChange={(e) => updateEvent(selectedEvent.id, { durationMinutes: Number(e.target.value) })}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[11.5px]"
+                >
+                  {Array.from(new Set([15, 30, 45, 60, 90, 120, 135, 150, 180, selectedEvent.durationMinutes]))
+                    .sort((a, b) => a - b)
+                    .map((m) => (
+                      <option key={m} value={m} className="bg-[var(--bg-surface)]">
+                        {m} min
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
+                const m = EVENT_CATEGORY_STYLES[cat];
+                const active = selectedEvent.category === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => updateEvent(selectedEvent.id, { category: cat })}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border"
+                    style={{
+                      backgroundColor: active ? (isDark ? m.bgDark : m.bgLight) : 'var(--bg-inset)',
+                      borderColor: active ? m.bar : 'var(--rule-hairline)',
+                      color: active ? (isDark ? m.textDark : m.textLight) : 'var(--ink-secondary)',
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {selectedTask && (
+          <div className="pt-2.5 border-t space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 shrink-0">
+                <SpringCheck
+                  checked={selectedTask.completed}
+                  onChange={() => toggleTaskComplete(selectedTask.id)}
+                  label=""
+                  strike="none"
+                  boxSize={18}
+                  boxRadius={5}
+                  color="var(--ink-primary)"
+                  fillColor={PRIORITY_META[selectedTask.priority].color}
+                  checkColor="#ffffff"
+                  ariaLabel={`Complete ${selectedTask.title}`}
+                  className="[&]:min-h-0 [&]:gap-0"
+                />
+              </div>
+              <span className="flex-1 font-medium text-[13.5px] leading-snug">{selectedTask.title}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-[11px]">
+              <select
+                value={selectedTask.priority}
+                onChange={(e) => updateTask(selectedTask.id, { priority: e.target.value as TaskPriority })}
+                className="px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)]"
+              >
+                <option value="p1">P1 Critical</option>
+                <option value="p2">P2 High</option>
+                <option value="p3">P3 Normal</option>
+                <option value="p4">P4 Low</option>
+              </select>
+              <select
+                value={selectedTask.status}
+                onChange={(e) => moveTaskKanban(selectedTask.id, e.target.value as TaskStatus)}
+                className="px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)]"
+              >
+                <option value="backlog">Backlog</option>
+                <option value="todo">Planned Today</option>
+                <option value="in_progress">In Focus</option>
+                <option value="done">Completed</option>
+              </select>
+              <select
+                value={selectedTask.quadrant}
+                onChange={(e) => moveTaskQuadrant(selectedTask.id, e.target.value as EisenhowerQuadrant)}
+                className="px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)]"
+              >
+                <option value="do">Do First</option>
+                <option value="schedule">Schedule</option>
+                <option value="delegate">Delegate</option>
+                <option value="eliminate">Trim</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!selectedTask.scheduledDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    scheduleTaskToCalendar(selectedTask.id, selectedDate, 15 * 60);
+                    setMobileInspectorOpen(false);
+                    setActiveTab('planner');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[11.5px] font-medium"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                  <span>Block {formatMinutes(15 * 60, true)}</span>
+                </button>
+              )}
+              {!selectedEvent && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteTask(selectedTask.id);
+                    setMobileInspectorOpen(false);
+                    pushToast('Task deleted', selectedTask.title, true);
+                  }}
+                  className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11.5px] text-[var(--accent-coral)]"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              {selectedTask.subtasks.map((st) => (
+                <div
+                  key={st.id}
+                  onClick={() => toggleSubtask(selectedTask.id, st.id)}
+                  className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-[var(--bg-hover)] text-[12px] cursor-pointer"
+                >
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <SpringCheck
+                      checked={st.done}
+                      onChange={() => toggleSubtask(selectedTask.id, st.id)}
+                      label=""
+                      strike="none"
+                      boxSize={15}
+                      boxRadius={4}
+                      color="var(--ink-primary)"
+                      fillColor="var(--accent-emerald)"
+                      checkColor="#ffffff"
+                      ariaLabel={`Toggle subtask ${st.title}`}
+                      className="[&]:min-h-0 [&]:gap-0"
+                    />
+                  </div>
+                  <span className={st.done ? 'line-through text-[var(--ink-muted)]' : 'text-[var(--ink-secondary)]'}>
+                    {st.title}
+                  </span>
+                </div>
+              ))}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addSubtask(selectedTask.id, newSubtask);
+                  setNewSubtask('');
+                }}
+                className="pt-1"
+              >
+                <input
+                  type="text"
+                  value={newSubtask}
+                  onChange={(e) => setNewSubtask(e.target.value)}
+                  placeholder="+ Add subtask"
+                  className="w-full px-3 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[12px] placeholder:text-[var(--ink-muted)] focus:outline-none"
+                />
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };

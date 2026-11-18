@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -58,6 +58,15 @@ const SHOWCASE_TASKS = [
 export const ProductivityOverview: React.FC = () => {
   const { snapshot, setActiveTab, setCommandOpen } = useWorkspace();
   const isDark = snapshot.preferences.theme === 'dark';
+  const [isNarrow, setIsNarrow] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 480 : false
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 480);
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const metrics = useMemo(() => {
     const activeTasks = snapshot.tasks.filter((t) => !t.completed).length;
@@ -355,11 +364,12 @@ export const ProductivityOverview: React.FC = () => {
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
-                <span className="ml-2 text-[12px] font-medium text-[var(--ink-secondary)]">
-                  November 2026 · Week 47 · Wednesday 18
+                <span className="ml-2 text-[12px] font-medium text-[var(--ink-secondary)] truncate">
+                  <span className="sm:hidden">Wed, Nov 18 · Live Studio</span>
+                  <span className="hidden sm:inline">November 2026 · Week 47 · Wednesday 18</span>
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-[11px] font-mono-num text-[var(--ink-muted)]">
+              <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono-num text-[var(--ink-muted)]">
                 <span className="hidden sm:inline text-[var(--ink-secondary)] whitespace-nowrap">
                   <TextType
                     text="25:00 Deep Focus · 4 open blocks"
@@ -382,7 +392,7 @@ export const ProductivityOverview: React.FC = () => {
             {/* 3-Zone Product Showcase */}
             <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x h-[335px] relative">
               {/* Left Task Queue */}
-              <div className="md:col-span-3 p-3.5 space-y-2.5 bg-[var(--bg-surface)]">
+              <div className="hidden md:block md:col-span-3 p-3.5 space-y-2.5 bg-[var(--bg-surface)]">
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                   <span>Today Queue</span>
                   <span className="font-mono-num text-[var(--accent-primary)]">4 open</span>
@@ -486,7 +496,7 @@ export const ProductivityOverview: React.FC = () => {
                   <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                     <span>Deep Focus</span>
                     <span className="inline-flex items-center font-mono-num text-[var(--accent-primary)]">
-                      <Counter value={25} minDigits={2} fontSize={12} fontWeight={700} textColor="var(--accent-primary)" />
+                      <Counter value={25} minDigits={2} fontSize={12} fontWeight={700} textColor="var(--accent-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
                       <span>:00</span>
                     </span>
                   </div>
@@ -630,7 +640,7 @@ export const ProductivityOverview: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 sm:gap-6 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-20 pt-14 sm:gap-6 sm:pt-12">
               <div className="flex flex-col items-center gap-3 text-center">
                 <Folder
                   color="#E74004"
@@ -675,12 +685,12 @@ export const ProductivityOverview: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-6 flex items-center justify-center min-h-[280px]">
+          <div className="lg:col-span-6 flex items-center justify-center min-h-[260px] sm:min-h-[280px] overflow-hidden">
             <CardSwap
-              width={360}
-              height={220}
-              cardDistance={36}
-              verticalDistance={26}
+              width={isNarrow ? 286 : 360}
+              height={isNarrow ? 196 : 220}
+              cardDistance={isNarrow ? 18 : 36}
+              verticalDistance={isNarrow ? 14 : 26}
               skewAmount={2}
               delay={4200}
               pauseOnHover
@@ -765,9 +775,9 @@ export const ProductivityOverview: React.FC = () => {
               theme={isDark ? 'dark' : 'light'}
               accentColor="#E74004"
               badgeColor="#E74004"
-              baseItemSize={46}
-              magnification={64}
-              panelHeight={64}
+              baseItemSize={isNarrow ? 38 : 46}
+              magnification={isNarrow ? 48 : 64}
+              panelHeight={isNarrow ? 54 : 64}
             />
           </div>
         </div>

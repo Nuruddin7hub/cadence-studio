@@ -93,14 +93,14 @@ export const FocusCurtain: React.FC = () => {
               />
             </svg>
             <span className="absolute inline-flex items-center font-mono-num text-[50px] font-bold tracking-tight text-[var(--ink-primary)]">
-              <Counter value={mins} minDigits={2} fontSize={48} fontWeight={700} textColor="var(--ink-primary)" />
+              <Counter value={mins} minDigits={2} fontSize={48} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
               <span className="px-0.5 pb-1 text-[var(--accent-primary)]">:</span>
-              <Counter value={secs} minDigits={2} fontSize={48} fontWeight={700} textColor="var(--ink-primary)" />
+              <Counter value={secs} minDigits={2} fontSize={48} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
             </span>
           </div>
         </ElectricBorder>
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <GlareHover glareColor="#ffffff" glareOpacity={0.25} borderRadius="9999px" className="inline-flex">
             <button
               type="button"

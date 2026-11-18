@@ -132,11 +132,48 @@ try {
   const h1VisibleReduced = await page.locator('h1').isVisible();
   if (!h1VisibleReduced) throw new Error('Overview H1 hidden under prefers-reduced-motion: reduce');
 
-  // 7. Slop check: zero em-dashes in rendered UI + zero console/page errors
+  // 7. Slop check: zero em-dashes in rendered UI + zero desktop console/page errors
   const visibleText = await page.evaluate(() => document.body.innerText);
   if (visibleText.includes('\u2014')) {
     throw new Error('Found banned em-dash character in rendered UI');
   }
+
+  // 8. Mobile 375x812 responsive, touch drag & inspector sheet checks across tabs
+  const mobileCtx = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true });
+  const mPage = await mobileCtx.newPage();
+  mPage.on('pageerror', (e) => pageErrors.push(e.message));
+  mPage.on('console', (m) => {
+    if (m.type() === 'error') pageErrors.push(m.text());
+  });
+  await mPage.goto('http://localhost:4174/', { waitUntil: 'networkidle' });
+  await mPage.waitForTimeout(250);
+
+  const grip = mPage.locator('[title="Drag to move"]').first();
+  const gripBox = await grip.boundingBox();
+  if (!gripBox) throw new Error('Mobile touch drag grip missing on Calendar block');
+  await mPage.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  await mPage.mouse.down();
+  await mPage.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2 + 56, { steps: 6 });
+  await mPage.mouse.up();
+  await mPage.waitForTimeout(200);
+  const mobileBodyAfterDrag = await mPage.locator('body').innerText();
+  if (!mobileBodyAfterDrag.includes('Block rescheduled')) {
+    throw new Error('Touch/pointer drag on Calendar block did not reschedule');
+  }
+
+  await mPage.locator('text=Design Systems Review').first().click();
+  await mPage.waitForTimeout(200);
+  const sheetVisible = await mPage.getByLabel('Close inspector').isVisible();
+  if (!sheetVisible) throw new Error('Tapping event on mobile did not open MobileInspectorSheet');
+  await mPage.getByLabel('Close inspector').click();
+
+  for (const mobileTab of ['Calendar', 'Tasks', 'Focus', 'Stats', 'Suite']) {
+    await mPage.getByRole('button', { name: mobileTab, exact: true }).click();
+    await mPage.waitForTimeout(220);
+    const overflows = await mPage.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflows) throw new Error(`Horizontal overflow detected at 375px on ${mobileTab}`);
+  }
+  await mobileCtx.close();
 
   if (pageErrors.length > 0) {
     throw new Error(`Console/page errors detected: ${pageErrors.join(' | ')}`);

@@ -46,6 +46,7 @@ export const Sidebar: React.FC = () => {
     scheduleTaskToCalendar,
     addTaskFromText,
     setSelection,
+    setMobileInspectorOpen,
     mobileSidebarOpen,
     setMobileSidebarOpen,
   } = useWorkspace();
@@ -201,6 +202,7 @@ export const Sidebar: React.FC = () => {
                       onClick={() => {
                         setSelectedDate(dKey);
                         setActiveTab('planner');
+                        setMobileSidebarOpen(false);
                       }}
                       className="relative mx-auto w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-mono-num transition-colors"
                       style={{
@@ -258,7 +260,8 @@ export const Sidebar: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setActiveList(item.id);
-                    if (activeTab === 'overview' || activeTab === 'analytics') setActiveTab('tasks');
+                    setActiveTab('tasks');
+                    setMobileSidebarOpen(false);
                   }}
                   className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border-l-2 transition-all duration-150 hover:translate-x-0.5 text-left"
                   style={{
@@ -302,7 +305,8 @@ export const Sidebar: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setActiveList(proj.id);
-                      if (activeTab === 'overview' || activeTab === 'analytics') setActiveTab('tasks');
+                      setActiveTab('tasks');
+                      setMobileSidebarOpen(false);
                     }}
                     className="w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors"
                     style={{
@@ -373,7 +377,10 @@ export const Sidebar: React.FC = () => {
                   e.dataTransfer.setData('text/cadence-task-id', task.id);
                   e.dataTransfer.effectAllowed = 'move';
                 }}
-                onClick={() => setSelection({ type: 'task', id: task.id })}
+                onClick={() => {
+                  setSelection({ type: 'task', id: task.id });
+                  setMobileInspectorOpen(true);
+                }}
                 className="group flex items-start gap-1.5 px-2 py-1.5 rounded-lg border border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all duration-150"
                 style={{
                   backgroundColor: 'var(--bg-elevated)',

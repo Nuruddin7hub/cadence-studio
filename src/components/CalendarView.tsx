@@ -7,10 +7,13 @@ import {
   Copy,
   Flame,
   Globe,
+  GripHorizontal,
   Pause,
   Play,
   Plus,
   Repeat,
+  Share2,
+  SlidersHorizontal,
   Video,
   X,
 } from 'lucide-react';
@@ -75,6 +78,7 @@ export const CalendarView: React.FC = () => {
     setActiveFocusTaskId,
     setFocusRunning,
     setFocusCurtainOpen,
+    setMobileInspectorOpen,
   } = useWorkspace();
 
   const [quickSlot, setQuickSlot] = useState<{ date: string; startMinutes: number } | null>(null);
@@ -84,8 +88,12 @@ export const CalendarView: React.FC = () => {
   const [dragHoverCell, setDragHoverCell] = useState<string | null>(null);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<EventCategory | null>(null);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [dragPreview, setDragPreview] = useState<{ id: string; date: string; startMinutes: number } | null>(null);
 
   const resizeRef = useRef<{ id: string; origDuration: number; startY: number } | null>(null);
+  const gridBodyRef = useRef<HTMLDivElement | null>(null);
+  const suppressClickRef = useRef(false);
   const isDark = snapshot.preferences.theme === 'dark';
 
   const visibleDates = useMemo(() => {
@@ -149,12 +157,12 @@ export const CalendarView: React.FC = () => {
     pushToast('Availability copied to clipboard', `${sorted.length} time slots ready to paste`, false, 'success');
   };
 
-  const startResize = (e: React.MouseEvent, ev: CalendarEvent) => {
+  const startResize = (e: React.PointerEvent, ev: CalendarEvent) => {
     e.stopPropagation();
     e.preventDefault();
     resizeRef.current = { id: ev.id, origDuration: ev.durationMinutes, startY: e.clientY };
 
-    const onMove = (moveEvt: MouseEvent) => {
+    const onMove = (moveEvt: PointerEvent) => {
       if (!resizeRef.current) return;
       const dy = moveEvt.clientY - resizeRef.current.startY;
       const deltaMinutes = Math.round(((dy / HOUR_HEIGHT) * 60) / 15) * 15;
@@ -164,12 +172,107 @@ export const CalendarView: React.FC = () => {
 
     const onUp = () => {
       resizeRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 90);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const startDragBlock = (e: React.PointerEvent, ev: CalendarEvent, forceImmediate = false) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (forceImmediate) e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const isMouse = e.pointerType === 'mouse';
+    const gutterWidth = snapshot.preferences.showSecondaryTz ? 72 : 52;
+    let dragActive = forceImmediate;
+    let cancelled = false;
+    let latestTarget = { date: ev.date, startMinutes: ev.startMinutes };
+    let holdTimer: number | null = null;
+
+    const activateDrag = () => {
+      if (cancelled || dragActive) return;
+      dragActive = true;
+      setDragPreview({ id: ev.id, date: ev.date, startMinutes: ev.startMinutes });
+    };
+
+    if (!isMouse && !forceImmediate) {
+      holdTimer = window.setTimeout(activateDrag, 190);
+    }
+
+    const onMove = (moveEvt: PointerEvent) => {
+      const dx = moveEvt.clientX - startX;
+      const dy = moveEvt.clientY - startY;
+      if (!dragActive) {
+        if (isMouse && Math.hypot(dx, dy) > 5) {
+          activateDrag();
+        } else if (!isMouse && Math.hypot(dx, dy) > 9) {
+          // Allow native vertical/horizontal touch scroll when not gripping handle or long-pressing
+          cancelled = true;
+          cleanup();
+          return;
+        }
+      }
+      if (!dragActive) return;
+
+      const deltaMins = Math.round(((dy / HOUR_HEIGHT) * 60) / 15) * 15;
+      const snappedStart = Math.max(
+        START_HOUR * 60,
+        Math.min((END_HOUR + 1) * 60 - Math.max(30, ev.durationMinutes), ev.startMinutes + deltaMins)
+      );
+
+      let targetDate = ev.date;
+      const rect = gridBodyRef.current?.getBoundingClientRect();
+      if (rect && visibleDates.length > 1) {
+        const colsLeft = rect.left + gutterWidth;
+        const colsWidth = Math.max(1, rect.width - gutterWidth);
+        const rawIdx = Math.floor(((moveEvt.clientX - colsLeft) / colsWidth) * visibleDates.length);
+        const clampedIdx = Math.max(0, Math.min(visibleDates.length - 1, rawIdx));
+        targetDate = visibleDates[clampedIdx] ?? ev.date;
+      }
+
+      latestTarget = { date: targetDate, startMinutes: snappedStart };
+      setDragPreview({ id: ev.id, date: targetDate, startMinutes: snappedStart });
+    };
+
+    const cleanup = () => {
+      if (holdTimer !== null) {
+        window.clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+
+    const onUp = () => {
+      cleanup();
+      setDragPreview(null);
+      if (dragActive && (latestTarget.date !== ev.date || latestTarget.startMinutes !== ev.startMinutes)) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 120);
+        updateEvent(ev.id, { date: latestTarget.date, startMinutes: latestTarget.startMinutes });
+        pushToast(
+          'Block rescheduled',
+          `${ev.title} (${formatReadableDate(latestTarget.date)} at ${formatMinutes(latestTarget.startMinutes, true)})`,
+          true
+        );
+      }
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
@@ -221,36 +324,72 @@ export const CalendarView: React.FC = () => {
         className="px-3 sm:px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-surface)]"
         style={{ borderColor: 'var(--rule-hairline)' }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => shiftRange(-1)}
-              className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-              aria-label="Previous period"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedDate(todayKey)}
-              className="px-2 py-1 rounded-md text-[12px] font-medium hover:bg-[var(--bg-hover)] text-[var(--ink-primary)]"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => shiftRange(1)}
-              className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-              aria-label="Next period"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        <div className="flex items-center justify-between gap-2 min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => shiftRange(-1)}
+                className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                aria-label="Previous period"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDate(todayKey)}
+                className="px-2 py-1 rounded-md text-[12px] font-medium hover:bg-[var(--bg-hover)] text-[var(--ink-primary)]"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftRange(1)}
+                className="p-1.5 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                aria-label="Next period"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <h2 className="font-display font-bold text-[15px] sm:text-[18px] tracking-tight text-[var(--ink-primary)] truncate">
+              {headerTitle}
+            </h2>
           </div>
 
-          <h2 className="font-display font-bold text-[15.5px] sm:text-[18px] tracking-tight text-[var(--ink-primary)] truncate">
-            {headerTitle}
-          </h2>
+          <div className="flex sm:hidden items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setAvailabilityMode(!availabilityMode);
+                if (!availabilityMode) pushToast('Pick open slots', 'Tap hours on grid to share');
+              }}
+              aria-label="Share open times"
+              className="p-1.5 rounded-lg border text-[var(--ink-secondary)]"
+              style={{
+                backgroundColor: availabilityMode ? 'var(--accent-primary-soft)' : 'var(--bg-inset)',
+                borderColor: availabilityMode ? 'var(--accent-primary)' : 'var(--rule-hairline)',
+                color: availabilityMode ? 'var(--accent-primary)' : 'var(--ink-secondary)',
+              }}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileFilterOpen((v) => !v)}
+              aria-label="Filter calendar categories"
+              className="p-1.5 rounded-lg border relative text-[var(--ink-secondary)]"
+              style={{
+                backgroundColor: mobileFilterOpen || categoryFilter ? 'var(--bg-elevated)' : 'var(--bg-inset)',
+                borderColor: categoryFilter ? 'var(--accent-primary)' : 'var(--rule-hairline)',
+              }}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              {categoryFilter && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
@@ -361,10 +500,12 @@ export const CalendarView: React.FC = () => {
 
       {/* Scannable Category Spotlight & Live Today Status Strip */}
       <div
-        className="px-3 sm:px-4 py-1.5 border-b flex items-center justify-between gap-2 bg-[var(--bg-surface)]/55 overflow-x-auto no-scrollbar shrink-0"
+        className={`${
+          mobileFilterOpen ? 'flex flex-wrap' : 'hidden sm:flex'
+        } px-3 sm:px-4 py-1.5 border-b items-center justify-between gap-2 bg-[var(--bg-surface)]/55 shrink-0`}
         style={{ borderColor: 'var(--rule-hairline)' }}
       >
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-1 min-w-0">
           <button
             type="button"
             onClick={() => setCategoryFilter(null)}
@@ -452,14 +593,20 @@ export const CalendarView: React.FC = () => {
       {/* TIME GRID VIEWS */}
       {showTimeGrid && (
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Opaque Sticky Day Headers aligned to scrollable body scrollbar gutter */}
-          <div
-            className="grid border-b bg-[var(--bg-surface)] shrink-0 z-30 md:pr-[6px]"
-            style={{
-              gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
-              borderColor: 'var(--rule-hairline)',
-            }}
-          >
+          <div className="flex-1 overflow-auto relative">
+            <div
+              className={`flex flex-col min-h-full ${
+                calendarMode === 'week' || calendarMode === 'workweek' ? 'min-w-[630px] md:min-w-0' : 'w-full'
+              }`}
+            >
+              {/* Opaque Sticky Day Headers aligned to columns */}
+              <div
+                className="sticky top-0 grid border-b bg-[var(--bg-surface)] shrink-0 z-30"
+                style={{
+                  gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
+                  borderColor: 'var(--rule-hairline)',
+                }}
+              >
             <div className="border-r px-1.5 py-2 pb-2.5 flex items-end justify-end gap-1 text-[9.5px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
               {snapshot.preferences.showSecondaryTz && <span className="hidden sm:inline opacity-75">UTC</span>}
               <span>GMT+8</span>
@@ -551,9 +698,10 @@ export const CalendarView: React.FC = () => {
             })}
           </div>
 
-          {/* Scrollable Hourly Grid */}
-          <div className="flex-1 overflow-y-scroll relative pt-3 pb-20 sm:pb-6">
+          {/* Scrollable Hourly Grid Body */}
+          <div className="relative pt-3 pb-20 sm:pb-6">
             <div
+              ref={gridBodyRef}
               className="grid relative"
               style={{
                 gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
@@ -582,7 +730,14 @@ export const CalendarView: React.FC = () => {
 
               {/* Day Columns */}
               {visibleDates.map((dKey) => {
-                const dayEvents = filteredEvents.filter((e) => e.date === dKey);
+                const dayEvents = [
+                  ...filteredEvents.filter((e) => e.date === dKey && !(dragPreview && dragPreview.id === e.id)),
+                  ...(dragPreview && dragPreview.date === dKey
+                    ? filteredEvents
+                        .filter((e) => e.id === dragPreview.id)
+                        .map((e) => ({ ...e, date: dragPreview.date, startMinutes: dragPreview.startMinutes }))
+                    : []),
+                ];
                 const positioned = layoutDayEvents(dayEvents);
                 const isToday = dKey === todayKey;
 
@@ -722,7 +877,8 @@ export const CalendarView: React.FC = () => {
                         ((linkedTask && activeFocusTaskId === linkedTask.id) ||
                           (!activeFocusTaskId && isToday && event.category === 'deep' && event.id === 'ev-wed-1'));
                       const isDimmed = categoryFilter !== null && event.category !== categoryFilter;
-                      const edgeTone = isFocusLinked
+                      const isDragging = dragPreview?.id === event.id;
+                      const edgeTone = isDragging || isFocusLinked
                         ? 'var(--accent-primary)'
                         : isDark
                           ? style.borderDark
@@ -731,17 +887,17 @@ export const CalendarView: React.FC = () => {
                       return (
                         <div
                           key={event.id}
-                          draggable
                           title={`${event.title} (${formatTimeRange(event.startMinutes, event.durationMinutes)})`}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('text/cadence-event-id', event.id);
-                            e.dataTransfer.effectAllowed = 'move';
-                          }}
+                          onPointerDown={(e) => startDragBlock(e, event, false)}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (suppressClickRef.current) return;
                             setSelection({ type: 'event', id: event.id });
+                            setMobileInspectorOpen(true);
                           }}
-                          className="group absolute z-20 rounded-lg px-2 py-1 overflow-hidden cursor-pointer select-none transition-all duration-150 hover:-translate-y-[1px] hover:z-30 flex flex-col gap-1 backdrop-blur-[3px]"
+                          className={`group absolute rounded-lg px-2 py-1 overflow-hidden cursor-grab active:cursor-grabbing select-none transition-all duration-150 hover:-translate-y-[1px] hover:z-30 flex flex-col gap-1 backdrop-blur-[3px] ${
+                            isDragging ? 'z-40 scale-[1.03] shadow-2xl' : 'z-20'
+                          }`}
                           style={{
                             top: `${top + 1}px`,
                             height: `${height}px`,
@@ -756,11 +912,13 @@ export const CalendarView: React.FC = () => {
                             borderLeft: `3px solid ${style.bar}`,
                             color: isDark ? style.textDark : style.textLight,
                             opacity: isDone ? 0.58 : isDimmed ? 0.22 : 1,
-                            boxShadow: isFocusLinked
-                              ? `0 0 0 1px rgba(231,64,4,0.6), 0 8px 24px -6px rgba(231,64,4,0.45)`
-                              : isSelected
-                                ? `0 0 0 1px ${style.bar}, 0 8px 20px -6px ${isDark ? style.glowDark : 'rgba(15,23,42,0.16)'}`
-                                : `0 2px 8px -2px ${isDark ? 'rgba(0,0,0,0.4)' : 'rgba(15,23,42,0.06)'}`,
+                            boxShadow: isDragging
+                              ? '0 0 0 2px rgba(231,64,4,0.85), 0 14px 32px rgba(0,0,0,0.55)'
+                              : isFocusLinked
+                                ? '0 0 0 1px rgba(231,64,4,0.6), 0 8px 24px -6px rgba(231,64,4,0.45)'
+                                : isSelected
+                                  ? `0 0 0 1px ${style.bar}, 0 8px 20px -6px ${isDark ? style.glowDark : 'rgba(15,23,42,0.16)'}`
+                                  : `0 2px 8px -2px ${isDark ? 'rgba(0,0,0,0.4)' : 'rgba(15,23,42,0.06)'}`,
                           }}
                         >
                           <div className="flex items-start gap-1.5 min-w-0">
@@ -794,16 +952,29 @@ export const CalendarView: React.FC = () => {
                                   )}
                                 </div>
 
-                                {height >= 36 && totalCols === 1 && calendarMode !== 'week' && (
-                                  <span
-                                    className="shrink-0 px-1.5 py-0 rounded text-[9px] font-semibold group-hover:opacity-0 transition-opacity"
-                                    style={{
-                                      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)',
-                                      color: style.bar,
-                                    }}
-                                  >
-                                    {isFocusLinked ? 'LIVE' : style.shortLabel}
-                                  </span>
+                                {height >= 36 && (
+                                  <div className="shrink-0 flex items-center gap-1">
+                                    {totalCols === 1 && calendarMode !== 'week' && (
+                                      <span
+                                        className="px-1.5 py-0 rounded text-[9px] font-semibold group-hover:opacity-0 transition-opacity"
+                                        style={{
+                                          backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)',
+                                          color: style.bar,
+                                        }}
+                                      >
+                                        {isFocusLinked ? 'LIVE' : style.shortLabel}
+                                      </span>
+                                    )}
+                                    <span
+                                      onPointerDown={(e) => startDragBlock(e, event, true)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Drag to move"
+                                      style={{ touchAction: 'none' }}
+                                      className="sm:hidden inline-flex items-center justify-center w-4 h-4 rounded text-[var(--ink-secondary)] opacity-75"
+                                    >
+                                      <GripHorizontal className="w-3 h-3" />
+                                    </span>
+                                  </div>
                                 )}
                               </div>
 
@@ -865,10 +1036,14 @@ export const CalendarView: React.FC = () => {
                           )}
 
                           <div
-                            onMouseDown={(e) => startResize(e, event)}
+                            onPointerDown={(e) => startResize(e, event)}
+                            onClick={(e) => e.stopPropagation()}
                             title="Drag to adjust duration"
-                            className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100 bg-white/15"
-                          />
+                            style={{ touchAction: 'none' }}
+                            className="absolute bottom-0 left-0 right-0 h-2.5 cursor-ns-resize flex items-center justify-center opacity-60 sm:opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-opacity"
+                          >
+                            <span className="w-6 h-0.5 rounded-full bg-white/35" />
+                          </div>
                         </div>
                       );
                     })}
@@ -876,6 +1051,8 @@ export const CalendarView: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+          </div>
           </div>
 
           {/* Bottom soft scroll gradient above mobile tab bar / bottom edge */}
@@ -903,7 +1080,7 @@ export const CalendarView: React.FC = () => {
               ? [...WEEKDAY_SHORT.slice(1), WEEKDAY_SHORT[0]]
               : WEEKDAY_SHORT
             ).map((wd) => (
-              <div key={wd} className="px-3 py-2 text-[11.5px] font-medium text-[var(--ink-secondary)] border-r last:border-r-0">
+              <div key={wd} className="px-1.5 sm:px-3 py-2 text-center sm:text-left text-[11px] sm:text-[11.5px] font-medium text-[var(--ink-secondary)] border-r last:border-r-0">
                 {wd}
               </div>
             ))}
@@ -913,22 +1090,24 @@ export const CalendarView: React.FC = () => {
               const d = fromDateKey(dKey);
               const inMonth = d.getMonth() === selectedDateObj.getMonth();
               const isToday = dKey === todayKey;
+              const isSel = dKey === selectedDate;
               const dayEvents = filteredEvents.filter((e) => e.date === dKey);
               const dayTasks = snapshot.tasks.filter((t) => !t.completed && t.dueDate === dKey);
 
               return (
                 <div
                   key={dKey}
-                  onClick={() => {
-                    setSelectedDate(dKey);
-                    setQuickSlot({ date: dKey, startMinutes: 10 * 60 });
+                  onClick={() => setSelectedDate(dKey)}
+                  onDoubleClick={() => setQuickSlot({ date: dKey, startMinutes: 10 * 60 })}
+                  className="border-r border-b last:border-r-0 p-1 sm:p-2 min-h-[58px] sm:min-h-[104px] flex flex-col gap-1 cursor-pointer hover:bg-[var(--bg-hover)]/35 transition-colors"
+                  style={{
+                    opacity: inMonth ? 1 : 0.45,
+                    backgroundColor: isSel && !isToday ? 'var(--bg-elevated)' : 'transparent',
                   }}
-                  className="border-r border-b last:border-r-0 p-2 min-h-[104px] flex flex-col gap-1 cursor-pointer hover:bg-[var(--bg-hover)]/35 transition-colors"
-                  style={{ opacity: inMonth ? 1 : 0.45 }}
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-[12px] font-mono-num font-semibold"
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-[11.5px] sm:text-[12px] font-mono-num font-semibold"
                       style={{
                         backgroundColor: isToday ? 'var(--accent-primary)' : 'transparent',
                         color: isToday ? '#FFFFFF' : 'var(--ink-primary)',
@@ -937,13 +1116,24 @@ export const CalendarView: React.FC = () => {
                       {d.getDate()}
                     </span>
                     {dayTasks.length > 0 && (
-                      <span className="text-[10px] font-mono-num text-[var(--accent-amber)]">
+                      <span className="hidden sm:inline text-[10px] font-mono-num text-[var(--accent-amber)]">
                         {dayTasks.length} due
                       </span>
                     )}
                   </div>
 
-                  <div className="space-y-1 overflow-hidden">
+                  {/* Mobile Month compact dots */}
+                  <div className="flex sm:hidden flex-wrap gap-1 px-0.5">
+                    {dayEvents.slice(0, 4).map((ev) => (
+                      <span
+                        key={ev.id}
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: EVENT_CATEGORY_STYLES[ev.category].bar }}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="hidden sm:block space-y-1 overflow-hidden">
                     {dayEvents.slice(0, 3).map((ev) => {
                       const style = EVENT_CATEGORY_STYLES[ev.category];
                       return (
@@ -974,6 +1164,45 @@ export const CalendarView: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+
+          {/* Mobile Selected Day Schedule Strip in Month view */}
+          <div className="sm:hidden border-t bg-[var(--bg-surface)] p-3 pb-16 space-y-2 max-h-[210px] overflow-y-auto shrink-0">
+            <div className="flex items-center justify-between">
+              <span className="font-display font-semibold text-[13px]">{formatReadableDate(selectedDate)}</span>
+              <button
+                type="button"
+                onClick={() => setQuickSlot({ date: selectedDate, startMinutes: 10 * 60 })}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add block</span>
+              </button>
+            </div>
+            {filteredEvents.filter((e) => e.date === selectedDate).map((ev) => {
+              const style = EVENT_CATEGORY_STYLES[ev.category];
+              return (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={() => {
+                    setSelection({ type: 'event', id: ev.id });
+                    setMobileInspectorOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border-l-2 bg-[var(--bg-elevated)] text-left"
+                  style={{ borderLeftColor: style.bar }}
+                >
+                  <span className="text-[12.5px] font-medium truncate">{ev.title}</span>
+                  <span className="text-[11px] font-mono-num text-[var(--ink-secondary)] shrink-0">
+                    {ev.allDay ? 'All day' : formatMinutes(ev.startMinutes, true)}
+                  </span>
+                </button>
+              );
+            })}
+            {filteredEvents.filter((e) => e.date === selectedDate).length === 0 && (
+              <p className="text-[12px] text-[var(--ink-muted)]">No events scheduled for this date.</p>
+            )}
           </div>
         </AnimatedContent>
       )}
@@ -1028,7 +1257,10 @@ export const CalendarView: React.FC = () => {
                         <button
                           key={ev.id}
                           type="button"
-                          onClick={() => setSelection({ type: 'event', id: ev.id })}
+                          onClick={() => {
+                            setSelection({ type: 'event', id: ev.id });
+                            setMobileInspectorOpen(true);
+                          }}
                           className="w-full text-left px-4 py-3 flex items-center justify-between gap-4 hover:bg-[var(--bg-hover)]/40 transition-colors"
                         >
                           <div className="flex items-center gap-3 min-w-0">

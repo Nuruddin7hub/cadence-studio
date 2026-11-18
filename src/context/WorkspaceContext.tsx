@@ -61,6 +61,8 @@ interface WorkspaceContextValue {
   setFocusCurtainOpen: (open: boolean) => void;
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
+  mobileInspectorOpen: boolean;
+  setMobileInspectorOpen: (open: boolean) => void;
 
   // Theme & preferences
   setTheme: (theme: ThemeMode) => void;
@@ -165,9 +167,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [shotPreset]);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
-  const [calendarMode, setCalendarMode] = useState<CalendarMode>(
-    shotPreset === 'mobile-dark' ? 'day' : 'week'
-  );
+  const [calendarMode, setCalendarMode] = useState<CalendarMode>(() => {
+    if (shotPreset === 'mobile-dark') return 'day';
+    if (!shotPreset && typeof window !== 'undefined' && window.innerWidth < 640) return 'day';
+    return 'week';
+  });
   const [taskViewMode, setTaskViewMode] = useState<TaskViewMode>(
     shotPreset === 'tasks-dark' ? 'matrix' : 'list'
   );
@@ -183,6 +187,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [focusCurtainOpen, setFocusCurtainOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
 
   // Focus timer state
   const [focusMode, setFocusModeState] = useState<'focus' | 'short_break' | 'long_break'>('focus');
@@ -290,19 +295,44 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateEvent = useCallback(
     (id: string, patch: Partial<CalendarEvent>) => {
+      const target = snapshot.events.find((e) => e.id === id);
       commit((prev) => ({
         ...prev,
         events: prev.events.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+        tasks:
+          target?.linkedTaskId && (patch.date !== undefined || patch.startMinutes !== undefined || patch.durationMinutes !== undefined)
+            ? prev.tasks.map((t) =>
+                t.id === target.linkedTaskId
+                  ? {
+                      ...t,
+                      scheduledDate: patch.date ?? t.scheduledDate,
+                      scheduledStartMinutes: patch.startMinutes ?? t.scheduledStartMinutes,
+                      estimatedMinutes: patch.durationMinutes ?? t.estimatedMinutes,
+                    }
+                  : t
+              )
+            : prev.tasks,
       }));
     },
-    [commit]
+    [commit, snapshot.events]
   );
 
   const deleteEvent = useCallback(
     (id: string) => {
       const target = snapshot.events.find((e) => e.id === id);
-      commit((prev) => ({ ...prev, events: prev.events.filter((e) => e.id !== id) }));
+      commit((prev) => ({
+        ...prev,
+        events: prev.events.filter((e) => e.id !== id),
+        tasks: target?.linkedTaskId
+          ? prev.tasks.map((t) =>
+              t.id === target.linkedTaskId
+                ? { ...t, scheduledDate: undefined, scheduledStartMinutes: undefined }
+                : t
+            )
+          : prev.tasks,
+      }));
       setSelection((prev) => (prev?.id === id ? null : prev));
+      setMobileInspectorOpen(false);
       if (target) pushToast('Event removed', target.title, true);
     },
     [commit, pushToast, snapshot.events]
@@ -519,6 +549,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const moveTaskKanban = useCallback(
     (taskId: string, status: TaskStatus) => {
+      const nextDone = status === 'done';
       commit((prev) => ({
         ...prev,
         tasks: prev.tasks.map((t) =>
@@ -526,10 +557,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             ? {
                 ...t,
                 status,
-                completed: status === 'done',
-                completedAt: status === 'done' ? todayKey : undefined,
+                completed: nextDone,
+                completedAt: nextDone ? todayKey : undefined,
               }
             : t
+        ),
+        events: prev.events.map((e) =>
+          e.linkedTaskId === taskId ? { ...e, completed: nextDone } : e
         ),
       }));
     },
@@ -780,6 +814,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCommandOpen(false);
         setFocusCurtainOpen(false);
         setMobileSidebarOpen(false);
+        setMobileInspectorOpen(false);
         return;
       }
 
@@ -863,6 +898,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setFocusCurtainOpen,
     mobileSidebarOpen,
     setMobileSidebarOpen,
+    mobileInspectorOpen,
+    setMobileInspectorOpen,
     setTheme,
     toggleTheme,
     updatePreferences,

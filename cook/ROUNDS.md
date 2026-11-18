@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [complete]
-Best so far: round 09 (`r09-planner`), `cook/stills/r09-planner/`, built and verified with scannable Planner UI and live interactive controls
+Best so far: round 10 (`r10-mobile`), `cook/stills/r10-mobile/`, built and verified across desktop (`1440x900`) and mobile (`375x812`) with touch drag/resize and full feature parity
 
 ## Decisions
 
@@ -354,3 +354,26 @@ Measured (`r09-planner`):
 - `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
 - `node scripts/render-stills.mjs r09-planner`: `S01` 3294ms, `S02` 1385ms, `S03` 1438ms, `S04` 1321ms, `S05` 1719ms, `S06` 1334ms; `overflow: false`, `errors: []`.
 - `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+
+---
+
+## Round 10-mobile (Touch Drag/Resize, Mobile Inspector Sheet & Full 375px Responsiveness Audit)
+
+Time: 19:58 to 20:15 +08:00
+Focus: Audit every view at `375x812` and fix every feature gap: touch-friendly calendar block drag & duration resize, un-crowded mobile calendar layout, `MobileInspectorSheet` on `< xl`, crisp zero-blur `Counter` numerals, unclipped `Tasks`/`Analytics`/`Overview` mobile layouts, and linked task/event state syncing
+
+Changes:
+- `WorkspaceContext.tsx`: initialized mobile viewport `< 640px` cleanly to `'day'` view (`calendarMode`), added `mobileInspectorOpen` state (plus `Escape` close), synced `events` completion in `moveTaskKanban` and unscheduled linked tasks in `deleteEvent` / `updateEvent`.
+- `CalendarView.tsx`: replaced mouse-only drag/resize with unified Pointer Events (`startDragBlock` across 15m slots & multi-day columns via touch grip handle `GripHorizontal` or 190ms press-hold or desktop mouse drag, and `startResize` touch bottom handle), de-crowded `< sm` header with `Share2` + collapsible `Filter` button, added horizontally scrollable `min-w-[630px]` grid on mobile `Week`/`5D`, compact Month view dots + Selected Day event sheet, and opened `MobileInspectorSheet` on tap.
+- `InspectorRail.tsx` & `App.tsx`: exported & mounted `MobileInspectorSheet` (`-30m`/`+30m` time nudge, date/start/duration/category pickers, Focus block launch, duplicate/delete, Kanban/Quadrant selectors, subtasks), fixed blurry `<Counter>` roll with `intro={false} fade={0} motionBlur={false} duration={0.28}` across `InspectorRail`, `FocusHabitsStudio`, `FocusCurtain`, and `ProductivityOverview`.
+- `Sidebar.tsx`, `TopBar.tsx`, `CommandPalette.tsx`: jumped to Tasks & closed mobile drawer on Smart List / Project / date click; made `TopBar` Bell upcoming events clickable + added Share Slots action in `CommandPalette`.
+- `TasksWorkspace.tsx`, `FocusHabitsStudio.tsx`, `AnalyticsSuite.tsx`, `ProductivityOverview.tsx`: added compact mobile `List | Kanban | Matrix` tabs + mobile Kanban column `<select>`, compact mobile Habit cells, responsive wrapped Analytics action bar + mobile backlog cards, single-zone hero showcase on mobile + `gap-20 pt-14` folder spacing + responsive `CardSwap` (`width={286}`) and `Dock` sizing.
+- Expanded `scripts/verify-interactions.mjs` with section `8`: mobile `375x812` touch grip drag test, `MobileInspectorSheet` open/close, and zero-overflow verification across all 5 mobile tabs.
+
+Stills: `cook/stills/r10-mobile/` | Side by side: `cook/compare/r10-mobile/`
+
+Measured (`r10-mobile`):
+- `npm run build`: exited 0 (`✓ built in 11.65s`, `tsc -b && vite build`, `8178` modules, `dist/assets/index-CcsEvKXR.css` `128.41 kB`, `dist/assets/index-mzbS95tz.js` `1,020.63 kB`).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
+- `node scripts/render-stills.mjs r10-mobile`: `S01` 2708ms, `S02` 1347ms, `S03` 1414ms, `S04` 1317ms, `S05` 1702ms, `S06` 1574ms; `overflow: false`, `errors: []`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED` (`1440x900` desktop + `375x812` touch drag, inspector sheet, and all 5 views).

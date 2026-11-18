@@ -138,23 +138,23 @@ export const AnalyticsSuite: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <GlareHover glareColor="#ffffff" glareOpacity={0.14} borderRadius="8px" className="inline-flex">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <GlareHover glareColor="#ffffff" glareOpacity={0.14} borderRadius="8px" className="inline-flex shrink-0">
               <button
                 type="button"
                 onClick={handleExportIcs}
-                className="studio-card inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="studio-card inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] whitespace-nowrap"
               >
-                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                 <span>Export .ics</span>
               </button>
             </GlareHover>
 
-            <div className="flex items-center rounded-lg border bg-[var(--bg-surface)] p-0.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center rounded-lg border bg-[var(--bg-surface)] p-0.5 max-w-full">
               <button
                 type="button"
                 onClick={handleExportJson}
-                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] whitespace-nowrap"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Backup</span>
@@ -162,7 +162,7 @@ export const AnalyticsSuite: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] whitespace-nowrap"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Import</span>
@@ -178,7 +178,7 @@ export const AnalyticsSuite: React.FC = () => {
                 doneLabel="Reset!"
                 icon={<RotateCcw className="w-3.5 h-3.5" />}
                 onHold={resetToSeed}
-                className="text-[12px]"
+                className="text-[12px] whitespace-nowrap"
               >
                 Hold Reset
               </HoldButton>
@@ -415,11 +415,36 @@ export const AnalyticsSuite: React.FC = () => {
           intensity={isDark ? 0.1 : 0.06}
           className="studio-card rounded-2xl overflow-hidden"
         >
-          <div className="px-5 py-3.5 border-b flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b flex items-center justify-between gap-2">
             <h2 className="font-display font-bold text-[14.5px]">Project Backlog & Remaining Effort</h2>
-            <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">Live workspace totals</span>
+            <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)] shrink-0">Live totals</span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="md:hidden divide-y">
+            {stats.listBreakdown.map((row) => (
+              <div key={row.list} className="p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 font-medium text-[13px] text-[var(--ink-primary)]">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                    <span>{row.label}</span>
+                  </span>
+                  <span className="font-mono-num text-[11.5px] text-[var(--ink-primary)]">
+                    {row.remainingMins}m left
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-inset)] border overflow-hidden">
+                    {row.pct > 0 && (
+                      <div className="h-full rounded-full" style={{ width: `${row.pct}%`, backgroundColor: row.color }} />
+                    )}
+                  </div>
+                  <span className="font-mono-num text-[11px] text-[var(--ink-secondary)]">
+                    {row.done}/{row.total} ({row.pct}%)
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-[13px]">
               <thead>
                 <tr className="border-b text-[11.5px] text-[var(--ink-muted)]">

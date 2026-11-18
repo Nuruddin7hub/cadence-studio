@@ -54,6 +54,7 @@ export const TasksWorkspace: React.FC = () => {
     moveTaskKanban,
     moveTaskQuadrant,
     setSelection,
+    setMobileInspectorOpen,
     pushToast,
   } = useWorkspace();
 
@@ -141,26 +142,53 @@ export const TasksWorkspace: React.FC = () => {
             </p>
           </div>
 
-          <RubberSegment
-            items={[
-              { value: 'list', label: 'Smart List', icon: <ListTodo className="w-3.5 h-3.5" /> },
-              { value: 'kanban', label: 'Kanban Board', icon: <Columns3 className="w-3.5 h-3.5" /> },
-              { value: 'matrix', label: 'Eisenhower Matrix', icon: <Grid2x2 className="w-3.5 h-3.5" /> },
-            ]}
-            value={taskViewMode}
-            onChange={(val: string) => setTaskViewMode(val as TaskViewMode)}
-            size="sm"
-            equalSlots={false}
-            radius={10}
-            stretch={34}
-            squash={22}
-            trackColor={isDark ? '#151821' : '#eaedf3'}
-            thumbColor={isDark ? '#242938' : '#ffffff'}
-            textColor={isDark ? '#b4bccb' : '#4b5563'}
-            activeTextColor={isDark ? '#ffffff' : '#0f1115'}
-            ariaLabel="Task workspace layout mode"
-            className="border"
-          />
+          <div className="sm:hidden grid grid-cols-3 rounded-lg border bg-[var(--bg-inset)] p-0.5 w-full">
+            {([
+              ['list', 'List'],
+              ['kanban', 'Kanban'],
+              ['matrix', 'Matrix'],
+            ] as [TaskViewMode, string][]).map(([id, shortLabel]) => {
+              const active = taskViewMode === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTaskViewMode(id)}
+                  className="py-1.5 rounded-md text-[12px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
+                    color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
+                    boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
+                  }}
+                >
+                  {shortLabel}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden sm:block">
+            <RubberSegment
+              items={[
+                { value: 'list', label: 'Smart List', icon: <ListTodo className="w-3.5 h-3.5" /> },
+                { value: 'kanban', label: 'Kanban Board', icon: <Columns3 className="w-3.5 h-3.5" /> },
+                { value: 'matrix', label: 'Eisenhower Matrix', icon: <Grid2x2 className="w-3.5 h-3.5" /> },
+              ]}
+              value={taskViewMode}
+              onChange={(val: string) => setTaskViewMode(val as TaskViewMode)}
+              size="sm"
+              equalSlots={false}
+              radius={10}
+              stretch={34}
+              squash={22}
+              trackColor={isDark ? '#151821' : '#eaedf3'}
+              thumbColor={isDark ? '#242938' : '#ffffff'}
+              textColor={isDark ? '#b4bccb' : '#4b5563'}
+              activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+              ariaLabel="Task workspace layout mode"
+              className="border"
+            />
+          </div>
         </div>
 
         {/* Natural Language Capture + Search & Single Filter Popover */}
@@ -174,7 +202,7 @@ export const TasksWorkspace: React.FC = () => {
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Add task: 'Review deck tomorrow 2pm 45m !p1 #work'"
+              placeholder="Add task: 'Review 2pm !p1 #work'"
               className="flex-1 min-w-0 bg-transparent text-[13px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
             />
             {parsedPreview && (
@@ -511,7 +539,10 @@ export const TasksWorkspace: React.FC = () => {
                           key={task.id}
                           draggable
                           onDragStart={(e) => e.dataTransfer.setData('text/cadence-kanban-task', task.id)}
-                          onClick={() => setSelection({ type: 'task', id: task.id })}
+                          onClick={() => {
+                            setSelection({ type: 'task', id: task.id });
+                            setMobileInspectorOpen(true);
+                          }}
                           className="p-3 rounded-lg border bg-[var(--bg-elevated)]/80 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing space-y-2"
                           style={{ boxShadow: 'var(--surface-sheen)' }}
                         >
@@ -524,9 +555,20 @@ export const TasksWorkspace: React.FC = () => {
                               {pMeta.short}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-[11px] font-mono-num text-[var(--ink-muted)]">
-                            <span>{task.estimatedMinutes}m</span>
-                            {task.dueDate && <span>{task.dueDate.slice(5)}</span>}
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono-num text-[var(--ink-muted)]">
+                            <span>{task.estimatedMinutes}m{task.dueDate ? ` · ${task.dueDate.slice(5)}` : ''}</span>
+                            <select
+                              value={task.status}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => moveTaskKanban(task.id, e.target.value as TaskStatus)}
+                              aria-label={`Move ${task.title} column`}
+                              className="xl:hidden px-1.5 py-0.5 rounded border bg-[var(--bg-inset)] text-[10.5px] font-sans text-[var(--ink-secondary)]"
+                            >
+                              <option value="backlog">Backlog</option>
+                              <option value="todo">Planned Today</option>
+                              <option value="in_progress">In Focus</option>
+                              <option value="done">Completed</option>
+                            </select>
                           </div>
                         </div>
                       );
@@ -606,7 +648,13 @@ export const TasksWorkspace: React.FC = () => {
                                   className="[&]:min-h-0 [&]:gap-0"
                                 />
                               </div>
-                              <div className="min-w-0">
+                              <div
+                                className="min-w-0 cursor-pointer"
+                                onClick={() => {
+                                  setSelection({ type: 'task', id: task.id });
+                                  setMobileInspectorOpen(true);
+                                }}
+                              >
                                 <p
                                   className="text-[13.5px] font-medium leading-snug"
                                   style={{ color: isOverdue ? 'var(--accent-coral)' : 'var(--ink-primary)' }}

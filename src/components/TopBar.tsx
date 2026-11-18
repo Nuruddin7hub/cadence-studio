@@ -36,6 +36,7 @@ export const TopBar: React.FC = () => {
     nowMinutes,
     activeTab,
     setActiveTab,
+    setSelection,
     toggleTheme,
     setCommandOpen,
     addTaskFromText,
@@ -315,7 +316,7 @@ export const TopBar: React.FC = () => {
 
           {notifOpen && (
             <div
-              className="absolute right-0 mt-2 w-72 rounded-xl border p-3 z-50"
+              className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border p-3 z-50"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--rule-strong)',
@@ -335,14 +336,21 @@ export const TopBar: React.FC = () => {
               ) : (
                 <ul className="space-y-1.5">
                   {upcomingToday.map((ev) => (
-                    <li
-                      key={ev.id}
-                      className="flex items-start justify-between gap-2 p-2 rounded-lg bg-[var(--bg-elevated)] text-[12px]"
-                    >
-                      <span className="font-medium text-[var(--ink-primary)] leading-snug">{ev.title}</span>
-                      <span className="font-mono-num text-[11px] text-[var(--accent-amber)] shrink-0">
-                        {formatMinutes(ev.startMinutes)}
-                      </span>
+                    <li key={ev.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelection({ type: 'event', id: ev.id });
+                          setActiveTab('planner');
+                          setNotifOpen(false);
+                        }}
+                        className="w-full flex items-start justify-between gap-2 p-2 rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[12px] text-left transition-colors"
+                      >
+                        <span className="font-medium text-[var(--ink-primary)] leading-snug">{ev.title}</span>
+                        <span className="font-mono-num text-[11px] text-[var(--accent-amber)] shrink-0">
+                          {formatMinutes(ev.startMinutes)}
+                        </span>
+                      </button>
                     </li>
                   ))}
                 </ul>

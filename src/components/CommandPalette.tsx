@@ -29,6 +29,8 @@ export const CommandPalette: React.FC = () => {
     setSelection,
     setFocusRunning,
     setFocusCurtainOpen,
+    availabilityMode,
+    setAvailabilityMode,
     undoLast,
   } = useWorkspace();
 
@@ -94,6 +96,16 @@ export const CommandPalette: React.FC = () => {
         },
       },
       {
+        id: 'act-share',
+        label: availabilityMode ? 'Exit Share Open Times Mode' : 'Pick Open Slots (Share Times)',
+        hint: 'Share',
+        icon: Calendar,
+        run: () => {
+          setActiveTab('planner');
+          setAvailabilityMode(!availabilityMode);
+        },
+      },
+      {
         id: 'act-theme',
         label: `Switch to ${snapshot.preferences.theme === 'dark' ? 'Daylight Paper' : 'Obsidian Studio'} Theme`,
         hint: 'Theme',
@@ -116,7 +128,9 @@ export const CommandPalette: React.FC = () => {
       },
     ];
   }, [
+    availabilityMode,
     setActiveTab,
+    setAvailabilityMode,
     setCalendarMode,
     setFocusCurtainOpen,
     setFocusRunning,

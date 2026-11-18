@@ -129,7 +129,7 @@ export const FocusHabitsStudio: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <BellToggle
               size="sm"
               radius={10}
@@ -181,7 +181,7 @@ export const FocusHabitsStudio: React.FC = () => {
             theme={isDark ? 'dark' : 'light'}
           >
             <section className="studio-card rounded-2xl p-5 w-full h-full flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="font-display font-bold text-[15px]">Pomodoro Session</h2>
                   <p className="text-[12px] text-[var(--ink-muted)] font-mono-num">
@@ -231,9 +231,9 @@ export const FocusHabitsStudio: React.FC = () => {
                   </svg>
                   <div className="absolute text-center">
                     <div className="inline-flex items-center justify-center font-mono-num text-[26px] font-bold tracking-tight text-[var(--ink-primary)]">
-                      <Counter value={focusMins} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" />
+                      <Counter value={focusMins} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
                       <span className="pb-0.5 text-[var(--accent-primary)]">:</span>
-                      <Counter value={focusSecs} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" />
+                      <Counter value={focusSecs} minDigits={2} fontSize={26} fontWeight={700} textColor="var(--ink-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
                     </div>
                     <div className="text-[10.5px] text-[var(--ink-muted)]">
                       {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
@@ -276,7 +276,7 @@ export const FocusHabitsStudio: React.FC = () => {
 
               <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="12px" className="inline-flex">
                       <button
                         type="button"
@@ -347,13 +347,13 @@ export const FocusHabitsStudio: React.FC = () => {
                   <h2 className="font-display font-bold text-[15px]">Daily Habit Streaks</h2>
                   <p className="text-[12px] text-[var(--ink-muted)]">7-day consistency grid</p>
                 </div>
-                <form onSubmit={handleAddHabit} className="flex items-center gap-1.5">
+                <form onSubmit={handleAddHabit} className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 w-full sm:w-auto">
                   <input
                     type="text"
                     value={habitName}
                     onChange={(e) => setHabitName(e.target.value)}
                     placeholder="New habit..."
-                    className="px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[12px] w-36 sm:w-44 focus:outline-none focus:border-[var(--accent-primary)]"
+                    className="flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[12px] sm:w-44 focus:outline-none focus:border-[var(--accent-primary)]"
                   />
                   <select
                     value={habitCat}
@@ -425,7 +425,7 @@ export const FocusHabitsStudio: React.FC = () => {
                       return (
                         <tr key={h.id} className="group hover:bg-[var(--bg-hover)]/35">
                           <td className="py-3 pr-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: pillColor }} />
                               <span className="text-[13px] font-medium text-[var(--ink-primary)]">{h.name}</span>
                             </div>
@@ -433,12 +433,12 @@ export const FocusHabitsStudio: React.FC = () => {
                           {last7Days.map((dKey) => {
                             const checked = Boolean(h.history[dKey]);
                             return (
-                              <td key={dKey} className="py-2 px-1 text-center">
+                              <td key={dKey} className="py-2 px-0.5 sm:px-1 text-center">
                                 <button
                                   type="button"
                                   onClick={() => toggleHabitDate(h.id, dKey)}
                                   aria-label={`${h.name} on ${dKey}`}
-                                  className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center hover:scale-110 active:scale-90 transition-all duration-150"
+                                  className="w-6 h-6 sm:w-7 sm:h-7 mx-auto rounded-lg flex items-center justify-center hover:scale-110 active:scale-90 transition-all duration-150"
                                   style={{
                                     backgroundColor: checked
                                       ? `color-mix(in srgb, ${pillColor} 16%, transparent)`

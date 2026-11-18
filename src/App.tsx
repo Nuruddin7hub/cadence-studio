@@ -3,7 +3,7 @@ import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { CalendarView } from './components/CalendarView';
-import { InspectorRail } from './components/InspectorRail';
+import { InspectorRail, MobileInspectorSheet } from './components/InspectorRail';
 import { TasksWorkspace } from './components/TasksWorkspace';
 import { FocusHabitsStudio } from './components/FocusHabitsStudio';
 import { AnalyticsSuite } from './components/AnalyticsSuite';
@@ -50,6 +50,7 @@ const WorkspaceShell: React.FC = () => {
         </main>
 
         <MobileDock />
+        <MobileInspectorSheet />
         <CommandPalette />
         <FocusCurtain />
         <ToastStack />
