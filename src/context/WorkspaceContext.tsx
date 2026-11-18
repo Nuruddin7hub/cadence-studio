@@ -309,6 +309,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   snapshotRef.current = snapshot;
   const skipNextCloudPushRef = useRef(false);
   const boundCloudUidRef = useRef<string | null>(null);
+  const explicitAuthInFlightRef = useRef(false);
   const cloudUnsubRef = useRef<(() => void) | null>(null);
   const carryGuestForNextCloudRef = useRef<boolean>(false);
 
@@ -484,12 +485,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         carryGuestData: carryGuest,
       });
 
-      activeAccountIdRef.current = res.account.id;
-      hasLocalMutationRef.current = true;
-      undoStackRef.current = [];
-      setCurrentUser(res.account);
-      setSavedAccounts(res.accounts);
-
       const localBase = opts?.seedSnapshot ?? res.snapshot;
       setCloudSync((prev) => ({
         ...prev,
@@ -506,7 +501,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           localBase,
           snapshotHasContent(localBase)
         );
+        activeAccountIdRef.current = res.account.id;
+        hasLocalMutationRef.current = true;
+        undoStackRef.current = [];
         skipNextCloudPushRef.current = true;
+        setCurrentUser(res.account);
+        setSavedAccounts(res.accounts);
         setSnapshot(boot.snapshot);
         setCloudSync({
           configured: true,
@@ -515,7 +515,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           projectId: firebaseConfig?.projectId,
         });
       } catch (err) {
+        activeAccountIdRef.current = res.account.id;
+        hasLocalMutationRef.current = true;
+        undoStackRef.current = [];
         skipNextCloudPushRef.current = true;
+        setCurrentUser(res.account);
+        setSavedAccounts(res.accounts);
         setSnapshot(localBase);
         setCloudSync({
           configured: true,
@@ -575,6 +580,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }));
 
     const unsubAuth = subscribeFirebaseAuthState((fbUser) => {
+      if (explicitAuthInFlightRef.current) return;
       if (!fbUser) {
         cloudUnsubRef.current?.();
         cloudUnsubRef.current = null;
@@ -1265,6 +1271,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       let localFallbackNote: string | null = null;
       if (firebaseConfig) {
+        explicitAuthInFlightRef.current = true;
         try {
           carryGuestForNextCloudRef.current = Boolean(params.carryGuestData || params.includeStarter);
           const fbUser = await signUpWithFirebaseEmail(params.name, params.email, params.password);
@@ -1285,6 +1292,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             return { ok: false, error: getFriendlyFirebaseError(err) };
           }
           localFallbackNote = 'Saved in this browser vault (enable Email/Password in Firebase for cloud sync)';
+        } finally {
+          explicitAuthInFlightRef.current = false;
         }
       }
 
@@ -1321,6 +1330,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
       if (firebaseConfig) {
+        explicitAuthInFlightRef.current = true;
         try {
           const fbUser = await signInWithFirebaseEmail(email, password);
           await attachFirebaseSession(fbUser, { carryGuestData: false });
@@ -1361,6 +1371,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             return { ok: false, error: getFriendlyFirebaseError(err) };
           }
           return { ok: false, error: localAttempt.error };
+        } finally {
+          explicitAuthInFlightRef.current = false;
         }
       }
 
@@ -1408,6 +1420,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const signInWithFirebaseGooglePopup = useCallback(
     async (carryGuestData = true): Promise<{ ok: boolean; error?: string }> => {
+      explicitAuthInFlightRef.current = true;
       try {
         carryGuestForNextCloudRef.current = carryGuestData;
         const fbUser = await signInWithFirebaseGoogle();
@@ -1421,6 +1434,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return { ok: true };
       } catch (err) {
         return { ok: false, error: getFriendlyFirebaseError(err) };
+      } finally {
+        explicitAuthInFlightRef.current = false;
       }
     },
     [attachFirebaseSession, pushToast, todayKey]
