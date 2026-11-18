@@ -154,7 +154,7 @@ export const TopBar: React.FC = () => {
       }}
     >
       {/* Left: Brand mark & primary views */}
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         {activeTab === 'planner' && (
           <button
             type="button"
@@ -197,34 +197,36 @@ export const TopBar: React.FC = () => {
               <button
                 key={t.id}
                 type="button"
+                title={t.label}
+                aria-label={t.label}
                 onClick={() => setActiveTab(t.id)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12.5px] font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 px-2 lg:px-2.5 py-1 rounded-md text-[12.5px] font-medium transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
                   color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
                   boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
                 }}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{t.label}</span>
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden lg:inline">{t.label}</span>
               </button>
             );
           })}
         </nav>
       </div>
 
-      {/* Center: Quick capture OR Search button on Tasks view (never duplicates Tasks inline bar!) */}
+      {/* Center: Quick capture OR Search button on Tasks view (never overlaps nav at 860-960px!) */}
       {activeTab === 'tasks' ? (
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          className="hidden sm:flex flex-1 max-w-sm items-center justify-between gap-2 px-3 py-1.5 rounded-lg border text-[12.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)] bg-[var(--bg-inset)] transition-colors"
+          className="hidden sm:flex flex-1 min-w-0 max-w-sm items-center justify-between gap-2 px-3 py-1.5 rounded-lg border text-[12.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)] bg-[var(--bg-inset)] transition-colors"
         >
-          <span className="inline-flex items-center gap-2">
-            <Search className="w-3.5 h-3.5" />
-            <span>Jump to any event, view, or command...</span>
+          <span className="inline-flex items-center gap-2 min-w-0 flex-1">
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Jump to any event, view, or command...</span>
           </span>
-          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-mono-num">
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-mono-num shrink-0">
             <Command className="w-3 h-3" />
             <span>K</span>
           </span>
@@ -232,7 +234,7 @@ export const TopBar: React.FC = () => {
       ) : (
         <form
           onSubmit={handleQuickSubmit}
-          className="hidden sm:flex flex-1 max-w-md relative items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors focus-within:border-[var(--accent-primary)]"
+          className="hidden sm:flex flex-1 min-w-0 max-w-md relative items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors focus-within:border-[var(--accent-primary)]"
           style={{
             backgroundColor: 'var(--bg-inset)',
             borderColor: 'var(--rule-hairline)',
