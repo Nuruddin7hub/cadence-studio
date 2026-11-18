@@ -537,9 +537,19 @@ export const InspectorRail: React.FC = () => {
             )}
 
             {!selectedEvent && !selectedTask && (
-              <p className="text-[12px] text-[var(--ink-muted)] py-4 text-center">
-                Select any calendar block or task to edit schedule, recurrence, and subtasks.
-              </p>
+              <div className="py-5 px-2 text-center space-y-3">
+                <p className="text-[12px] text-[var(--ink-muted)] leading-relaxed">
+                  Select any calendar block or queued task to edit schedule, recurrence, and subtasks, or click any open hour slot on the grid.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRailTab('notes')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11.5px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
+                  <span>Open Daily Journal</span>
+                </button>
+              </div>
             )}
           </div>
         ) : (

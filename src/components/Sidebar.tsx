@@ -16,6 +16,7 @@ import {
   Plus,
   Sparkles,
   Sun,
+  User,
   X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -49,6 +50,8 @@ export const Sidebar: React.FC = () => {
     setMobileInspectorOpen,
     mobileSidebarOpen,
     setMobileSidebarOpen,
+    currentUser,
+    openAccountModal,
   } = useWorkspace();
 
   const [miniMonthAnchor, setMiniMonthAnchor] = useState<string>(selectedDate);
@@ -469,6 +472,33 @@ export const Sidebar: React.FC = () => {
             );
           })}
         </ul>
+      </section>
+
+      {/* Account & Vault Quick Access */}
+      <section aria-label="Account vault" className="pt-2.5 border-t mt-auto">
+        <button
+          type="button"
+          onClick={() => {
+            setMobileSidebarOpen(false);
+            openAccountModal();
+          }}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl border bg-[var(--bg-elevated)]/65 hover:bg-[var(--bg-hover)] text-left transition-colors"
+        >
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+            style={{ backgroundColor: currentUser?.avatarColor ?? 'var(--accent-primary)' }}
+          >
+            {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : <User className="w-3.5 h-3.5" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-medium text-[var(--ink-primary)] truncate">
+              {currentUser ? currentUser.name : 'Sign in / Save Vault'}
+            </div>
+            <div className="text-[10.5px] text-[var(--ink-muted)] truncate">
+              {currentUser ? 'IndexedDB Account Sync' : 'Guest · Local Storage'}
+            </div>
+          </div>
+        </button>
       </section>
     </div>
   );

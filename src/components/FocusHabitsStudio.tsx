@@ -407,6 +407,13 @@ export const FocusHabitsStudio: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
+                    {snapshot.habits.length === 0 && (
+                      <tr>
+                        <td colSpan={10} className="py-6 text-center text-[12.5px] text-[var(--ink-muted)]">
+                          No habits added yet. Create your first daily habit above to start tracking streaks.
+                        </td>
+                      </tr>
+                    )}
                     {snapshot.habits.map((h) => {
                       let streak = 0;
                       for (let i = 0; i < 21; i++) {
@@ -537,6 +544,11 @@ export const FocusHabitsStudio: React.FC = () => {
             </form>
 
             <div className="divide-y">
+              {noteLines.length === 0 && (
+                <p className="py-6 text-center text-[12.5px] text-[var(--ink-muted)]">
+                  No notes logged for {formatReadableDate(selectedDate)} yet.
+                </p>
+              )}
               {noteLines.map((line, i) => {
                 const done = note.extractedLines.includes(line);
                 return (
@@ -597,6 +609,11 @@ export const FocusHabitsStudio: React.FC = () => {
               </div>
 
               <ul className="divide-y pt-1">
+                {snapshot.focusHistory.length === 0 && (
+                  <li className="py-6 text-center text-[12.5px] text-[var(--ink-muted)]">
+                    No completed sprints logged yet. Start the Pomodoro timer above to record focus sessions.
+                  </li>
+                )}
                 {snapshot.focusHistory.slice(0, 5).map((s) => (
                   <li key={s.id} className="py-2.5 flex items-center justify-between gap-3 text-[12.5px]">
                     <div className="min-w-0">

@@ -23,6 +23,17 @@ export function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Return current wall-clock local date as YYYY-MM-DD. */
+export function getLocalTodayKey(): string {
+  return toDateKey(new Date());
+}
+
+/** Return minutes elapsed since local midnight (0..1439). */
+export function getLocalNowMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 /** Parse YYYY-MM-DD into a local midnight Date safely. */
 export function fromDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
@@ -97,8 +108,21 @@ export function formatReadableDate(key: string): string {
   return `${WEEKDAY_SHORT[d.getDay()]}, ${SHORT_MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
 
-/** Convert local (+08) hour to another named timezone hour string for dual ruler. */
+/** Convert local calendar hour to target IANA timezone hour using Intl with offset fallback. */
 export function formatSecondaryTzHour(hour: number, tz: string): string {
+  try {
+    const base = new Date();
+    const sample = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour, 0, 0);
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(sample);
+    const hVal = parts.find((p) => p.type === 'hour')?.value;
+    if (hVal) return `${hVal.padStart(2, '0')}h`;
+  } catch {
+    // fallback if environment lacks full ICU timezone tables
+  }
   const offsets: Record<string, number> = {
     UTC: -8,
     'America/New_York': -13,

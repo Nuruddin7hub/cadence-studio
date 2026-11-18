@@ -10,6 +10,7 @@ import {
   Sun,
   Timer,
   Undo2,
+  User,
   X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
@@ -32,6 +33,8 @@ export const CommandPalette: React.FC = () => {
     availabilityMode,
     setAvailabilityMode,
     undoLast,
+    openAccountModal,
+    exportAccountBundle,
   } = useWorkspace();
 
   const [query, setQuery] = useState('');
@@ -113,6 +116,20 @@ export const CommandPalette: React.FC = () => {
         run: () => toggleTheme(),
       },
       {
+        id: 'act-account',
+        label: 'Account, Profiles & Browser Storage Vault',
+        hint: 'Vault',
+        icon: User,
+        run: () => openAccountModal(),
+      },
+      {
+        id: 'act-backup',
+        label: 'Export Portable Account Backup (.json)',
+        hint: 'JSON',
+        icon: Download,
+        run: () => exportAccountBundle(),
+      },
+      {
         id: 'act-ics',
         label: 'Export Calendar as .ics File',
         hint: 'ICS',
@@ -129,6 +146,8 @@ export const CommandPalette: React.FC = () => {
     ];
   }, [
     availabilityMode,
+    exportAccountBundle,
+    openAccountModal,
     setActiveTab,
     setAvailabilityMode,
     setCalendarMode,

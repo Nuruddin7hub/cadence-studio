@@ -1,5 +1,134 @@
-import type { WorkspaceSnapshot } from '../types/workspace';
+import type { CalendarEvent, HabitItem, ThemeMode, TodoTask, WorkspaceSnapshot } from '../types/workspace';
 import { addDays, SEED_TODAY } from '../utils/date';
+
+/**
+ * Brand-new blank production workspace with zero template items.
+ */
+export function createEmptyWorkspace(theme: ThemeMode = 'dark'): WorkspaceSnapshot {
+  return {
+    events: [],
+    tasks: [],
+    habits: [],
+    notes: {},
+    focusHistory: [],
+    enabledLayers: {
+      work: true,
+      team: true,
+      personal: true,
+      wellness: true,
+    },
+    preferences: {
+      theme,
+      secondaryTimezone: 'UTC',
+      weekStartsOn: 1,
+      focusMinutes: 25,
+      shortBreakMinutes: 5,
+      longBreakMinutes: 15,
+      soundEnabled: false,
+      showSecondaryTz: false,
+      workingHourStart: 8,
+      workingHourEnd: 18,
+    },
+  };
+}
+
+/**
+ * Optional 1-click starter checklist anchored to the user's live current date/clock.
+ */
+export function createStarterChecklist(
+  todayKey: string,
+  nowMinutes = 9 * 60
+): {
+  events: CalendarEvent[];
+  tasks: TodoTask[];
+  habits: HabitItem[];
+} {
+  const nextSlot = Math.min(20 * 60, Math.max(8 * 60, Math.ceil((nowMinutes + 15) / 30) * 30));
+  const starterTaskId = `task-start-${Date.now().toString(36)}`;
+  return {
+    events: [
+      {
+        id: `ev-start-${Date.now().toString(36)}`,
+        title: 'Plan top 3 priorities for today',
+        date: todayKey,
+        startMinutes: nextSlot,
+        durationMinutes: 45,
+        category: 'deep',
+        calendarId: 'work',
+        linkedTaskId: starterTaskId,
+        notes: 'Drag or resize this block on the timeline, or add more using Quick Capture.',
+        recurrence: 'none',
+        reminderMinutes: 10,
+      },
+    ],
+    tasks: [
+      {
+        id: starterTaskId,
+        title: 'Define today’s #1 high-leverage milestone',
+        notes: 'Break down the key steps below and time-block it onto your grid.',
+        listId: 'work',
+        priority: 'p1',
+        status: 'todo',
+        quadrant: 'do',
+        dueDate: todayKey,
+        scheduledDate: todayKey,
+        scheduledStartMinutes: nextSlot,
+        estimatedMinutes: 45,
+        tags: ['focus'],
+        subtasks: [
+          { id: `st-1-${Date.now().toString(36)}`, title: 'Pick single outcome for today', done: false },
+          { id: `st-2-${Date.now().toString(36)}`, title: 'Mute distractions for 25m sprint', done: false },
+        ],
+        recurrence: 'none',
+        completed: false,
+        createdAt: todayKey,
+        order: 1,
+      },
+      {
+        id: `task-start2-${Date.now().toString(36)}`,
+        title: 'Run your first 25m Focus Sprint in Focus Studio',
+        listId: 'inbox',
+        priority: 'p2',
+        status: 'todo',
+        quadrant: 'schedule',
+        dueDate: todayKey,
+        estimatedMinutes: 25,
+        tags: ['ritual'],
+        subtasks: [],
+        recurrence: 'none',
+        completed: false,
+        createdAt: todayKey,
+        order: 2,
+      },
+      {
+        id: `task-start3-${Date.now().toString(36)}`,
+        title: 'Review upcoming week schedule & export backup',
+        listId: 'personal',
+        priority: 'p3',
+        status: 'backlog',
+        quadrant: 'schedule',
+        dueDate: addDays(todayKey, 2),
+        estimatedMinutes: 20,
+        tags: ['planning'],
+        subtasks: [],
+        recurrence: 'weekly',
+        completed: false,
+        createdAt: todayKey,
+        order: 3,
+      },
+    ],
+    habits: [
+      {
+        id: `hab-start-${Date.now().toString(36)}`,
+        name: 'Daily Deep Work Block',
+        category: 'focus',
+        targetPerWeek: 5,
+        accent: '#E74004',
+        history: {},
+      },
+    ],
+  };
+}
 
 function buildHabitHistory(pattern: number[]): Record<string, boolean> {
   const out: Record<string, boolean> = {};

@@ -55,11 +55,12 @@ export const TasksWorkspace: React.FC = () => {
     moveTaskQuadrant,
     setSelection,
     setMobileInspectorOpen,
+    importStarterChecklist,
     pushToast,
   } = useWorkspace();
 
   const [draft, setDraft] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>('task-1');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [subtaskDrafts, setSubtaskDrafts] = useState<Record<string, string>>({});
   const [quadDrafts, setQuadDrafts] = useState<Record<string, string>>({});
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
@@ -285,6 +286,11 @@ export const TasksWorkspace: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
+                    {allTags.length === 0 && (
+                      <p className="px-1 py-1.5 text-[11.5px] text-[var(--ink-muted)]">
+                        No tags yet. Add #work or #urgent in quick capture.
+                      </p>
+                    )}
                     {allTags.map((tag) => (
                       <button
                         key={tag}
@@ -493,8 +499,20 @@ export const TasksWorkspace: React.FC = () => {
               );
             })}
             {filteredTasks.length === 0 && (
-              <div className="p-10 text-center text-[13px] text-[var(--ink-muted)]">
-                No tasks match this filter yet. Add one above using natural language.
+              <div className="p-8 sm:p-10 text-center space-y-3">
+                <p className="text-[13px] text-[var(--ink-muted)]">
+                  No tasks match this filter yet. Add one above using natural language (e.g. <span className="font-mono-num text-[var(--ink-secondary)]">Ship draft 2pm 45m !p1 #work</span>).
+                </p>
+                {snapshot.tasks.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={importStarterChecklist}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium text-[var(--accent-primary)] hover:bg-[var(--bg-hover)]"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add optional 3-task starter checklist</span>
+                  </button>
+                )}
               </div>
             )}
           </AnimatedContent>

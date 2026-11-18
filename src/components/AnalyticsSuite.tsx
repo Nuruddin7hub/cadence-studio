@@ -175,12 +175,12 @@ export const AnalyticsSuite: React.FC = () => {
                 backgroundColor={isDark ? '#171a23' : '#f4f4f5'}
                 textColor={isDark ? '#adb6c4' : '#404856'}
                 fillTextColor="#ffffff"
-                doneLabel="Reset!"
+                doneLabel="Cleared!"
                 icon={<RotateCcw className="w-3.5 h-3.5" />}
                 onHold={resetToSeed}
                 className="text-[12px] whitespace-nowrap"
               >
-                Hold Reset
+                Hold Clear
               </HoldButton>
             </div>
             <input
@@ -396,7 +396,7 @@ export const AnalyticsSuite: React.FC = () => {
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${Math.max(6, Math.round((item.hours / maxCatHours) * 100))}%`,
+                        width: item.hours > 0 ? `${Math.max(6, Math.round((item.hours / maxCatHours) * 100))}%` : '0%',
                         backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : '#8E99AB',
                         opacity: item.cat === 'deep' ? 1 : 0.78,
                       }}

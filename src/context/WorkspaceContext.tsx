@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { createSeedWorkspace } from '../data/seed';
+import { createEmptyWorkspace, createSeedWorkspace, createStarterChecklist } from '../data/seed';
 import type {
+  AccountProfile,
   AvailabilitySlot,
   CalendarEvent,
   CalendarLayerId,
@@ -9,6 +10,8 @@ import type {
   EisenhowerQuadrant,
   FocusSessionRecord,
   HabitItem,
+  PortableAccountBundle,
+  StorageStats,
   TaskListId,
   TaskPriority,
   TaskStatus,
@@ -19,11 +22,37 @@ import type {
   WorkspaceSnapshot,
   WorkspaceTab,
 } from '../types/workspace';
-import { addDays, formatMinutes, formatReadableDate, SEED_TODAY } from '../utils/date';
+import {
+  addDays,
+  formatMinutes,
+  formatReadableDate,
+  getLocalNowMinutes,
+  getLocalTodayKey,
+  SEED_TODAY,
+} from '../utils/date';
+import {
+  buildPortableAccountBundle,
+  changeLocalPassword,
+  computeStorageStats,
+  createLocalAccount,
+  deleteLocalAccount,
+  GUEST_ACCOUNT_ID,
+  loadVaultBootstrap,
+  normalizeSnapshot,
+  readSyncAccounts,
+  readSyncSessionMeta,
+  readSyncWorkspace,
+  saveWorkspaceForAccount,
+  setStarterBannerDismissed as persistStarterDismissed,
+  signInLocalAccount,
+  switchToGuestWorkspace,
+  updateLocalProfile,
+} from '../utils/authStorage';
+import { triggerFileDownload } from '../utils/ics';
 import { parseQuickInput } from '../utils/nlp';
 import { playSubtleChime } from '../utils/sound';
 
-const STORAGE_KEY = 'cadence_workspace_v1';
+export type AccountModalTab = 'signin' | 'signup' | 'profile';
 
 interface SelectionState {
   type: 'event' | 'task';
@@ -63,6 +92,35 @@ interface WorkspaceContextValue {
   setMobileSidebarOpen: (open: boolean) => void;
   mobileInspectorOpen: boolean;
   setMobileInspectorOpen: (open: boolean) => void;
+
+  // Accounts & persistent storage vault
+  currentUser: AccountProfile | null;
+  savedAccounts: AccountProfile[];
+  storageStats: StorageStats;
+  accountModalOpen: boolean;
+  setAccountModalOpen: (open: boolean) => void;
+  accountModalTab: AccountModalTab;
+  openAccountModal: (tab?: AccountModalTab) => void;
+  starterBannerDismissed: boolean;
+  dismissStarterBanner: () => void;
+  importStarterChecklist: () => void;
+  signUp: (params: {
+    name: string;
+    email: string;
+    password: string;
+    avatarColor?: string;
+    roleTitle?: string;
+    carryGuestData: boolean;
+    includeStarter?: boolean;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  switchToGuest: () => Promise<void>;
+  updateProfile: (
+    patch: Partial<Pick<AccountProfile, 'name' | 'email' | 'avatarColor' | 'roleTitle'>>
+  ) => Promise<{ ok: boolean; error?: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
+  deleteAccount: (accountId: string) => Promise<void>;
+  exportAccountBundle: () => void;
 
   // Theme & preferences
   setTheme: (theme: ThemeMode) => void;
@@ -127,43 +185,80 @@ function getShotParam(): string | null {
   return new URLSearchParams(window.location.search).get('shot');
 }
 
-function loadInitialSnapshot(shot: string | null): WorkspaceSnapshot {
-  const base = createSeedWorkspace();
+function loadInitialVaultState(shot: string | null): {
+  accountId: string;
+  activeAccount: AccountProfile | null;
+  savedAccounts: AccountProfile[];
+  snapshot: WorkspaceSnapshot;
+  starterDismissed: boolean;
+} {
   if (shot) {
+    const base = createSeedWorkspace();
     if (shot === 'focus-light' || shot === 'studio-light') {
       base.preferences.theme = 'light';
     }
-    return base;
+    return {
+      accountId: GUEST_ACCOUNT_ID,
+      activeAccount: null,
+      savedAccounts: [],
+      snapshot: base,
+      starterDismissed: true,
+    };
   }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return base;
-    const parsed = JSON.parse(raw) as Partial<WorkspaceSnapshot>;
-    if (parsed && Array.isArray(parsed.events) && Array.isArray(parsed.tasks)) {
-      return {
-        ...base,
-        ...parsed,
-        preferences: { ...base.preferences, ...(parsed.preferences ?? {}) },
-        enabledLayers: { ...base.enabledLayers, ...(parsed.enabledLayers ?? {}) },
-      };
-    }
-  } catch {
-    // fallback cleanly to seed
-  }
-  return base;
+
+  const session = readSyncSessionMeta();
+  const savedAccounts = readSyncAccounts();
+  const matched =
+    session.activeAccountId !== GUEST_ACCOUNT_ID
+      ? savedAccounts.find((a) => a.id === session.activeAccountId) ?? null
+      : null;
+  const accountId = matched ? matched.id : GUEST_ACCOUNT_ID;
+
+  return {
+    accountId,
+    activeAccount: matched,
+    savedAccounts,
+    snapshot: readSyncWorkspace(accountId),
+    starterDismissed: Boolean(session.dismissedStarterIds?.[accountId]),
+  };
 }
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const shotPreset = useMemo(() => getShotParam(), []);
-  const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(() => loadInitialSnapshot(shotPreset));
+  const initialVault = useMemo(() => loadInitialVaultState(shotPreset), [shotPreset]);
+
+  const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(initialVault.snapshot);
+  const [currentUser, setCurrentUser] = useState<AccountProfile | null>(initialVault.activeAccount);
+  const [savedAccounts, setSavedAccounts] = useState<AccountProfile[]>(initialVault.savedAccounts);
+  const [starterBannerDismissed, setStarterBannerDismissed] = useState<boolean>(
+    initialVault.starterDismissed
+  );
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [accountModalTab, setAccountModalTab] = useState<AccountModalTab>(
+    initialVault.activeAccount ? 'profile' : 'signup'
+  );
+  const [storageStats, setStorageStats] = useState<StorageStats>({
+    engine: 'IndexedDB Vault',
+    persisted: false,
+    bytesUsed: 0,
+    savedAt: null,
+    accountCount: initialVault.savedAccounts.length,
+  });
+
   const undoStackRef = useRef<WorkspaceSnapshot[]>([]);
+  const activeAccountIdRef = useRef<string>(initialVault.accountId);
+  const initialPersistDoneRef = useRef(false);
+  const hasLocalMutationRef = useRef(false);
+  const tabIdRef = useRef<string>(makeId('tab'));
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const initialTab: WorkspaceTab = useMemo(() => {
+    if (shotPreset === 'planner-dark' || shotPreset === 'studio-light' || shotPreset === 'mobile-dark') return 'planner';
     if (shotPreset === 'tasks-dark') return 'tasks';
     if (shotPreset === 'focus-light') return 'focus';
     if (shotPreset === 'analytics-dark') return 'analytics';
     if (shotPreset === 'overview-dark') return 'overview';
-    return 'planner';
+    return 'overview';
   }, [shotPreset]);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
@@ -175,12 +270,34 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [taskViewMode, setTaskViewMode] = useState<TaskViewMode>(
     shotPreset === 'tasks-dark' ? 'matrix' : 'list'
   );
-  const [selectedDate, setSelectedDate] = useState<string>(SEED_TODAY);
+
+  // Live real-world date & time clock (deterministic only during ?shot= renders)
+  const [clockState, setClockState] = useState(() => ({
+    todayKey: shotPreset ? SEED_TODAY : getLocalTodayKey(),
+    nowMinutes: shotPreset ? 11 * 60 + 45 : getLocalNowMinutes(),
+  }));
+
+  useEffect(() => {
+    if (shotPreset) return;
+    const tickClock = () => {
+      setClockState({
+        todayKey: getLocalTodayKey(),
+        nowMinutes: getLocalNowMinutes(),
+      });
+    };
+    const id = window.setInterval(tickClock, 30000);
+    return () => window.clearInterval(id);
+  }, [shotPreset]);
+
+  const todayKey = clockState.todayKey;
+  const nowMinutes = clockState.nowMinutes;
+
+  const [selectedDate, setSelectedDate] = useState<string>(todayKey);
   const [activeList, setActiveList] = useState<TaskListId>('today');
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [selection, setSelection] = useState<SelectionState | null>(() =>
-    shotPreset ? { type: 'event', id: 'ev-8' } : { type: 'event', id: 'ev-8' }
+    shotPreset ? { type: 'event', id: 'ev-8' } : null
   );
   const [commandOpen, setCommandOpen] = useState(shotPreset === 'cmd-dark');
   const [availabilityMode, setAvailabilityMode] = useState(false);
@@ -191,15 +308,52 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Focus timer state
   const [focusMode, setFocusModeState] = useState<'focus' | 'short_break' | 'long_break'>('focus');
-  const [focusSecondsLeft, setFocusSecondsLeft] = useState<number>(25 * 60);
+  const [focusSecondsLeft, setFocusSecondsLeft] = useState<number>(
+    initialVault.snapshot.preferences.focusMinutes * 60
+  );
   const [focusRunning, setFocusRunning] = useState<boolean>(false);
-  const [activeFocusTaskId, setActiveFocusTaskId] = useState<string | null>('task-1');
+  const [activeFocusTaskId, setActiveFocusTaskId] = useState<string | null>(
+    shotPreset ? 'task-1' : null
+  );
 
   // Toasts
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const todayKey = SEED_TODAY;
-  const nowMinutes = 11 * 60 + 45; // 11:45 AM clear of 9:00-11:30 block border
+  // Reconcile durable IndexedDB storage cleanly on mount & listen for cross-tab sync
+  useEffect(() => {
+    if (shotPreset) return;
+    let alive = true;
+    void loadVaultBootstrap().then((boot) => {
+      if (!alive) return;
+      initialPersistDoneRef.current = true;
+      setSavedAccounts(boot.accounts);
+      setStorageStats(boot.stats);
+      if (!hasLocalMutationRef.current) {
+        const nextAccountId = boot.activeAccount?.id ?? GUEST_ACCOUNT_ID;
+        activeAccountIdRef.current = nextAccountId;
+        setCurrentUser(boot.activeAccount);
+        setSnapshot(boot.snapshot);
+        setStarterBannerDismissed(boot.starterDismissed);
+      }
+    });
+
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cadence_vault_sync') : null;
+    channelRef.current = channel;
+    if (channel) {
+      channel.onmessage = (msg) => {
+        const data = msg.data as { senderTabId?: string; accountId?: string; snapshot?: WorkspaceSnapshot } | undefined;
+        if (!data || data.senderTabId === tabIdRef.current) return;
+        if (!data.accountId || data.accountId !== activeAccountIdRef.current || !data.snapshot) return;
+        setSnapshot(normalizeSnapshot(data.snapshot));
+      };
+    }
+
+    return () => {
+      alive = false;
+      channel?.close();
+      channelRef.current = null;
+    };
+  }, [shotPreset]);
 
   // Sync HTML theme class
   useEffect(() => {
@@ -213,15 +367,28 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [snapshot.preferences.theme]);
 
-  // Persist unless deterministic shot mode is active
+  // Persist workspace to IndexedDB + localStorage mirror on changes (after bootstrap or user mutation)
   useEffect(() => {
     if (shotPreset) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    } catch {
-      // ignore quota errors
-    }
-  }, [snapshot, shotPreset]);
+    if (!initialPersistDoneRef.current && !hasLocalMutationRef.current) return;
+    const accountId = activeAccountIdRef.current;
+    let cancelled = false;
+    void saveWorkspaceForAccount(accountId, snapshot).then(async (savedAt) => {
+      if (cancelled) return;
+      const stats = await computeStorageStats(accountId, snapshot, savedAccounts.length, savedAt);
+      if (!cancelled) setStorageStats(stats);
+      if (channelRef.current && hasLocalMutationRef.current) {
+        channelRef.current.postMessage({
+          senderTabId: tabIdRef.current,
+          accountId,
+          snapshot,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshot, shotPreset, savedAccounts.length]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -239,6 +406,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const commit = useCallback((updater: (prev: WorkspaceSnapshot) => WorkspaceSnapshot) => {
+    hasLocalMutationRef.current = true;
     setSnapshot((prev) => {
       undoStackRef.current = [...undoStackRef.current.slice(-19), prev];
       return updater(prev);
@@ -248,6 +416,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const undoLast = useCallback(() => {
     const stack = undoStackRef.current;
     if (stack.length === 0) return;
+    hasLocalMutationRef.current = true;
     const previous = stack[stack.length - 1];
     undoStackRef.current = stack.slice(0, -1);
     setSnapshot(previous);
@@ -628,6 +797,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateDailyNote = useCallback(
     (date: string, patch: Partial<DailyNote>) => {
+      hasLocalMutationRef.current = true;
       setSnapshot((prev) => {
         const existing: DailyNote = prev.notes[date] ?? {
           date,
@@ -772,23 +942,201 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const importWorkspaceJson = useCallback(
     (jsonStr: string): boolean => {
       try {
-        const parsed = JSON.parse(jsonStr) as Partial<WorkspaceSnapshot>;
-        if (!Array.isArray(parsed.events) || !Array.isArray(parsed.tasks)) return false;
-        commit((prev) => ({ ...prev, ...parsed }));
-        pushToast('Workspace restored', `${parsed.events.length} events, ${parsed.tasks.length} tasks`, true, 'success');
+        const parsed = JSON.parse(jsonStr) as Partial<PortableAccountBundle> & Partial<WorkspaceSnapshot>;
+        const targetSnap =
+          parsed.bundleVersion === 2 && parsed.snapshot
+            ? parsed.snapshot
+            : parsed;
+        if (!Array.isArray(targetSnap.events) || !Array.isArray(targetSnap.tasks)) return false;
+        const normalized = normalizeSnapshot(targetSnap, snapshot.preferences.theme);
+        commit(() => normalized);
+        pushToast(
+          'Workspace restored',
+          `${normalized.events.length} events, ${normalized.tasks.length} tasks saved to storage`,
+          true,
+          'success'
+        );
         return true;
       } catch {
         return false;
       }
     },
-    [commit, pushToast]
+    [commit, pushToast, snapshot.preferences.theme]
   );
 
   const resetToSeed = useCallback(() => {
-    commit(() => createSeedWorkspace());
-    setSelectedDate(SEED_TODAY);
-    pushToast('Workspace reset to default schedule', undefined, true);
-  }, [commit, pushToast]);
+    commit((prev) => createEmptyWorkspace(prev.preferences.theme));
+    setSelection(null);
+    setActiveFocusTaskId(null);
+    setSelectedDate(todayKey);
+    pushToast('Workspace cleared to blank slate', 'Undo with Ctrl+Z if needed', true);
+  }, [commit, pushToast, todayKey]);
+
+  const openAccountModal = useCallback((tab?: AccountModalTab) => {
+    if (tab) {
+      setAccountModalTab(tab);
+    } else {
+      setAccountModalTab(currentUser ? 'profile' : savedAccounts.length > 0 ? 'signin' : 'signup');
+    }
+    setAccountModalOpen(true);
+  }, [currentUser, savedAccounts.length]);
+
+  const dismissStarterBanner = useCallback(() => {
+    setStarterBannerDismissed(true);
+    persistStarterDismissed(activeAccountIdRef.current, true);
+  }, []);
+
+  const importStarterChecklist = useCallback(() => {
+    const starter = createStarterChecklist(todayKey, nowMinutes);
+    commit((prev) => ({
+      ...prev,
+      events: [...prev.events, ...starter.events],
+      tasks: [...starter.tasks, ...prev.tasks],
+      habits: prev.habits.length === 0 ? starter.habits : prev.habits,
+    }));
+    setStarterBannerDismissed(true);
+    persistStarterDismissed(activeAccountIdRef.current, true);
+    setSelection({ type: 'event', id: starter.events[0].id });
+    pushToast('Starter checklist added', '3 tasks & 1 block added for today', true, 'success');
+  }, [commit, nowMinutes, pushToast, todayKey]);
+
+  const signUp = useCallback(
+    async (params: {
+      name: string;
+      email: string;
+      password: string;
+      avatarColor?: string;
+      roleTitle?: string;
+      carryGuestData: boolean;
+      includeStarter?: boolean;
+    }): Promise<{ ok: boolean; error?: string }> => {
+      let baseSnapshot = snapshot;
+      if (params.includeStarter && baseSnapshot.tasks.length === 0 && baseSnapshot.events.length === 0) {
+        const starter = createStarterChecklist(todayKey, nowMinutes);
+        baseSnapshot = {
+          ...baseSnapshot,
+          events: starter.events,
+          tasks: starter.tasks,
+          habits: starter.habits,
+        };
+      }
+      const res = await createLocalAccount({
+        ...params,
+        initialSnapshot: params.includeStarter
+          ? baseSnapshot
+          : params.carryGuestData
+            ? snapshot
+            : createEmptyWorkspace(snapshot.preferences.theme),
+      });
+      if (!res.ok) return { ok: false, error: res.error };
+
+      activeAccountIdRef.current = res.account.id;
+      hasLocalMutationRef.current = true;
+      undoStackRef.current = [];
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
+      setSnapshot(res.snapshot);
+      setSelection(null);
+      setActiveFocusTaskId(null);
+      setSelectedDate(todayKey);
+      const dismissed = Boolean(readSyncSessionMeta().dismissedStarterIds?.[res.account.id]);
+      setStarterBannerDismissed(Boolean(params.includeStarter) || dismissed);
+      setAccountModalTab('profile');
+      setAccountModalOpen(false);
+      pushToast(`Welcome, ${res.account.name}`, 'Your encrypted browser vault is active', false, 'success');
+      return { ok: true };
+    },
+    [nowMinutes, pushToast, snapshot, todayKey]
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
+      const res = await signInLocalAccount({ email, password });
+      if (!res.ok) return { ok: false, error: res.error };
+
+      activeAccountIdRef.current = res.account.id;
+      hasLocalMutationRef.current = true;
+      undoStackRef.current = [];
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
+      setSnapshot(res.snapshot);
+      setSelection(null);
+      setActiveFocusTaskId(null);
+      setSelectedDate(todayKey);
+      setStarterBannerDismissed(Boolean(readSyncSessionMeta().dismissedStarterIds?.[res.account.id]));
+      setAccountModalTab('profile');
+      setAccountModalOpen(false);
+      pushToast(`Signed in as ${res.account.name}`, 'Workspace loaded from browser vault', false, 'success');
+      return { ok: true };
+    },
+    [pushToast, todayKey]
+  );
+
+  const switchToGuest = useCallback(async () => {
+    const guestSnap = await switchToGuestWorkspace();
+    activeAccountIdRef.current = GUEST_ACCOUNT_ID;
+    hasLocalMutationRef.current = true;
+    undoStackRef.current = [];
+    setCurrentUser(null);
+    setSnapshot(guestSnap);
+    setSelection(null);
+    setActiveFocusTaskId(null);
+    setSelectedDate(todayKey);
+    setStarterBannerDismissed(Boolean(readSyncSessionMeta().dismissedStarterIds?.[GUEST_ACCOUNT_ID]));
+    setAccountModalTab('signin');
+    pushToast('Switched to Guest Vault', 'Your signed-in account stays saved in storage');
+  }, [pushToast, todayKey]);
+
+  const updateProfile = useCallback(
+    async (
+      patch: Partial<Pick<AccountProfile, 'name' | 'email' | 'avatarColor' | 'roleTitle'>>
+    ): Promise<{ ok: boolean; error?: string }> => {
+      if (!currentUser) return { ok: false, error: 'Sign in to edit profile settings.' };
+      const res = await updateLocalProfile(currentUser.id, patch);
+      if (!res.ok) return { ok: false, error: res.error };
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
+      pushToast('Profile updated', res.account.name, false, 'success');
+      return { ok: true };
+    },
+    [currentUser, pushToast]
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string): Promise<{ ok: boolean; error?: string }> => {
+      if (!currentUser) return { ok: false, error: 'Sign in first to update your password.' };
+      const res = await changeLocalPassword(currentUser.id, currentPassword, newPassword);
+      if (!res.ok) return { ok: false, error: res.error };
+      pushToast('Password updated cleanly', undefined, false, 'success');
+      return { ok: true };
+    },
+    [currentUser, pushToast]
+  );
+
+  const deleteAccount = useCallback(
+    async (accountId: string) => {
+      const res = await deleteLocalAccount(accountId);
+      setSavedAccounts(res.accounts);
+      if (activeAccountIdRef.current === accountId) {
+        activeAccountIdRef.current = GUEST_ACCOUNT_ID;
+        undoStackRef.current = [];
+        setCurrentUser(null);
+        setSnapshot(res.fallbackSnapshot);
+        setSelection(null);
+        setActiveFocusTaskId(null);
+        setAccountModalTab('signup');
+      }
+      pushToast('Account removed from this browser', undefined, false, 'warning');
+    },
+    [pushToast]
+  );
+
+  const exportAccountBundle = useCallback(() => {
+    const json = buildPortableAccountBundle(currentUser, snapshot);
+    const slug = (currentUser?.name || 'guest').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    triggerFileDownload(`cadence-${slug}-backup.json`, json, 'application/json');
+    pushToast('Portable account backup downloaded', 'Includes profile, tasks, calendar, habits & notes', false, 'success');
+  }, [currentUser, pushToast, snapshot]);
 
   // Global keyboard shortcuts (Linear & Cron speed)
   useEffect(() => {
@@ -812,6 +1160,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (e.key === 'Escape') {
         setCommandOpen(false);
+        setAccountModalOpen(false);
         setFocusCurtainOpen(false);
         setMobileSidebarOpen(false);
         setMobileInspectorOpen(false);
@@ -822,7 +1171,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       switch (e.key.toLowerCase()) {
         case 't':
-          setSelectedDate(SEED_TODAY);
+          setSelectedDate(todayKey);
           break;
         case 'd':
           setActiveTab('planner');
@@ -865,7 +1214,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeTab, calendarMode, undoLast]);
+  }, [activeTab, calendarMode, todayKey, undoLast]);
 
   const value: WorkspaceContextValue = {
     snapshot,
@@ -900,6 +1249,23 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setMobileSidebarOpen,
     mobileInspectorOpen,
     setMobileInspectorOpen,
+    currentUser,
+    savedAccounts,
+    storageStats,
+    accountModalOpen,
+    setAccountModalOpen,
+    accountModalTab,
+    openAccountModal,
+    starterBannerDismissed,
+    dismissStarterBanner,
+    importStarterChecklist,
+    signUp,
+    signIn,
+    switchToGuest,
+    updateProfile,
+    changePassword,
+    deleteAccount,
+    exportAccountBundle,
     setTheme,
     toggleTheme,
     updatePreferences,

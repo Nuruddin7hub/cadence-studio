@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   ChevronLeft,
@@ -93,8 +93,24 @@ export const CalendarView: React.FC = () => {
 
   const resizeRef = useRef<{ id: string; origDuration: number; startY: number } | null>(null);
   const gridBodyRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const didInitialScrollRef = useRef(false);
   const suppressClickRef = useRef(false);
   const isDark = snapshot.preferences.theme === 'dark';
+
+  useEffect(() => {
+    if (didInitialScrollRef.current) return;
+    const scroller = scrollContainerRef.current;
+    if (!scroller) return;
+    didInitialScrollRef.current = true;
+    const todayTimed = snapshot.events.filter((e) => !e.allDay && e.date === selectedDate);
+    const earliestMins =
+      todayTimed.length > 0
+        ? Math.min(...todayTimed.map((e) => e.startMinutes))
+        : nowMinutes;
+    const targetHour = Math.max(START_HOUR, Math.floor(earliestMins / 60) - 1);
+    scroller.scrollTop = Math.max(0, (targetHour - START_HOUR) * HOUR_HEIGHT);
+  }, [nowMinutes, selectedDate, snapshot.events]);
 
   const visibleDates = useMemo(() => {
     if (calendarMode === 'day') return [selectedDate];
@@ -593,7 +609,7 @@ export const CalendarView: React.FC = () => {
       {/* TIME GRID VIEWS */}
       {showTimeGrid && (
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          <div className="flex-1 overflow-auto relative">
+          <div ref={scrollContainerRef} className="flex-1 overflow-auto relative">
             <div
               className={`flex flex-col min-h-full ${
                 calendarMode === 'week' || calendarMode === 'workweek' ? 'min-w-[630px] md:min-w-0' : 'w-full'
@@ -609,7 +625,14 @@ export const CalendarView: React.FC = () => {
               >
             <div className="border-r px-1.5 py-2 pb-2.5 flex items-end justify-end gap-1 text-[9.5px] font-mono-num text-[var(--ink-muted)] bg-[var(--bg-surface)]">
               {snapshot.preferences.showSecondaryTz && <span className="hidden sm:inline opacity-75">UTC</span>}
-              <span>GMT+8</span>
+              <span>
+                {(() => {
+                  const mins = -new Date().getTimezoneOffset();
+                  const sign = mins >= 0 ? '+' : '-';
+                  const absH = Math.floor(Math.abs(mins) / 60);
+                  return mins === 0 ? 'UTC' : `GMT${sign}${absH}`;
+                })()}
+              </span>
             </div>
 
             {visibleDates.map((dKey) => {

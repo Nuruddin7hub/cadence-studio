@@ -14,12 +14,20 @@ import {
   Share2,
   Sun,
   Timer,
+  User,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { WorkspaceTab } from '../types/workspace';
 import { formatMinutes } from '../utils/date';
 import { parseQuickInput } from '../utils/nlp';
 import { Magnet } from '../lib/reactbits';
+
+function getUserInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
 
 const TABS: { id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'planner', label: 'Planner', icon: Calendar },
@@ -45,6 +53,8 @@ export const TopBar: React.FC = () => {
     availabilitySlots,
     setMobileSidebarOpen,
     pushToast,
+    currentUser,
+    openAccountModal,
   } = useWorkspace();
 
   const [quickDraft, setQuickDraft] = useState('');
@@ -123,7 +133,7 @@ export const TopBar: React.FC = () => {
             </button>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={toggleTheme}
@@ -132,12 +142,43 @@ export const TopBar: React.FC = () => {
             >
               {snapshot.preferences.theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={() => openAccountModal('profile')}
+                aria-label={`Account menu for ${currentUser.name}`}
+                className="inline-flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border text-[12px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ borderColor: 'var(--rule-strong)' }}
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  style={{ backgroundColor: currentUser.avatarColor }}
+                >
+                  {getUserInitials(currentUser.name)}
+                </span>
+                <span className="hidden sm:inline max-w-[110px] truncate">{currentUser.name}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAccountModal('signin')}
+                aria-label="Sign in or create account"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border text-[12px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                style={{ borderColor: 'var(--rule-strong)' }}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Sign in</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setActiveTab('planner')}
-              className="studio-card inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              className="studio-card inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-[12px] sm:text-[12.5px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors shrink-0"
             >
-              <span>Open Studio</span>
+              <span className="sm:hidden">Studio</span>
+              <span className="hidden sm:inline">Open Studio</span>
               <ArrowRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             </button>
           </div>
@@ -169,8 +210,9 @@ export const TopBar: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setActiveTab('planner')}
+          onClick={() => setActiveTab('overview')}
           className="flex items-center gap-2 shrink-0 group focus:outline-none"
+          title="Return to Cadence Overview"
         >
           <span
             className="w-7 h-7 rounded-lg flex items-center justify-center border transition-transform group-hover:scale-105"
@@ -367,6 +409,34 @@ export const TopBar: React.FC = () => {
           title={`Switch to ${snapshot.preferences.theme === 'dark' ? 'Daylight Paper' : 'Obsidian Studio'} theme`}
         >
           {snapshot.preferences.theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openAccountModal()}
+          aria-label={currentUser ? `Account: ${currentUser.name}` : 'Account & Vault'}
+          title={currentUser ? `Signed in as ${currentUser.name}` : 'Sign in or create local account'}
+          className="inline-flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-lg border border-transparent hover:border-[var(--rule-hairline)] hover:bg-[var(--bg-hover)] text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] transition-colors"
+        >
+          {currentUser ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                style={{ backgroundColor: currentUser.avatarColor }}
+              >
+                {getUserInitials(currentUser.name)}
+              </span>
+              <span className="hidden xl:inline max-w-[90px] truncate text-[var(--ink-primary)] font-medium">
+                {currentUser.name.split(' ')[0]}
+              </span>
+            </>
+          ) : (
+            <>
+              <User className="w-4 h-4" />
+              <span className="hidden xl:inline font-medium">Account</span>
+            </>
+          )}
         </button>
 
         <button

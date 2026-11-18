@@ -9,9 +9,25 @@ import {
   Flame,
   Keyboard,
   Layers,
+  ShieldCheck,
+  Sparkles,
   Timer,
+  UserPlus,
+  X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import {
+  addDays,
+  formatMinutes,
+  formatReadableDate,
+  fromDateKey,
+  getIsoWeekNumber,
+  getWeekDates,
+  MONTH_NAMES,
+  WEEKDAY_SHORT,
+} from '../utils/date';
+import { formatBytes } from '../utils/authStorage';
+import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
 import {
   AnimatedContent,
   Aurora,
@@ -47,16 +63,23 @@ const SHORTCUTS = [
   { keys: 'Left / Right', desc: 'Step previous or next day or week' },
 ];
 
-const SHOWCASE_TASKS = [
-  { title: 'Timeline drag & 15m snap', done: false },
-  { title: 'NLP quick task parser', done: true },
-  { title: 'Weekly time analytics', done: false },
-  { title: 'Cmd+K command flows', done: false },
-  { title: 'Board metrics snapshot', done: false },
-];
-
 export const ProductivityOverview: React.FC = () => {
-  const { snapshot, setActiveTab, setCommandOpen } = useWorkspace();
+  const {
+    snapshot,
+    todayKey,
+    nowMinutes,
+    setActiveTab,
+    setCommandOpen,
+    currentUser,
+    storageStats,
+    openAccountModal,
+    starterBannerDismissed,
+    dismissStarterBanner,
+    importStarterChecklist,
+    focusSecondsLeft,
+    activeFocusTaskId,
+  } = useWorkspace();
+
   const isDark = snapshot.preferences.theme === 'dark';
   const [isNarrow, setIsNarrow] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 480 : false
@@ -68,18 +91,104 @@ export const ProductivityOverview: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const isBlankWorkspace =
+    snapshot.events.length === 0 &&
+    snapshot.tasks.length === 0 &&
+    snapshot.habits.length === 0;
+
+  const todayObj = useMemo(() => fromDateKey(todayKey), [todayKey]);
+  const isoWeek = useMemo(() => getIsoWeekNumber(todayKey), [todayKey]);
+  const weekDates = useMemo(
+    () => getWeekDates(todayKey, snapshot.preferences.weekStartsOn),
+    [todayKey, snapshot.preferences.weekStartsOn]
+  );
+
+  const liveStats = useMemo(() => {
+    const activeTasks = snapshot.tasks.filter((t) => !t.completed);
+    const weekEvents = snapshot.events.filter((e) => !e.allDay && weekDates.includes(e.date));
+    const totalMinutes = weekEvents.reduce((sum, e) => sum + e.durationMinutes, 0);
+    const deepMinutes = weekEvents
+      .filter((e) => e.category === 'deep')
+      .reduce((sum, e) => sum + e.durationMinutes, 0);
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+    const deepHours = Math.round((deepMinutes / 60) * 10) / 10;
+    const deepPct = totalMinutes > 0 ? Math.round((deepMinutes / totalMinutes) * 100) : 0;
+
+    const dayMinutes = weekDates.map((dKey) =>
+      weekEvents.filter((e) => e.date === dKey).reduce((sum, e) => sum + e.durationMinutes, 0)
+    );
+    const maxDayMins = Math.max(60, ...dayMinutes);
+    const dayBarPcts = dayMinutes.map((mins) => (mins > 0 ? Math.max(12, Math.round((mins / maxDayMins) * 100)) : 6));
+    const todayIndex = weekDates.indexOf(todayKey);
+
+    const nextTimedToday = snapshot.events
+      .filter((e) => e.date === todayKey && !e.allDay && e.startMinutes >= nowMinutes - 15)
+      .sort((a, b) => a.startMinutes - b.startMinutes)[0];
+
+    const todayFocusMins = snapshot.focusHistory
+      .filter((s) => s.date === todayKey || s.completedAt.startsWith(todayKey))
+      .reduce((acc, s) => acc + s.durationMinutes, 0);
+
+    return {
+      activeTasks,
+      totalHours,
+      deepHours,
+      deepPct,
+      dayBarPcts,
+      dayMinutes,
+      todayIndex,
+      nextTimedToday,
+      todayFocusMins,
+    };
+  }, [nowMinutes, snapshot.events, snapshot.focusHistory, snapshot.tasks, todayKey, weekDates]);
+
+  const threeDayCols = useMemo(() => {
+    const keys = [addDays(todayKey, -1), todayKey, addDays(todayKey, 1)];
+    return keys.map((key) => {
+      const d = fromDateKey(key);
+      const dayEvents = snapshot.events
+        .filter((e) => e.date === key && !e.allDay && snapshot.enabledLayers[e.calendarId])
+        .sort((a, b) => a.startMinutes - b.startMinutes)
+        .slice(0, 4);
+      return {
+        key,
+        isToday: key === todayKey,
+        label: `${WEEKDAY_SHORT[d.getDay()]} ${d.getDate()}${key === todayKey ? ' · Today' : ''}`,
+        events: dayEvents,
+      };
+    });
+  }, [snapshot.enabledLayers, snapshot.events, todayKey]);
+
+  const showcaseHabits = useMemo(() => {
+    return snapshot.habits.slice(0, 3).map((h) => {
+      let streak = 0;
+      for (let i = 0; i < 21; i++) {
+        if (h.history[addDays(todayKey, -i)]) streak++;
+        else if (i > 0) break;
+      }
+      const accent =
+        h.category === 'health'
+          ? 'var(--accent-emerald)'
+          : h.category === 'craft'
+            ? 'var(--accent-sky)'
+            : 'var(--accent-primary)';
+      return { id: h.id, name: h.name, streak, accent };
+    });
+  }, [snapshot.habits, todayKey]);
+
+  const activeFocusTask = useMemo(
+    () => snapshot.tasks.find((t) => t.id === activeFocusTaskId) ?? liveStats.activeTasks[0],
+    [activeFocusTaskId, liveStats.activeTasks, snapshot.tasks]
+  );
+
   const metrics = useMemo(() => {
-    const activeTasks = snapshot.tasks.filter((t) => !t.completed).length;
-    const scheduledCount = snapshot.events.length;
-    const habitCount = snapshot.habits.length;
-    const focusSessions = snapshot.focusHistory.length;
     return [
-      { value: scheduledCount, label: 'Calendar blocks active' },
-      { value: activeTasks, label: 'Open tasks queued' },
-      { value: habitCount, label: 'Tracked daily habits' },
-      { value: focusSessions, label: 'Logged focus sprints' },
+      { value: snapshot.events.length, label: 'Calendar blocks active' },
+      { value: liveStats.activeTasks.length, label: 'Open tasks queued' },
+      { value: snapshot.habits.length, label: 'Tracked daily habits' },
+      { value: snapshot.focusHistory.length, label: 'Logged focus sprints' },
     ];
-  }, [snapshot.events.length, snapshot.focusHistory.length, snapshot.habits.length, snapshot.tasks]);
+  }, [liveStats.activeTasks.length, snapshot.events.length, snapshot.focusHistory.length, snapshot.habits.length]);
 
   const bentoItems = useMemo(
     () => [
@@ -94,17 +203,22 @@ export const ProductivityOverview: React.FC = () => {
         visual: (
           <div className="w-full h-full flex flex-col justify-between p-3.5 rounded-xl border bg-[var(--bg-canvas)]/70 border-[var(--rule-hairline)]">
             <div className="flex items-center justify-between text-[11px] font-mono-num text-[var(--ink-secondary)]">
-              <span>Week 47 Schedule Balance</span>
-              <span className="text-[var(--accent-primary)] font-semibold">25.5h planned</span>
+              <span>Week {isoWeek} Schedule Balance</span>
+              <span className="text-[var(--accent-primary)] font-semibold">{liveStats.totalHours}h planned</span>
             </div>
             <div className="grid grid-cols-7 gap-2 items-end h-28 pt-2">
-              {[50, 50, 94, 56, 38, 19, 14].map((h, i) => (
-                <div key={i} className="h-full flex flex-col justify-end gap-1">
+              {liveStats.dayBarPcts.map((h, i) => (
+                <div key={weekDates[i]} className="h-full flex flex-col justify-end gap-1">
                   <div
-                    className="w-full rounded-t-md"
+                    className="w-full rounded-t-md transition-all"
                     style={{
                       height: `${h}%`,
-                      backgroundColor: i === 2 ? 'var(--accent-primary)' : 'rgba(231, 64, 4, 0.25)',
+                      backgroundColor:
+                        i === liveStats.todayIndex
+                          ? 'var(--accent-primary)'
+                          : liveStats.dayMinutes[i] > 0
+                            ? 'rgba(231, 64, 4, 0.3)'
+                            : 'var(--bg-elevated)',
                     }}
                   />
                 </div>
@@ -117,14 +231,18 @@ export const ProductivityOverview: React.FC = () => {
         id: 'analytics',
         label: 'Telemetry',
         title: 'Capacity & Focus Balance',
-        description: 'Live planned vs deep work ratios computed directly from blocks.',
+        description: 'Live planned vs deep work ratios computed directly from your calendar blocks.',
         colSpan: 1,
         rowSpan: 1,
         onClick: () => setActiveTab('analytics'),
         visual: (
           <div className="flex items-baseline justify-between px-3 py-2 rounded-lg border bg-[var(--bg-canvas)]/60 border-[var(--rule-hairline)]">
-            <span className="font-display font-bold text-[18px] tabular-nums text-[var(--ink-primary)]">41%</span>
-            <span className="font-mono-num text-[11px] text-[var(--accent-primary)]">10.5h deep work</span>
+            <span className="font-display font-bold text-[18px] tabular-nums text-[var(--ink-primary)]">
+              {liveStats.deepPct}%
+            </span>
+            <span className="font-mono-num text-[11px] text-[var(--accent-primary)]">
+              {liveStats.deepHours}h deep work
+            </span>
           </div>
         ),
       },
@@ -138,8 +256,12 @@ export const ProductivityOverview: React.FC = () => {
         onClick: () => setActiveTab('tasks'),
         visual: (
           <div className="px-2.5 py-2 rounded-lg border bg-[var(--bg-canvas)]/60 border-[var(--rule-hairline)] flex items-center justify-between gap-2 text-[11px] font-mono-num">
-            <span className="text-[var(--ink-primary)] truncate">2pm · 45m</span>
-            <span className="px-1.5 py-0.5 rounded bg-[var(--accent-primary-soft)] text-[var(--accent-primary)] shrink-0">P1</span>
+            <span className="text-[var(--ink-primary)] truncate">
+              {liveStats.activeTasks.length} open · {snapshot.tasks.filter((t) => t.completed).length} done
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-[var(--accent-primary-soft)] text-[var(--accent-primary)] shrink-0">
+              NLP
+            </span>
           </div>
         ),
       },
@@ -156,16 +278,76 @@ export const ProductivityOverview: React.FC = () => {
       {
         id: 'portability',
         label: 'Ownership',
-        title: 'Local Persistence & .ics Export',
-        description: 'Full offline-first state, instant Ctrl+Z undo, JSON backup, and calendar export.',
+        title: 'IndexedDB Vault & .ics Export',
+        description: 'Local multi-account storage, instant Ctrl+Z undo, JSON account bundle, and calendar export.',
         icon: <Layers className="w-4 h-4 text-[var(--accent-sky)]" />,
         colSpan: 2,
         rowSpan: 1,
-        onClick: () => setActiveTab('analytics'),
+        onClick: () => openAccountModal(currentUser ? 'profile' : 'signup'),
       },
     ],
-    [setActiveTab]
+    [
+      currentUser,
+      isoWeek,
+      liveStats.activeTasks.length,
+      liveStats.dayBarPcts,
+      liveStats.dayMinutes,
+      liveStats.deepHours,
+      liveStats.deepPct,
+      liveStats.todayIndex,
+      liveStats.totalHours,
+      openAccountModal,
+      setActiveTab,
+      snapshot.tasks,
+      weekDates,
+    ]
   );
+
+  const folderCards = useMemo(() => {
+    const buildItems = (listId: 'work' | 'design' | 'personal', fallback: { title: string; description: string }[]) => {
+      const items = snapshot.tasks
+        .filter((t) => t.listId === listId && !t.completed)
+        .slice(0, 3)
+        .map((t) => ({
+          title: t.title.slice(0, 26),
+          description: `${t.estimatedMinutes}m · ${t.priority.toUpperCase()}`,
+        }));
+      return items.length > 0 ? items : fallback;
+    };
+
+    return [
+      {
+        color: '#E74004',
+        label: 'Product & Eng',
+        count: snapshot.tasks.filter((t) => t.listId === 'work' && !t.completed).length,
+        items: buildItems('work', [
+          { title: 'Add #work tasks', description: 'Capture sprints & code reviews' },
+          { title: 'Schedule deep blocks', description: 'Drag from sidebar onto calendar' },
+          { title: 'Track milestones', description: 'Monitor effort in Analytics' },
+        ]),
+      },
+      {
+        color: '#14A4FC',
+        label: 'Design Systems',
+        count: snapshot.tasks.filter((t) => t.listId === 'design' && !t.completed).length,
+        items: buildItems('design', [
+          { title: 'Collect UI critiques', description: 'Organize specs under Design' },
+          { title: 'Time-block reviews', description: 'Lock uninterrupted review hours' },
+          { title: 'Kanban status flow', description: 'Track from backlog to shipped' },
+        ]),
+      },
+      {
+        color: '#2CCC74',
+        label: 'Personal & Health',
+        count: snapshot.tasks.filter((t) => t.listId === 'personal' && !t.completed).length,
+        items: buildItems('personal', [
+          { title: 'Routines & workouts', description: 'Toggle the Wellness calendar layer' },
+          { title: '7-day habit streaks', description: 'Log daily wins in Focus Studio' },
+          { title: 'Evening journal', description: 'Turn notes directly into tasks' },
+        ]),
+      },
+    ];
+  }, [snapshot.tasks]);
 
   const dockItems = useMemo(
     () => [
@@ -293,7 +475,7 @@ export const ProductivityOverview: React.FC = () => {
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 mt-6">
             <Magnet padding={36} magnetStrength={4}>
               <GlareHover glareColor="#ffffff" glareOpacity={0.22} borderRadius="9999px" className="inline-flex">
                 <button
@@ -307,10 +489,36 @@ export const ProductivityOverview: React.FC = () => {
                 </button>
               </GlareHover>
             </Magnet>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={() => openAccountModal('profile')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[13px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] transition-colors"
+                style={{ borderColor: 'var(--rule-strong)' }}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: currentUser.avatarColor }}
+                />
+                <span>{currentUser.name} Vault</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAccountModal('signup')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[13px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] transition-colors"
+                style={{ borderColor: 'var(--rule-strong)' }}
+              >
+                <UserPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>Create Free Account</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[13.5px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--bg-surface)]/65 hover:bg-[var(--bg-surface)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[13px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] bg-[var(--bg-surface)]/65 hover:bg-[var(--bg-surface)] transition-colors"
               style={{ borderColor: 'var(--rule-strong)' }}
             >
               <span>Command Bar</span>
@@ -319,6 +527,47 @@ export const ProductivityOverview: React.FC = () => {
               </kbd>
             </button>
           </div>
+
+          {/* Clean Slate Status + Optional 1-Click Starter Banner */}
+          {isBlankWorkspace && !starterBannerDismissed ? (
+            <div
+              className="mt-2 inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3.5 py-2 rounded-2xl border text-[12px] bg-[var(--bg-surface)]/80 backdrop-blur-sm max-w-full"
+              style={{ borderColor: 'var(--rule-hairline)' }}
+            >
+              <span className="inline-flex items-center gap-1.5 text-[var(--ink-secondary)]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)] shrink-0" />
+                <span>
+                  Clean workspace active for <strong className="text-[var(--ink-primary)]">{formatReadableDate(todayKey)}</strong> · Auto-saved locally
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={importStarterChecklist}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-medium text-[11.5px] text-white transition-transform hover:scale-[1.02]"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Import starter checklist</span>
+              </button>
+              <button
+                type="button"
+                onClick={dismissStarterBanner}
+                className="p-1 rounded-md text-[var(--ink-muted)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+                aria-label="Dismiss starter suggestion"
+                title="Keep blank workspace"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="mt-1 inline-flex items-center gap-2 text-[11.5px] font-mono-num text-[var(--ink-muted)]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+              <span>
+                {currentUser ? `${currentUser.name} · ` : 'Guest Vault · '}
+                {storageStats.engine} · {formatBytes(storageStats.bytesUsed)} synced
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Floating 3D TiltedCard + Animated BorderGlow Live Studio Showcase */}
@@ -360,19 +609,25 @@ export const ProductivityOverview: React.FC = () => {
               >
             {/* Window Chrome */}
             <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/75">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)] shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)] shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)] shrink-0" />
                 <span className="ml-2 text-[12px] font-medium text-[var(--ink-secondary)] truncate">
-                  <span className="sm:hidden">Wed, Nov 18 · Live Studio</span>
-                  <span className="hidden sm:inline">November 2026 · Week 47 · Wednesday 18</span>
+                  <span className="sm:hidden">{formatReadableDate(todayKey)} · Live</span>
+                  <span className="hidden sm:inline">
+                    {MONTH_NAMES[todayObj.getMonth()]} {todayObj.getFullYear()} · Week {isoWeek} · {formatReadableDate(todayKey)}
+                  </span>
                 </span>
               </div>
-              <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono-num text-[var(--ink-muted)]">
+              <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono-num text-[var(--ink-muted)] shrink-0">
                 <span className="hidden sm:inline text-[var(--ink-secondary)] whitespace-nowrap">
                   <TextType
-                    text="25:00 Deep Focus · 4 open blocks"
+                    text={
+                      liveStats.nextTimedToday
+                        ? `Next: ${formatMinutes(liveStats.nextTimedToday.startMinutes, true)} · ${liveStats.activeTasks.length} open tasks`
+                        : `${snapshot.preferences.focusMinutes}:00 Focus · ${snapshot.events.length} scheduled blocks`
+                    }
                     as="span"
                     typingSpeed={4}
                     loop={false}
@@ -389,48 +644,60 @@ export const ProductivityOverview: React.FC = () => {
               </div>
             </div>
 
-            {/* 3-Zone Product Showcase */}
+            {/* 3-Zone Live Product Showcase */}
             <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x h-[335px] relative">
               {/* Left Task Queue */}
               <div className="hidden md:block md:col-span-3 p-3.5 space-y-2.5 bg-[var(--bg-surface)]">
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
-                  <span>Today Queue</span>
-                  <span className="font-mono-num text-[var(--accent-primary)]">4 open</span>
+                  <span>Task Queue</span>
+                  <span className="font-mono-num text-[var(--accent-primary)]">
+                    {liveStats.activeTasks.length} open
+                  </span>
                 </div>
                 <div className="space-y-1.5">
-                  {SHOWCASE_TASKS.map((t) => (
-                    <div key={t.title} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg-elevated)]/65 text-[11.5px]">
+                  {snapshot.tasks.slice(0, 5).map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg-elevated)]/65 text-[11.5px]">
                       <span
                         className="w-3 h-3 rounded border flex items-center justify-center shrink-0"
                         style={{
-                          borderColor: t.done ? 'var(--accent-emerald)' : 'var(--accent-primary)',
-                          backgroundColor: t.done ? 'var(--accent-emerald)' : 'transparent',
+                          borderColor: t.completed ? 'var(--accent-emerald)' : 'var(--accent-primary)',
+                          backgroundColor: t.completed ? 'var(--accent-emerald)' : 'transparent',
                         }}
                       >
-                        {t.done && <Check className="w-2 h-2 text-white stroke-[3]" />}
+                        {t.completed && <Check className="w-2 h-2 text-white stroke-[3]" />}
                       </span>
-                      <span className={`truncate ${t.done ? 'opacity-50' : 'text-[var(--ink-primary)]'}`}>
+                      <span className={`truncate ${t.completed ? 'opacity-50 line-through' : 'text-[var(--ink-primary)]'}`}>
                         {t.title}
                       </span>
                     </div>
                   ))}
+                  {snapshot.tasks.length === 0 && (
+                    <div className="p-3 rounded-lg border border-dashed text-[11px] text-[var(--ink-muted)] leading-relaxed">
+                      Queue is empty. Press <strong className="text-[var(--ink-primary)]">Ctrl+K</strong> or open Tasks to capture your first item.
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Center Time-Blocked Timeline */}
+              {/* Center Live 3-Day Time-Blocked Timeline */}
               <div className="md:col-span-6 p-3.5 bg-[var(--bg-canvas)]/85 relative flex flex-col">
-                <div className="grid grid-cols-3 gap-2.5 pb-2 border-b text-[11px] font-semibold">
-                  <div className="text-[var(--ink-secondary)] pl-8">Tue 17</div>
-                  <div className="text-[var(--accent-primary)]">Wed 18 · Today</div>
-                  <div className="text-[var(--ink-secondary)]">Thu 19</div>
+                <div className="grid grid-cols-3 gap-2.5 pb-2 border-b text-[11px] font-semibold pl-8">
+                  {threeDayCols.map((col) => (
+                    <div
+                      key={col.key}
+                      className={col.isToday ? 'text-[var(--accent-primary)] truncate' : 'text-[var(--ink-secondary)] truncate'}
+                    >
+                      {col.label}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="relative flex-1 mt-1 pl-8">
                   {[
-                    { label: '9 AM', top: '4%' },
-                    { label: '11 AM', top: '28%' },
-                    { label: '1 PM', top: '52%' },
-                    { label: '3 PM', top: '76%' },
+                    { label: '8 AM', top: '6%' },
+                    { label: '11 AM', top: '30%' },
+                    { label: '2 PM', top: '54%' },
+                    { label: '5 PM', top: '78%' },
                   ].map((line) => (
                     <div
                       key={line.label}
@@ -444,90 +711,114 @@ export const ProductivityOverview: React.FC = () => {
                     </div>
                   ))}
 
-                  <div className="absolute left-8 right-0 top-[42%] flex items-center z-20 pointer-events-none">
+                  <div
+                    className="absolute left-8 right-0 flex items-center z-20 pointer-events-none"
+                    style={{
+                      top: `${Math.max(4, Math.min(90, ((nowMinutes - 420) / (14 * 60)) * 100))}%`,
+                    }}
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] ml-0.5" />
                     <div className="flex-1 h-[1.5px] bg-[var(--accent-primary)]" />
                   </div>
 
                   <div className="grid grid-cols-3 gap-2.5 h-full relative z-10 border-l border-[var(--rule-hairline)] pl-1.5">
-                    <div className="relative h-full border-r border-[var(--rule-hairline)] pr-1.5">
-                      <div className="absolute inset-x-0 right-1.5 top-[8%] h-[28%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">9:30 AM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Q4 Roadmap Sync</div>
+                    {threeDayCols.map((col, idx) => (
+                      <div
+                        key={col.key}
+                        className={`relative h-full ${idx < 2 ? 'border-r border-[var(--rule-hairline)] pr-1.5' : ''} ${
+                          col.isToday ? 'bg-[rgba(231,64,4,0.025)] rounded-sm' : ''
+                        }`}
+                      >
+                        {col.events.map((ev) => {
+                          const cat = EVENT_CATEGORY_STYLES[ev.category];
+                          const topPct = Math.max(4, Math.min(82, ((ev.startMinutes - 420) / (14 * 60)) * 100));
+                          const heightPct = Math.max(16, Math.min(46, (ev.durationMinutes / (14 * 60)) * 100));
+                          return (
+                            <div
+                              key={ev.id}
+                              className="absolute inset-x-0 right-1.5 p-1.5 rounded-md border-l-2 overflow-hidden"
+                              style={{
+                                top: `${topPct}%`,
+                                height: `${heightPct}%`,
+                                borderLeftColor: cat.bar,
+                                backgroundColor: isDark ? cat.bgDark : cat.bgLight,
+                              }}
+                            >
+                              <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">
+                                {formatMinutes(ev.startMinutes, true)}
+                              </div>
+                              <div className="text-[10.5px] font-medium text-[var(--ink-primary)] leading-tight truncate">
+                                {ev.title}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {col.isToday && col.events.length === 0 && (
+                          <div className="absolute inset-x-1.5 top-[22%] p-2 rounded-lg border border-dashed text-center text-[10.5px] text-[var(--ink-muted)]">
+                            Click to schedule today
+                          </div>
+                        )}
                       </div>
-                      <div className="absolute inset-x-0 right-1.5 top-[56%] h-[32%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">1:30 PM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Ship NLP Parser</div>
-                      </div>
-                    </div>
-
-                    <div className="relative h-full border-r border-[var(--rule-hairline)] pr-1.5 bg-[rgba(231,64,4,0.025)] rounded-sm">
-                      <div className="absolute inset-x-0 right-1.5 top-[4%] h-[36%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.12)]" style={{ borderLeftColor: '#E74004' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">9:00 AM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Unified Timeline UI</div>
-                      </div>
-                      <div className="absolute inset-x-0 right-1.5 top-[46%] h-[22%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">12:00 PM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Design Review</div>
-                      </div>
-                      <div className="absolute inset-x-0 right-1.5 top-[72%] h-[24%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">2:30 PM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Analytics Curves</div>
-                      </div>
-                    </div>
-
-                    <div className="relative h-full">
-                      <div className="absolute inset-x-0 top-[14%] h-[24%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">10:00 AM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Arch Walkthrough</div>
-                      </div>
-                      <div className="absolute inset-x-0 top-[52%] h-[34%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
-                        <div className="font-mono-num text-[9px] text-[var(--ink-secondary)]">1:00 PM</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Cmd+K Shortcuts</div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Right Focus & Habits Mini-Panel */}
+              {/* Right Live Focus & Habits Mini-Panel */}
               <div className="hidden md:flex md:col-span-3 p-3.5 flex-col justify-between bg-[var(--bg-surface)]">
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                     <span>Deep Focus</span>
                     <span className="inline-flex items-center font-mono-num text-[var(--accent-primary)]">
-                      <Counter value={25} minDigits={2} fontSize={12} fontWeight={700} textColor="var(--accent-primary)" intro={false} fade={0} motionBlur={false} duration={0.28} />
-                      <span>:00</span>
+                      <Counter
+                        value={Math.floor(focusSecondsLeft / 60)}
+                        minDigits={2}
+                        fontSize={12}
+                        fontWeight={700}
+                        textColor="var(--accent-primary)"
+                        intro={false}
+                        fade={0}
+                        motionBlur={false}
+                        duration={0.28}
+                      />
+                      <span>:{String(focusSecondsLeft % 60).padStart(2, '0')}</span>
                     </span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-2 border border-[var(--rule-hairline)]">
-                    <div className="text-[11px] font-medium text-[var(--ink-primary)]">
-                      Timeline drag & 15m snap
+                    <div className="text-[11px] font-medium text-[var(--ink-primary)] truncate">
+                      {activeFocusTask ? activeFocusTask.title : 'Ready for next sprint'}
                     </div>
                     <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
-                      <div className="h-full w-2/3 rounded-full bg-[var(--accent-primary)]" />
+                      <div
+                        className="h-full rounded-full bg-[var(--accent-primary)] transition-all"
+                        style={{
+                          width: `${Math.min(100, Math.round((liveStats.todayFocusMins / 120) * 100))}%`,
+                        }}
+                      />
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono-num text-[var(--ink-secondary)]">
-                      <span>Sprint 2 of 4</span>
-                      <span>50 / 120m</span>
+                      <span>{snapshot.focusHistory.length} sessions</span>
+                      <span>{liveStats.todayFocusMins} / 120m</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-2.5 border-t border-[var(--rule-hairline)]">
                   <div className="text-[11px] font-medium text-[var(--ink-secondary)]">Habit streaks</div>
-                  <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
-                    <span>2h Deep Work</span>
-                    <span className="font-mono-num text-[var(--accent-primary)]">2d</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
-                    <span>Inbox Zero</span>
-                    <span className="font-mono-num text-[var(--accent-sky)]">1d</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)]">
-                    <span>Movement Session</span>
-                    <span className="font-mono-num text-[var(--accent-emerald)]">2d</span>
-                  </div>
+                  {showcaseHabits.length > 0 ? (
+                    showcaseHabits.map((h) => (
+                      <div key={h.id} className="flex items-center justify-between text-[11.5px] text-[var(--ink-primary)] gap-2">
+                        <span className="truncate">{h.name}</span>
+                        <span className="font-mono-num shrink-0" style={{ color: h.accent }}>
+                          {h.streak}d
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-[11px] text-[var(--ink-muted)]">
+                      No habits tracked yet · Set streaks in Focus Studio
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -641,47 +932,19 @@ export const ProductivityOverview: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-20 pt-14 sm:gap-6 sm:pt-12">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Folder
-                  color="#E74004"
-                  theme={isDark ? 'dark' : 'light'}
-                  size={0.82}
-                  items={[
-                    { title: 'Timeline 15m Snap', description: 'Drag-and-drop hour planner' },
-                    { title: 'Board Metrics Deck', description: 'Q4 cohort velocity summary' },
-                    { title: 'Cmd+K Flows', description: 'Keyboard command shortcuts' },
-                  ]}
-                />
-                <p className="text-[12px] font-medium text-[var(--ink-secondary)]">Product & Eng</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Folder
-                  color="#14A4FC"
-                  theme={isDark ? 'dark' : 'light'}
-                  size={0.82}
-                  items={[
-                    { title: 'Token Color Ramp', description: 'Obsidian & Daylight themes' },
-                    { title: 'Mobile 375px Audit', description: 'Tap targets & day layout' },
-                    { title: 'Analytics Report', description: 'Weekly capacity charts' },
-                  ]}
-                />
-                <p className="text-[12px] font-medium text-[var(--ink-secondary)]">Design Systems</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Folder
-                  color="#2CCC74"
-                  theme={isDark ? 'dark' : 'light'}
-                  size={0.82}
-                  items={[
-                    { title: 'Tempo Run (6km)', description: 'Marina loop training' },
-                    { title: 'Farmers Market', description: 'Saturday morning routine' },
-                    { title: 'Weekly Reset', description: 'Sunday evening review' },
-                  ]}
-                />
-                <p className="text-[12px] font-medium text-[var(--ink-secondary)]">Personal & Health</p>
-              </div>
+              {folderCards.map((folder) => (
+                <div key={folder.label} className="flex flex-col items-center gap-3 text-center">
+                  <Folder
+                    color={folder.color}
+                    theme={isDark ? 'dark' : 'light'}
+                    size={0.82}
+                    items={folder.items}
+                  />
+                  <p className="text-[12px] font-medium text-[var(--ink-secondary)]">
+                    {folder.label} · <span className="font-mono-num">{folder.count}</span>
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 

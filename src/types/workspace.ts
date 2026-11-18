@@ -135,3 +135,30 @@ export interface WorkspaceSnapshot {
   enabledLayers: Record<CalendarLayerId, boolean>;
   preferences: WorkspacePreferences;
 }
+
+export interface AccountProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatarColor: string;
+  roleTitle?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string;
+  hasPassword: boolean;
+}
+
+export interface StorageStats {
+  engine: string;
+  persisted: boolean;
+  bytesUsed: number;
+  savedAt: string | null;
+  accountCount: number;
+}
+
+export interface PortableAccountBundle {
+  bundleVersion: 2;
+  exportedAt: string;
+  profile?: Pick<AccountProfile, 'name' | 'email' | 'avatarColor' | 'roleTitle'> | null;
+  snapshot: WorkspaceSnapshot;
+}
