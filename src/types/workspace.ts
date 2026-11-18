@@ -12,9 +12,9 @@ export type CalendarMode = 'day' | 'three_day' | 'workweek' | 'week' | 'month' |
 
 export type TaskViewMode = 'list' | 'kanban' | 'matrix';
 
-export type EventCategory = 'deep' | 'meeting' | 'personal' | 'health' | 'deadline';
+export type EventCategory = 'deep' | 'meeting' | 'personal' | 'health' | 'deadline' | 'custom';
 
-export type CalendarLayerId = 'work' | 'team' | 'personal' | 'wellness';
+export type CalendarLayerId = 'work' | 'team' | 'personal' | 'wellness' | 'custom';
 
 export type TaskPriority = 'p1' | 'p2' | 'p3' | 'p4';
 
@@ -24,7 +24,19 @@ export type EisenhowerQuadrant = 'do' | 'schedule' | 'delegate' | 'eliminate';
 
 export type RecurrenceRule = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
 
-export type TaskListId = 'inbox' | 'today' | 'upcoming' | 'overdue' | 'completed' | 'work' | 'design' | 'personal';
+export type TaskListId = 'inbox' | 'today' | 'upcoming' | 'overdue' | 'completed' | 'work' | 'design' | 'personal' | string;
+
+export interface CustomCategoryPreset {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export interface CustomTaskListPreset {
+  id: string;
+  label: string;
+  color: string;
+}
 
 export interface Subtask {
   id: string;
@@ -34,19 +46,22 @@ export interface Subtask {
 
 export interface CalendarEvent {
   id: string;
+  uid?: string;
   title: string;
   date: string; // YYYY-MM-DD
   startMinutes: number; // 0..1440
   durationMinutes: number; // 15..720
   allDay?: boolean;
   category: EventCategory;
+  customLabel?: string;
+  customColor?: string;
   calendarId: CalendarLayerId;
   location?: string;
   videoLink?: string;
   notes?: string;
   recurrence: RecurrenceRule;
   linkedTaskId?: string;
-  reminderMinutes?: number; // 5, 10, 15, 30
+  reminderMinutes?: number; // 5, 10, 15, 30 or custom
   completed?: boolean;
   attendees?: string[];
 }
@@ -55,7 +70,7 @@ export interface TodoTask {
   id: string;
   title: string;
   notes?: string;
-  listId: 'inbox' | 'work' | 'design' | 'personal';
+  listId: 'inbox' | 'work' | 'design' | 'personal' | string;
   priority: TaskPriority;
   status: TaskStatus;
   quadrant: EisenhowerQuadrant;
@@ -63,6 +78,9 @@ export interface TodoTask {
   scheduledDate?: string; // YYYY-MM-DD
   scheduledStartMinutes?: number;
   estimatedMinutes: number;
+  customLabel?: string;
+  customColor?: string;
+  reminderMinutes?: number;
   tags: string[];
   subtasks: Subtask[];
   recurrence: RecurrenceRule;
@@ -75,7 +93,8 @@ export interface TodoTask {
 export interface HabitItem {
   id: string;
   name: string;
-  category: 'focus' | 'health' | 'craft' | 'mindset';
+  category: 'focus' | 'health' | 'craft' | 'mindset' | 'custom';
+  customCategory?: string;
   targetPerWeek: number;
   accent: string;
   history: Record<string, boolean>; // YYYY-MM-DD -> completed
@@ -116,7 +135,7 @@ export interface ToastItem {
 
 export interface WorkspacePreferences {
   theme: ThemeMode;
-  secondaryTimezone: 'UTC' | 'America/New_York' | 'Europe/London' | 'Asia/Tokyo';
+  secondaryTimezone: string;
   weekStartsOn: 0 | 1; // 0 = Sun, 1 = Mon
   focusMinutes: number;
   shortBreakMinutes: number;
@@ -149,6 +168,7 @@ export interface WorkspaceProgression {
   lastLootDrop?: DailyLootRecord | null;
   reminderEnabled: boolean;
   reminderHour: number;
+  reminderMinute?: number;
   lastRemindedDate?: string;
   pwaInstalled?: boolean;
 }
@@ -162,6 +182,8 @@ export interface WorkspaceSnapshot {
   enabledLayers: Record<CalendarLayerId, boolean>;
   preferences: WorkspacePreferences;
   progression?: WorkspaceProgression;
+  customLabels?: CustomCategoryPreset[];
+  customTaskLists?: CustomTaskListPreset[];
 }
 
 export interface AccountProfile {

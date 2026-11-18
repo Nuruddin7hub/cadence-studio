@@ -132,9 +132,108 @@ try {
   await page.getByRole('radio', { name: 'Week', exact: true }).click();
   await page.waitForTimeout(150);
 
-  // 5. Tasks tab: Kanban, Matrix, Smart List + task completion toggle
+  // 4b. Verify .ics calendar import + custom category + custom duration in New block modal
+  const nowLocal = new Date();
+  const ymdLocal = `${nowLocal.getFullYear()}${String(nowLocal.getMonth() + 1).padStart(2, '0')}${String(nowLocal.getDate()).padStart(2, '0')}`;
+  const sampleIcs = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'BEGIN:VEVENT',
+    'UID:orientation-001@university.edu',
+    'SUMMARY:Semester Orientation',
+    `DTSTART:${ymdLocal}T110000`,
+    `DTEND:${ymdLocal}T123000`,
+    'CATEGORIES:University',
+    'LOCATION:Main Hall',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'UID:holiday-allday@university.edu',
+    'SUMMARY:Campus Welcome Day',
+    `DTSTART;VALUE=DATE:${ymdLocal}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  await page
+    .locator('input[accept=".ics,text/calendar"]')
+    .first()
+    .setInputFiles({
+      name: 'semester.ics',
+      mimeType: 'text/calendar',
+      buffer: Buffer.from(sampleIcs, 'utf8'),
+    });
+  await page.waitForTimeout(250);
+  const bodyAfterIcs = await page.locator('body').innerText();
+  if (!bodyAfterIcs.includes('Semester Orientation') || !bodyAfterIcs.includes('Campus Welcome Day')) {
+    throw new Error('ICS calendar import did not render imported timed and all-day events');
+  }
+
+  // Re-importing same UIDs should deduplicate cleanly
+  await page
+    .locator('input[accept=".ics,text/calendar"]')
+    .first()
+    .setInputFiles({
+      name: 'semester.ics',
+      mimeType: 'text/calendar',
+      buffer: Buffer.from(sampleIcs, 'utf8'),
+    });
+  await page.waitForTimeout(180);
+  if (!(await page.locator('body').innerText()).includes('already exist')) {
+    throw new Error('Duplicate ICS re-import did not deduplicate cleanly');
+  }
+
+  // Create a custom-labeled & custom-duration calendar block inside scoped dialog
+  await page.getByRole('button', { name: 'New block' }).click();
+  await page.waitForTimeout(150);
+  const blockDialog = page.getByRole('dialog', { name: 'Schedule calendar block' });
+  await blockDialog.getByPlaceholder(/Block title/i).fill('Client Workshop');
+  await blockDialog.getByRole('button', { name: 'Custom', exact: true }).first().click();
+  await blockDialog.getByLabel('Custom duration minutes').fill('50');
+  await blockDialog.getByRole('button', { name: 'Custom', exact: true }).last().click();
+  await blockDialog.getByLabel('Custom category label name').fill('Client Work');
+  await blockDialog.getByRole('button', { name: 'Use', exact: true }).click();
+  await blockDialog.getByRole('button', { name: 'Create block' }).click();
+  await page.waitForTimeout(200);
+  if (!(await page.locator('body').innerText()).includes('Client Workshop')) {
+    throw new Error('Custom labeled block creation failed on Calendar');
+  }
+
+  // 5. Tasks tab: Friendly Visual Task Controls (Date, Time, Custom Work Duration, Custom List) + Kanban, Matrix, Smart List + completion
   await page.getByRole('button', { name: 'Tasks', exact: true }).click();
   await page.waitForTimeout(180);
+
+  await page.getByRole('button', { name: /Custom list/i }).click();
+  await page.getByLabel('Custom task list name').fill('Study Lab');
+  await page.getByRole('button', { name: 'Save List' }).click();
+  await page.waitForTimeout(150);
+
+  const taskComposer = page.locator('form').filter({ hasText: 'Work length:' });
+  await taskComposer.getByPlaceholder(/Add a task/i).fill('Prepare Biology Report');
+  await taskComposer.getByLabel('Task start time').fill('10:30');
+  await taskComposer.getByRole('button', { name: 'Custom', exact: true }).click();
+  await taskComposer.getByLabel('Custom duration minutes').fill('50');
+  await taskComposer.getByRole('button', { name: 'Add task' }).click();
+  await page.waitForTimeout(220);
+
+  const tasksAfterVisualAdd = await page.locator('body').innerText();
+  if (
+    !tasksAfterVisualAdd.includes('Prepare Biology Report') ||
+    !tasksAfterVisualAdd.includes('50 min work') ||
+    !tasksAfterVisualAdd.includes('On calendar at 10:30 AM')
+  ) {
+    throw new Error('Visual Task composer did not schedule custom time/duration task onto custom list');
+  }
+
+  // Expand the created task row and test friendly inline Time & Work Length editor
+  await page.getByText('Prepare Biology Report').first().click();
+  await page.waitForTimeout(150);
+  await page.getByRole('button', { name: '1h', exact: true }).last().click();
+  await page.waitForTimeout(150);
+  if (!(await page.locator('body').innerText()).includes('1 hour work')) {
+    throw new Error('Inline task editor failed to update work duration cleanly');
+  }
+
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
+  await page.waitForTimeout(150);
   await page.getByRole('radio', { name: 'Kanban Board' }).click();
   await page.waitForTimeout(180);
   await page.getByRole('radio', { name: 'Eisenhower Matrix' }).click();
@@ -144,7 +243,7 @@ try {
   await page.getByLabel(/Complete Architecture checkpoint/i).first().click();
   await page.waitForTimeout(150);
 
-  // 6. Focus & Habits tab: create a habit cleanly on blank state + journal line extraction + timer
+  // 6. Focus & Habits tab: create custom-category habit cleanly + journal line extraction + custom/default timer
   await page.getByRole('button', { name: 'Focus & Habits' }).click();
   await page.waitForTimeout(180);
   await page.getByPlaceholder('New habit...').fill('Deep Work Sprint');
@@ -152,6 +251,15 @@ try {
   await page.waitForTimeout(150);
   await page.getByLabel(/Deep Work Sprint on/i).last().click();
   await page.waitForTimeout(120);
+
+  await page.getByPlaceholder('New habit...').fill('Evening Reading');
+  await page.locator('select').filter({ hasText: 'Custom...' }).selectOption('custom');
+  await page.getByLabel('Custom habit category label').fill('Learning');
+  await page.getByLabel('Add habit').click();
+  await page.waitForTimeout(150);
+  if (!(await page.locator('body').innerText()).includes('Learning')) {
+    throw new Error('Custom habit category badge did not render');
+  }
 
   await page.getByPlaceholder(/Write a reflection/i).fill('Prepare weekly summary');
   await page.getByRole('button', { name: 'Add note' }).click();

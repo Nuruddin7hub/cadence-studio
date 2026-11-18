@@ -13,6 +13,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { HabitItem } from '../types/workspace';
 import { addDays, formatReadableDate, WEEKDAY_TWO } from '../utils/date';
+import { CUSTOM_COLOR_SWATCHES } from '../utils/themeTokens';
 import { TrophyEmblem } from './TrophyEmblem';
 import {
   AnimatedContent,
@@ -54,6 +55,9 @@ export const FocusHabitsStudio: React.FC = () => {
 
   const [habitName, setHabitName] = useState('');
   const [habitCat, setHabitCat] = useState<HabitItem['category']>('focus');
+  const [habitCustomLabel, setHabitCustomLabel] = useState('');
+  const [habitCustomColor, setHabitCustomColor] = useState(CUSTOM_COLOR_SWATCHES[0]);
+  const [customTimersOpen, setCustomTimersOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const isDark = snapshot.preferences.theme === 'dark';
 
@@ -104,11 +108,13 @@ export const FocusHabitsStudio: React.FC = () => {
     const accentMap: Record<HabitItem['category'], string> = {
       focus: '#E74004',
       health: '#149E56',
-      craft: '#C95A02',
+      craft: '#0B8CE0',
       mindset: '#B87B06',
+      custom: habitCustomColor,
     };
-    addHabit(habitName, habitCat, accentMap[habitCat]);
+    addHabit(habitName, habitCat, accentMap[habitCat], habitCat === 'custom' ? habitCustomLabel : undefined);
     setHabitName('');
+    setHabitCustomLabel('');
   };
 
   const handleAddJournalLine = (e: React.FormEvent) => {
@@ -192,15 +198,15 @@ export const FocusHabitsStudio: React.FC = () => {
                     {focusRunning ? (
                       <ShinyText text="Deep focus timer active" color="var(--accent-primary)" shineColor="#FFFFFF" speed={2.5} />
                     ) : (
-                      `25 / 5 / 15m cadences · ${totalFocusMins}m all-time`
+                      `${snapshot.preferences.focusMinutes} / ${snapshot.preferences.shortBreakMinutes} / ${snapshot.preferences.longBreakMinutes}m cadences · ${totalFocusMins}m all-time`
                     )}
                   </p>
                 </div>
                 <RubberSegment
                   items={[
-                    { value: 'focus', label: '25m' },
-                    { value: 'short_break', label: '5m' },
-                    { value: 'long_break', label: '15m' },
+                    { value: 'focus', label: `${snapshot.preferences.focusMinutes}m` },
+                    { value: 'short_break', label: `${snapshot.preferences.shortBreakMinutes}m` },
+                    { value: 'long_break', label: `${snapshot.preferences.longBreakMinutes}m` },
                   ]}
                   value={focusMode}
                   onChange={(val: string) => setFocusMode(val as 'focus' | 'short_break' | 'long_break')}
@@ -311,28 +317,87 @@ export const FocusHabitsStudio: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Tactile React Bits ElasticSlider for customizable sprint duration */}
-                <div className="pt-2 border-t flex items-center justify-between gap-3">
-                  <span className="text-[11.5px] text-[var(--ink-muted)] shrink-0">
-                    Sprint length
-                  </span>
-                  <ElasticSlider
-                    value={snapshot.preferences.focusMinutes}
-                    startingValue={15}
-                    maxValue={60}
-                    isStepped
-                    stepSize={5}
-                    onChange={(v: number) => updatePreferences({ focusMinutes: v })}
-                    leftIcon={<span className="font-mono-num text-[10.5px] opacity-65">15m</span>}
-                    rightIcon={<span className="font-mono-num text-[10.5px] opacity-65">60m</span>}
-                    rangeColor="var(--accent-primary)"
-                    thumbColor="#FFFFFF"
-                    valuePosition="none"
-                    thickness={5}
-                    activeThickness={8}
-                    ariaLabel="Focus session duration minutes"
-                    style={{ width: '100%' }}
-                  />
+                {/* Tactile React Bits ElasticSlider + Custom focus/break minute lengths */}
+                <div className="pt-2 border-t space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11.5px] text-[var(--ink-muted)] shrink-0">
+                      Sprint length
+                    </span>
+                    <ElasticSlider
+                      value={snapshot.preferences.focusMinutes}
+                      startingValue={15}
+                      maxValue={60}
+                      isStepped
+                      stepSize={5}
+                      onChange={(v: number) => updatePreferences({ focusMinutes: v })}
+                      leftIcon={<span className="font-mono-num text-[10.5px] opacity-65">15m</span>}
+                      rightIcon={<span className="font-mono-num text-[10.5px] opacity-65">60m</span>}
+                      rangeColor="var(--accent-primary)"
+                      thumbColor="#FFFFFF"
+                      valuePosition="none"
+                      thickness={5}
+                      activeThickness={8}
+                      ariaLabel="Focus session duration minutes"
+                      style={{ width: '100%' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomTimersOpen((v) => !v)}
+                      className="px-2 py-0.5 rounded-md border text-[11px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] shrink-0"
+                    >
+                      Custom
+                    </button>
+                  </div>
+
+                  {customTimersOpen && (
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
+                      <label className="space-y-1">
+                        <span className="text-[var(--ink-muted)] block">Focus (min)</span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={180}
+                          value={snapshot.preferences.focusMinutes}
+                          onChange={(e) =>
+                            updatePreferences({
+                              focusMinutes: Math.max(5, Math.min(180, Math.round(Number(e.target.value) || 25))),
+                            })
+                          }
+                          className="w-full px-2 py-1 rounded-md border bg-[var(--bg-inset)] font-mono-num text-[var(--ink-primary)]"
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[var(--ink-muted)] block">Short break</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={45}
+                          value={snapshot.preferences.shortBreakMinutes}
+                          onChange={(e) =>
+                            updatePreferences({
+                              shortBreakMinutes: Math.max(1, Math.min(45, Math.round(Number(e.target.value) || 5))),
+                            })
+                          }
+                          className="w-full px-2 py-1 rounded-md border bg-[var(--bg-inset)] font-mono-num text-[var(--ink-primary)]"
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[var(--ink-muted)] block">Long break</span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={90}
+                          value={snapshot.preferences.longBreakMinutes}
+                          onChange={(e) =>
+                            updatePreferences({
+                              longBreakMinutes: Math.max(5, Math.min(90, Math.round(Number(e.target.value) || 15))),
+                            })
+                          }
+                          className="w-full px-2 py-1 rounded-md border bg-[var(--bg-inset)] font-mono-num text-[var(--ink-primary)]"
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -368,6 +433,7 @@ export const FocusHabitsStudio: React.FC = () => {
                     <option value="health">Health</option>
                     <option value="craft">Craft</option>
                     <option value="mindset">Mindset</option>
+                    <option value="custom">Custom...</option>
                   </select>
                   <button
                     type="submit"
@@ -379,6 +445,36 @@ export const FocusHabitsStudio: React.FC = () => {
                   </button>
                 </form>
               </div>
+
+              {habitCat === 'custom' && (
+                <div className="p-2.5 rounded-xl border bg-[var(--bg-inset)] flex flex-wrap items-center gap-2 text-[11.5px]">
+                  <input
+                    type="text"
+                    value={habitCustomLabel}
+                    onChange={(e) => setHabitCustomLabel(e.target.value)}
+                    placeholder="Custom habit category (e.g. Faith, Reading)"
+                    aria-label="Custom habit category label"
+                    className="flex-1 min-w-[160px] px-2.5 py-1 rounded-lg border bg-[var(--bg-surface)] text-[12px] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                  <div className="flex items-center gap-1">
+                    {CUSTOM_COLOR_SWATCHES.slice(0, 6).map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => setHabitCustomColor(hex)}
+                        className="w-4 h-4 rounded-full"
+                        style={{
+                          backgroundColor: hex,
+                          boxShadow:
+                            habitCustomColor === hex
+                              ? '0 0 0 2px var(--bg-surface), 0 0 0 3px var(--ink-primary)'
+                              : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -425,13 +521,15 @@ export const FocusHabitsStudio: React.FC = () => {
                         else if (i > 0) break;
                       }
                       const pillColor =
-                        h.category === 'health'
-                          ? '#149E56'
-                          : h.category === 'craft'
-                            ? '#0B8CE0'
-                            : h.category === 'mindset'
-                              ? '#C97A04'
-                              : 'var(--accent-primary)';
+                        h.category === 'custom'
+                          ? h.accent || '#06B6D4'
+                          : h.category === 'health'
+                            ? '#149E56'
+                            : h.category === 'craft'
+                              ? '#0B8CE0'
+                              : h.category === 'mindset'
+                                ? '#C97A04'
+                                : 'var(--accent-primary)';
 
                       return (
                         <tr key={h.id} className="group hover:bg-[var(--bg-hover)]/35">
@@ -439,6 +537,13 @@ export const FocusHabitsStudio: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: pillColor }} />
                               <span className="text-[13px] font-medium text-[var(--ink-primary)]">{h.name}</span>
+                              {h.category === 'custom' && h.customCategory && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--bg-elevated)] text-[var(--ink-secondary)]"
+                                >
+                                  {h.customCategory}
+                                </span>
+                              )}
                             </div>
                           </td>
                           {last7Days.map((dKey) => {

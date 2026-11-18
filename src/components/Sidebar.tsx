@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CalendarClock,
@@ -16,6 +16,7 @@ import {
   Plus,
   Sparkles,
   Sun,
+  Upload,
   X,
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
@@ -29,7 +30,7 @@ import {
   MONTH_NAMES,
   WEEKDAY_TWO,
 } from '../utils/date';
-import { CALENDAR_LAYERS, PRIORITY_META } from '../utils/themeTokens';
+import { CALENDAR_LAYERS, CUSTOM_COLOR_SWATCHES, PRIORITY_META } from '../utils/themeTokens';
 import { AnimatedContent, GlareHover, SpotlightCard, SpringCheck } from '../lib/reactbits';
 
 export const Sidebar: React.FC = () => {
@@ -52,11 +53,18 @@ export const Sidebar: React.FC = () => {
     setMobileSidebarOpen,
     currentUser,
     openAccountModal,
+    customTaskLists,
+    addCustomTaskList,
+    importCalendarIcs,
   } = useWorkspace();
 
   const [miniMonthAnchor, setMiniMonthAnchor] = useState<string>(selectedDate);
   const [sidebarDraft, setSidebarDraft] = useState('');
   const [collapsed, setCollapsed] = useState(false);
+  const [newProjOpen, setNewProjOpen] = useState(false);
+  const [newProjName, setNewProjName] = useState('');
+  const [newProjColor, setNewProjColor] = useState(CUSTOM_COLOR_SWATCHES[0]);
+  const sidebarIcsRef = useRef<HTMLInputElement | null>(null);
   const isDark = snapshot.preferences.theme === 'dark';
 
   const miniDates = useMemo(
@@ -115,6 +123,12 @@ export const Sidebar: React.FC = () => {
     { id: 'work', label: 'Product & Engineering', dot: '#E74004', count: counts.work },
     { id: 'design', label: 'Design Systems', dot: '#14A4FC', count: counts.design },
     { id: 'personal', label: 'Personal & Life', dot: '#F4C46C', count: counts.personal },
+    ...customTaskLists.map((cl) => ({
+      id: cl.id,
+      label: cl.label,
+      dot: cl.color,
+      count: snapshot.tasks.filter((t) => !t.completed && t.listId === cl.id).length,
+    })),
   ];
 
   const handleQuickAdd = (e: React.FormEvent) => {
@@ -295,10 +309,65 @@ export const Sidebar: React.FC = () => {
         </ul>
 
         <div className="mt-2.5 pt-2.5 border-t">
-          <div className="flex items-center gap-1.5 px-1.5 mb-1 text-[12px] font-semibold text-[var(--ink-secondary)]">
-            <FolderKanban className="w-3.5 h-3.5" />
-            <span>Projects</span>
+          <div className="flex items-center justify-between gap-1.5 px-1.5 mb-1 text-[12px] font-semibold text-[var(--ink-secondary)]">
+            <span className="inline-flex items-center gap-1.5">
+              <FolderKanban className="w-3.5 h-3.5" />
+              <span>Projects</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setNewProjOpen((v) => !v)}
+              className="inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+              title="Add custom work project"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Custom</span>
+            </button>
           </div>
+          {newProjOpen && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newProjName.trim()) return;
+                const created = addCustomTaskList(newProjName, newProjColor);
+                setActiveList(created.id);
+                setNewProjName('');
+                setNewProjOpen(false);
+              }}
+              className="mb-1.5 p-1.5 rounded-lg border bg-[var(--bg-inset)] space-y-1.5"
+            >
+              <input
+                type="text"
+                value={newProjName}
+                onChange={(e) => setNewProjName(e.target.value)}
+                placeholder="Project name..."
+                className="w-full px-2 py-1 rounded bg-[var(--bg-surface)] border text-[11px] text-[var(--ink-primary)] focus:outline-none"
+              />
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1">
+                  {CUSTOM_COLOR_SWATCHES.slice(0, 5).map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      onClick={() => setNewProjColor(hex)}
+                      className="w-3.5 h-3.5 rounded-full"
+                      style={{
+                        backgroundColor: hex,
+                        boxShadow: newProjColor === hex ? '0 0 0 1.5px var(--bg-surface), 0 0 0 2.5px var(--ink-primary)' : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="submit"
+                  className="px-2 py-0.5 rounded text-[10.5px] font-semibold text-white"
+                  style={{ backgroundColor: 'var(--accent-primary)' }}
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          )}
           <ul className="space-y-0.5">
             {projectLists.map((proj) => {
               const active = activeList === proj.id;
@@ -442,9 +511,32 @@ export const Sidebar: React.FC = () => {
 
       {/* Calendar Layers */}
       <section aria-label="Calendar layers" className="pt-2.5 border-t">
-        <div className="flex items-center gap-1.5 px-1.5 mb-1.5 text-[12px] font-semibold text-[var(--ink-secondary)]">
-          <Layers className="w-3.5 h-3.5" />
-          <span>Calendars</span>
+        <div className="flex items-center justify-between gap-1.5 px-1.5 mb-1.5 text-[12px] font-semibold text-[var(--ink-secondary)]">
+          <span className="inline-flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5" />
+            <span>Calendars</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => sidebarIcsRef.current?.click()}
+            className="inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--accent-sky)] hover:underline"
+            title="Import .ics calendar file"
+          >
+            <Upload className="w-3 h-3" />
+            <span>Import .ics</span>
+          </button>
+          <input
+            ref={sidebarIcsRef}
+            type="file"
+            accept=".ics,text/calendar"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              void f.text().then((txt) => importCalendarIcs(txt));
+              e.target.value = '';
+            }}
+          />
         </div>
         <ul className="space-y-0.5">
           {CALENDAR_LAYERS.map((layer) => {

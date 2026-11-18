@@ -33,6 +33,7 @@ export function createEmptyWorkspace(theme: ThemeMode = 'dark'): WorkspaceSnapsh
       team: true,
       personal: true,
       wellness: true,
+      custom: true,
     },
     preferences: {
       theme,
@@ -739,6 +740,7 @@ export function createSeedWorkspace(): WorkspaceSnapshot {
       team: true,
       personal: true,
       wellness: true,
+      custom: true,
     },
     preferences: {
       theme: 'dark',

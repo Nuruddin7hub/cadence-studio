@@ -313,7 +313,7 @@ export const TopBar: React.FC = () => {
             type="text"
             value={quickDraft}
             onChange={(e) => setQuickDraft(e.target.value)}
-            placeholder="Quick add: 'Review 2pm !p1'"
+            placeholder="Quick add: 'Review slides tomorrow 2pm'"
             aria-label="Quick capture task or event"
             className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
           />

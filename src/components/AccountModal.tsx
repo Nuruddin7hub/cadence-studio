@@ -64,6 +64,7 @@ export const AccountModal: React.FC = () => {
     deleteAccount,
     exportAccountBundle,
     importWorkspaceJson,
+    importCalendarIcs,
     importStarterChecklist,
     resetToSeed,
     pushToast,
@@ -100,6 +101,7 @@ export const AccountModal: React.FC = () => {
   const [confirmReset, setConfirmReset] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const icsImportRef = useRef<HTMLInputElement | null>(null);
 
   const hasGuestWork =
     snapshot.events.length > 0 ||
@@ -207,13 +209,31 @@ export const AccountModal: React.FC = () => {
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isIcs = file.name.toLowerCase().endsWith('.ics');
     void file.text().then((txt) => {
-      const ok = importWorkspaceJson(txt);
-      if (!ok) {
-        setErrorMsg('Selected file is not a valid Cadence workspace JSON backup.');
+      if (isIcs || /BEGIN:VCALENDAR/i.test(txt)) {
+        const res = importCalendarIcs(txt);
+        if (!res.ok) setErrorMsg(res.error ?? 'Selected file is not a valid .ics calendar.');
+        else setErrorMsg(null);
       } else {
-        setErrorMsg(null);
+        const ok = importWorkspaceJson(txt);
+        if (!ok) {
+          setErrorMsg('Selected file is not a valid Cadence workspace JSON backup or .ics calendar.');
+        } else {
+          setErrorMsg(null);
+        }
       }
+    });
+    e.target.value = '';
+  };
+
+  const handleIcsImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void file.text().then((txt) => {
+      const res = importCalendarIcs(txt);
+      if (!res.ok) setErrorMsg(res.error ?? 'Selected file is not a valid .ics calendar.');
+      else setErrorMsg(null);
     });
     e.target.value = '';
   };
@@ -555,6 +575,7 @@ export const AccountModal: React.FC = () => {
                     triggerFileDownload('cadence-calendar.ics', buildIcsExport(snapshot.events), 'text/calendar');
                     pushToast('Calendar .ics downloaded', undefined, false, 'success');
                   }}
+                  onImportIcs={() => icsImportRef.current?.click()}
                   onImportStarter={importStarterChecklist}
                   onResetClean={() => {
                     resetToSeed();
@@ -874,9 +895,16 @@ export const AccountModal: React.FC = () => {
           <input
             ref={importInputRef}
             type="file"
-            accept=".json,application/json"
+            accept=".json,.ics,application/json,text/calendar"
             className="hidden"
             onChange={handleFileImport}
+          />
+          <input
+            ref={icsImportRef}
+            type="file"
+            accept=".ics,text/calendar"
+            className="hidden"
+            onChange={handleIcsImport}
           />
         </div>
       </div>
@@ -911,6 +939,7 @@ interface StorageBackupPanelProps {
   onExportBundle: () => void;
   onTriggerImport: () => void;
   onExportIcs: () => void;
+  onImportIcs: () => void;
   onImportStarter: () => void;
   onResetClean: () => void;
   pwaInstalled: boolean;
@@ -932,6 +961,7 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
   onExportBundle,
   onTriggerImport,
   onExportIcs,
+  onImportIcs,
   onImportStarter,
   onResetClean,
   pwaInstalled,
@@ -1041,8 +1071,16 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
       </button>
       <button
         type="button"
-        onClick={onImportStarter}
+        onClick={onImportIcs}
         className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl border bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[12.5px] font-medium"
+      >
+        <Upload className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+        <span>Import Calendar (.ics)</span>
+      </button>
+      <button
+        type="button"
+        onClick={onImportStarter}
+        className="sm:col-span-2 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[12.5px] font-medium"
       >
         <Sparkles className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
         <span>Add Starter Checklist</span>

@@ -7,6 +7,8 @@ import type {
   CalendarLayerId,
   CalendarMode,
   CloudSyncState,
+  CustomCategoryPreset,
+  CustomTaskListPreset,
   DailyNote,
   EisenhowerQuadrant,
   FocusSessionRecord,
@@ -75,7 +77,7 @@ import {
   type GoogleUserClaims,
   saveCustomGoogleClientId,
 } from '../utils/googleAuth';
-import { triggerFileDownload } from '../utils/ics';
+import { parseIcsCalendar, triggerFileDownload } from '../utils/ics';
 import {
   DAILY_CRATE_SCHEDULE,
   type EvaluatedProgression,
@@ -194,16 +196,25 @@ interface WorkspaceContextValue {
   deleteTask: (id: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addSubtask: (taskId: string, title: string) => void;
-  scheduleTaskToCalendar: (taskId: string, date: string, startMinutes: number) => void;
+  scheduleTaskToCalendar: (taskId: string, date: string, startMinutes: number, durationOverride?: number) => void;
   moveTaskKanban: (taskId: string, status: TaskStatus) => void;
   moveTaskQuadrant: (taskId: string, quadrant: EisenhowerQuadrant) => void;
 
   // Habit & Note actions
   toggleHabitDate: (habitId: string, date: string) => void;
-  addHabit: (name: string, category: HabitItem['category'], accent: string) => void;
+  addHabit: (name: string, category: HabitItem['category'], accent: string, customCategory?: string) => void;
   deleteHabit: (habitId: string) => void;
   updateDailyNote: (date: string, patch: Partial<DailyNote>) => void;
   extractLineToTask: (date: string, lineText: string) => void;
+
+  // Custom labels & custom task work lists
+  customLabels: CustomCategoryPreset[];
+  customTaskLists: CustomTaskListPreset[];
+  saveCustomLabel: (label: string, color: string) => CustomCategoryPreset;
+  deleteCustomLabel: (id: string) => void;
+  addCustomTaskList: (label: string, color: string) => CustomTaskListPreset;
+  deleteCustomTaskList: (id: string) => void;
+  unscheduleTaskFromCalendar: (taskId: string) => void;
 
   // Focus timer
   focusMode: 'focus' | 'short_break' | 'long_break';
@@ -226,7 +237,7 @@ interface WorkspaceContextValue {
   pinShowcaseBadge: (badgeId: string) => void;
   setTomorrowAnchor: (title: string) => void;
   promoteTodayAnchorToTask: () => void;
-  toggleDailyReminder: (enabled: boolean, hour?: number) => Promise<void>;
+  toggleDailyReminder: (enabled: boolean, hour?: number, minute?: number) => Promise<void>;
 
   // PWA Install promotion & offline app shell
   pwaInstalled: boolean;
@@ -244,6 +255,12 @@ interface WorkspaceContextValue {
   pushToast: (message: string, detail?: string, canUndo?: boolean, tone?: ToastItem['tone']) => void;
   undoLast: () => void;
   importWorkspaceJson: (jsonStr: string) => boolean;
+  importCalendarIcs: (icsText: string) => {
+    ok: boolean;
+    importedCount: number;
+    skippedDuplicates: number;
+    error?: string;
+  };
   resetToSeed: () => void;
   shotPreset: string | null;
 }
@@ -906,7 +923,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const newTask = addTask({
         title: parsed.title,
-        listId: listOverride ?? (activeList === 'work' || activeList === 'design' || activeList === 'personal' ? activeList : 'inbox'),
+        listId:
+          listOverride ??
+          (activeList !== 'today' &&
+          activeList !== 'inbox' &&
+          activeList !== 'upcoming' &&
+          activeList !== 'overdue' &&
+          activeList !== 'completed'
+            ? activeList
+            : 'inbox'),
         priority,
         status: targetDate === todayKey ? 'todo' : 'backlog',
         quadrant,
@@ -1036,8 +1061,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!prog.reminderEnabled) return;
     if (prog.lastRemindedDate === todayKey) return;
     if (progression.todayBountiesCompletedCount === progression.todayBounties.length) return;
-    const currentHour = Math.floor(nowMinutes / 60);
-    if (currentHour < prog.reminderHour) return;
+    const reminderTotalMins = prog.reminderHour * 60 + (prog.reminderMinute ?? 0);
+    if (nowMinutes < reminderTotalMins) return;
 
     hasLocalMutationRef.current = true;
     setSnapshot((prev) => ({
@@ -1242,7 +1267,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [addTaskFromText, progression.todayAnchor]);
 
   const toggleDailyReminder = useCallback(
-    async (enabled: boolean, hour = 9) => {
+    async (enabled: boolean, hour = 9, minute = 0) => {
       if (enabled && typeof window !== 'undefined' && 'Notification' in window) {
         if (window.Notification.permission === 'default') {
           try {
@@ -1255,16 +1280,20 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         }
       }
+      const safeHour = Math.max(0, Math.min(23, Math.round(hour)));
+      const safeMinute = Math.max(0, Math.min(59, Math.round(minute)));
       commit((prev) => ({
         ...prev,
         progression: {
           ...normalizeProgression(prev.progression),
           reminderEnabled: enabled,
-          reminderHour: hour,
+          reminderHour: safeHour,
+          reminderMinute: safeMinute,
         },
       }));
+      const hhmm = `${String(safeHour).padStart(2, '0')}:${String(safeMinute).padStart(2, '0')}`;
       pushToast(
-        enabled ? `Daily reminder set (${String(hour).padStart(2, '0')}:00)` : 'Daily reminder paused',
+        enabled ? `Daily reminder set (${hhmm})` : 'Daily reminder paused',
         enabled ? 'Cadence will prompt your daily check-in when open' : undefined,
         false,
         enabled ? 'success' : 'default'
@@ -1273,11 +1302,103 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [commit, pushToast]
   );
 
+  const customLabels = useMemo(() => snapshot.customLabels ?? [], [snapshot.customLabels]);
+  const customTaskLists = useMemo(() => snapshot.customTaskLists ?? [], [snapshot.customTaskLists]);
+
+  const saveCustomLabel = useCallback(
+    (label: string, color: string): CustomCategoryPreset => {
+      const clean = label.trim() || 'Custom';
+      const existing = (snapshot.customLabels ?? []).find(
+        (c) => c.label.toLowerCase() === clean.toLowerCase()
+      );
+      if (existing) {
+        if (existing.color !== color) {
+          commit((prev) => ({
+            ...prev,
+            customLabels: (prev.customLabels ?? []).map((c) => (c.id === existing.id ? { ...c, color } : c)),
+          }));
+        }
+        return { ...existing, color };
+      }
+      const created: CustomCategoryPreset = {
+        id: makeId('lbl'),
+        label: clean,
+        color,
+      };
+      commit((prev) => ({
+        ...prev,
+        customLabels: [...(prev.customLabels ?? []), created].slice(0, 16),
+      }));
+      return created;
+    },
+    [commit, snapshot.customLabels]
+  );
+
+  const deleteCustomLabel = useCallback(
+    (id: string) => {
+      commit((prev) => ({
+        ...prev,
+        customLabels: (prev.customLabels ?? []).filter((c) => c.id !== id),
+      }));
+    },
+    [commit]
+  );
+
+  const addCustomTaskList = useCallback(
+    (label: string, color: string): CustomTaskListPreset => {
+      const clean = label.trim() || 'Custom';
+      const existing = (snapshot.customTaskLists ?? []).find(
+        (l) => l.label.toLowerCase() === clean.toLowerCase()
+      );
+      if (existing) return existing;
+      const created: CustomTaskListPreset = {
+        id: makeId('list'),
+        label: clean,
+        color,
+      };
+      commit((prev) => ({
+        ...prev,
+        customTaskLists: [...(prev.customTaskLists ?? []), created].slice(0, 12),
+      }));
+      pushToast('Custom list added', created.label, true, 'success');
+      return created;
+    },
+    [commit, pushToast, snapshot.customTaskLists]
+  );
+
+  const deleteCustomTaskList = useCallback(
+    (id: string) => {
+      commit((prev) => ({
+        ...prev,
+        customTaskLists: (prev.customTaskLists ?? []).filter((l) => l.id !== id),
+        tasks: prev.tasks.map((t) => (t.listId === id ? { ...t, listId: 'inbox' } : t)),
+      }));
+      if (activeList === id) setActiveList('inbox');
+    },
+    [activeList, commit]
+  );
+
   const updateTask = useCallback(
     (id: string, patch: Partial<TodoTask>) => {
       commit((prev) => ({
         ...prev,
         tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        events: prev.events.map((e) =>
+          e.linkedTaskId === id
+            ? {
+                ...e,
+                title: patch.title ?? e.title,
+                date: patch.scheduledDate ?? e.date,
+                startMinutes: patch.scheduledStartMinutes ?? e.startMinutes,
+                durationMinutes:
+                  patch.estimatedMinutes !== undefined
+                    ? Math.max(15, Math.min(720, patch.estimatedMinutes))
+                    : e.durationMinutes,
+                customLabel: patch.customLabel !== undefined ? patch.customLabel : e.customLabel,
+                customColor: patch.customColor !== undefined ? patch.customColor : e.customColor,
+              }
+            : e
+        ),
       }));
     },
     [commit]
@@ -1365,19 +1486,26 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const scheduleTaskToCalendar = useCallback(
-    (taskId: string, date: string, startMinutes: number) => {
+    (taskId: string, date: string, startMinutes: number, durationOverride?: number) => {
       const task = snapshot.tasks.find((t) => t.id === taskId);
       if (!task) return;
+      const dur = Math.max(15, Math.min(720, durationOverride ?? task.estimatedMinutes ?? 30));
       const existingEvent = snapshot.events.find((e) => e.linkedTaskId === taskId);
       commit((prev) => {
         const updatedTasks = prev.tasks.map((t) =>
           t.id === taskId
-            ? { ...t, scheduledDate: date, scheduledStartMinutes: startMinutes, dueDate: t.dueDate ?? date }
+            ? {
+                ...t,
+                scheduledDate: date,
+                scheduledStartMinutes: startMinutes,
+                estimatedMinutes: dur,
+                dueDate: t.dueDate ?? date,
+              }
             : t
         );
         const updatedEvents = existingEvent
           ? prev.events.map((e) =>
-              e.id === existingEvent.id ? { ...e, date, startMinutes } : e
+              e.id === existingEvent.id ? { ...e, date, startMinutes, durationMinutes: dur } : e
             )
           : [
               ...prev.events,
@@ -1386,18 +1514,29 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 title: task.title,
                 date,
                 startMinutes,
-                durationMinutes: Math.max(30, task.estimatedMinutes || 45),
-                category: 'deep' as const,
-                calendarId: task.listId === 'personal' ? ('personal' as const) : ('work' as const),
+                durationMinutes: dur,
+                category: task.customLabel ? ('custom' as const) : ('deep' as const),
+                customLabel: task.customLabel,
+                customColor: task.customColor,
+                calendarId: task.customLabel
+                  ? ('custom' as const)
+                  : task.listId === 'personal'
+                    ? ('personal' as const)
+                    : ('work' as const),
                 recurrence: task.recurrence,
                 linkedTaskId: task.id,
                 completed: task.completed,
               },
             ];
-        return { ...prev, tasks: updatedTasks, events: updatedEvents };
+        return {
+          ...prev,
+          enabledLayers: task.customLabel ? { ...prev.enabledLayers, custom: true } : prev.enabledLayers,
+          tasks: updatedTasks,
+          events: updatedEvents,
+        };
       });
       pushToast(
-        'Task time-blocked',
+        'Task scheduled on calendar',
         `${task.title} on ${formatReadableDate(date)} at ${formatMinutes(startMinutes)}`,
         true,
         'success'
@@ -1462,15 +1601,37 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [commit, snapshot.preferences.soundEnabled]
   );
 
+  const unscheduleTaskFromCalendar = useCallback(
+    (taskId: string) => {
+      commit((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((t) =>
+          t.id === taskId ? { ...t, scheduledDate: undefined, scheduledStartMinutes: undefined } : t
+        ),
+        events: prev.events.filter((e) => e.linkedTaskId !== taskId),
+      }));
+      pushToast('Removed from calendar', 'Task moved back to unscheduled queue', true);
+    },
+    [commit, pushToast]
+  );
+
   const addHabit = useCallback(
-    (name: string, category: HabitItem['category'], accent: string) => {
+    (name: string, category: HabitItem['category'], accent: string, customCategory?: string) => {
       const clean = name.trim();
       if (!clean) return;
       commit((prev) => ({
         ...prev,
         habits: [
           ...prev.habits,
-          { id: makeId('hab'), name: clean, category, targetPerWeek: 5, accent, history: {} },
+          {
+            id: makeId('hab'),
+            name: clean,
+            category,
+            customCategory: category === 'custom' ? customCategory?.trim() || 'Custom' : undefined,
+            targetPerWeek: 5,
+            accent,
+            history: {},
+          },
         ],
       }));
       pushToast('Habit created', clean, true, 'success');
@@ -1652,6 +1813,87 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     },
     [commit, pushToast, snapshot.preferences.theme]
+  );
+
+  const importCalendarIcs = useCallback(
+    (icsText: string) => {
+      const parsed = parseIcsCalendar(icsText);
+      if (parsed.error) {
+        pushToast('Invalid .ics calendar file', parsed.error, false, 'warning');
+        return { ok: false, importedCount: 0, skippedDuplicates: 0, error: parsed.error };
+      }
+      if (parsed.events.length === 0) {
+        const msg = 'No calendar events found inside this .ics file.';
+        pushToast('No events imported', msg, false, 'warning');
+        return { ok: false, importedCount: 0, skippedDuplicates: 0, error: msg };
+      }
+
+      const existingUids = new Set(snapshot.events.map((e) => e.uid).filter(Boolean));
+      const existingKeys = new Set(
+        snapshot.events.map((e) => `${e.date}::${e.startMinutes}::${e.title.toLowerCase()}`)
+      );
+
+      const newEvents: CalendarEvent[] = [];
+      let skippedDuplicates = 0;
+
+      for (const item of parsed.events) {
+        const dedupeKey = `${item.date}::${item.startMinutes}::${item.title.toLowerCase()}`;
+        if ((item.uid && existingUids.has(item.uid)) || existingKeys.has(dedupeKey)) {
+          skippedDuplicates++;
+          continue;
+        }
+        if (item.uid) existingUids.add(item.uid);
+        existingKeys.add(dedupeKey);
+        newEvents.push({
+          ...item,
+          id: makeId('ev'),
+        });
+      }
+
+      if (newEvents.length === 0) {
+        pushToast(
+          'Calendar already up to date',
+          `All ${skippedDuplicates} events already exist in your schedule`,
+          false,
+          'default'
+        );
+        return { ok: true, importedCount: 0, skippedDuplicates };
+      }
+
+      commit((prev) => {
+        const prevLabels = prev.customLabels ?? [];
+        const labelMap = new Map(prevLabels.map((l) => [l.label.toLowerCase(), l]));
+        for (const cl of parsed.customLabels) {
+          if (!labelMap.has(cl.label.toLowerCase())) {
+            labelMap.set(cl.label.toLowerCase(), cl);
+          }
+        }
+        return {
+          ...prev,
+          enabledLayers: { ...prev.enabledLayers, custom: true },
+          customLabels: Array.from(labelMap.values()).slice(0, 16),
+          events: [...prev.events, ...newEvents],
+        };
+      });
+
+      const hasToday = newEvents.some((e) => e.date === todayKey);
+      if (!hasToday) {
+        const sortedDates = newEvents.map((e) => e.date).sort();
+        const upcoming = sortedDates.find((d) => d >= todayKey) ?? sortedDates[0];
+        if (upcoming) setSelectedDate(upcoming);
+      }
+
+      pushToast(
+        `Imported ${newEvents.length} ${newEvents.length === 1 ? 'event' : 'events'}`,
+        skippedDuplicates > 0
+          ? `${skippedDuplicates} duplicates skipped`
+          : 'Synced directly to your calendar',
+        true,
+        'success'
+      );
+      return { ok: true, importedCount: newEvents.length, skippedDuplicates };
+    },
+    [commit, pushToast, snapshot.events, todayKey]
   );
 
   const resetToSeed = useCallback(() => {
@@ -2199,6 +2441,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     deleteHabit,
     updateDailyNote,
     extractLineToTask,
+    customLabels,
+    customTaskLists,
+    saveCustomLabel,
+    deleteCustomLabel,
+    addCustomTaskList,
+    deleteCustomTaskList,
+    unscheduleTaskFromCalendar,
     focusMode,
     setFocusMode,
     focusSecondsLeft,
@@ -2231,6 +2480,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     pushToast,
     undoLast,
     importWorkspaceJson,
+    importCalendarIcs,
     resetToSeed,
     shotPreset,
   };

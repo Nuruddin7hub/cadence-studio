@@ -89,6 +89,9 @@ export const RewardsStudio: React.FC = () => {
   const progRaw = snapshot.progression;
   const reminderEnabled = Boolean(progRaw?.reminderEnabled);
   const reminderHour = typeof progRaw?.reminderHour === 'number' ? progRaw.reminderHour : 9;
+  const reminderMinute = typeof progRaw?.reminderMinute === 'number' ? progRaw.reminderMinute : 0;
+  const isCustomReminderTime =
+    reminderMinute !== 0 || ![7, 8, 9, 12, 18, 20].includes(reminderHour);
 
   // Theme-safe semantic inks with >=4.5:1 WCAG contrast on both Obsidian Dark and Daylight Paper Light
   const emberInk = isDark ? '#FF6B3D' : '#C23102';
@@ -380,8 +383,14 @@ export const RewardsStudio: React.FC = () => {
                   <div className="relative">
                     <select
                       aria-label="Daily reminder hour"
-                      value={reminderHour}
-                      onChange={(e) => void toggleDailyReminder(true, Number(e.target.value))}
+                      value={isCustomReminderTime ? 'custom' : String(reminderHour)}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          void toggleDailyReminder(true, reminderHour, reminderMinute || 30);
+                        } else {
+                          void toggleDailyReminder(true, Number(e.target.value), 0);
+                        }
+                      }}
                       className="appearance-none pl-2.5 pr-6 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--rule-hairline)] text-[11.5px] font-medium tabular-nums text-[var(--ink-primary)] cursor-pointer focus:outline-none focus:border-[var(--accent-primary)]"
                     >
                       {[7, 8, 9, 12, 18, 20].map((hr) => (
@@ -389,13 +398,28 @@ export const RewardsStudio: React.FC = () => {
                           {String(hr).padStart(2, '0')}:00
                         </option>
                       ))}
+                      <option value="custom">Custom...</option>
                     </select>
                     <ChevronDown className="w-3 h-3 text-[var(--ink-secondary)] pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
                   </div>
+                  {isCustomReminderTime && (
+                    <input
+                      type="time"
+                      aria-label="Custom daily reminder time"
+                      value={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
+                      onChange={(e) => {
+                        const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(e.target.value);
+                        if (match) {
+                          void toggleDailyReminder(true, Number(match[1]), Number(match[2]));
+                        }
+                      }}
+                      className="px-2 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--rule-hairline)] text-[11px] font-medium tabular-nums text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+                    />
+                  )}
                   <button
                     type="button"
                     aria-pressed={reminderEnabled}
-                    onClick={() => void toggleDailyReminder(!reminderEnabled, reminderHour)}
+                    onClick={() => void toggleDailyReminder(!reminderEnabled, reminderHour, reminderMinute)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
                     style={{
                       backgroundColor: reminderEnabled ? 'rgba(44, 204, 116, 0.14)' : 'var(--bg-surface)',

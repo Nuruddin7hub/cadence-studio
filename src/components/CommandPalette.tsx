@@ -11,6 +11,7 @@ import {
   Timer,
   Trophy,
   Undo2,
+  Upload,
   User,
   X,
 } from 'lucide-react';
@@ -151,6 +152,13 @@ export const CommandPalette: React.FC = () => {
         hint: 'ICS',
         icon: Download,
         run: () => triggerFileDownload('cadence-calendar.ics', buildIcsExport(snapshot.events), 'text/calendar'),
+      },
+      {
+        id: 'act-ics-import',
+        label: 'Import Calendar from .ics File',
+        hint: 'ICS',
+        icon: Upload,
+        run: () => window.dispatchEvent(new CustomEvent('cadence:open-ics-import')),
       },
       {
         id: 'act-undo',

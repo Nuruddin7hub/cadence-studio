@@ -15,9 +15,10 @@ import {
   X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
-import type { CalendarEvent, EisenhowerQuadrant, EventCategory, RecurrenceRule, TaskPriority, TaskStatus } from '../types/workspace';
-import { formatMinutes, formatTimeRange } from '../utils/date';
-import { EVENT_CATEGORY_STYLES, PRIORITY_META } from '../utils/themeTokens';
+import type { CalendarEvent, EisenhowerQuadrant, RecurrenceRule, TaskPriority, TaskStatus } from '../types/workspace';
+import { formatDurationHuman, formatMinutes, formatTimeRange, minutesToTimeInput, timeInputToMinutes } from '../utils/date';
+import { PRIORITY_META } from '../utils/themeTokens';
+import { CategoryLabelSelector, DurationSelector } from './CustomOptionControls';
 import {
   AnimatedContent,
   Counter,
@@ -43,6 +44,10 @@ export const InspectorRail: React.FC = () => {
     toggleSubtask,
     addSubtask,
     scheduleTaskToCalendar,
+    unscheduleTaskFromCalendar,
+    customLabels,
+    customTaskLists,
+    saveCustomLabel,
     focusMode,
     setFocusMode,
     focusSecondsLeft,
@@ -161,9 +166,9 @@ export const InspectorRail: React.FC = () => {
         <div className="mb-2.5">
           <RubberSegment
             items={[
-              { value: 'focus', label: '25m' },
-              { value: 'short_break', label: '5m' },
-              { value: 'long_break', label: '15m' },
+              { value: 'focus', label: `${snapshot.preferences.focusMinutes}m` },
+              { value: 'short_break', label: `${snapshot.preferences.shortBreakMinutes}m` },
+              { value: 'long_break', label: `${snapshot.preferences.longBreakMinutes}m` },
             ]}
             value={focusMode}
             onChange={(val: string) => setFocusMode(val as 'focus' | 'short_break' | 'long_break')}
@@ -368,28 +373,34 @@ export const InspectorRail: React.FC = () => {
                     />
                   </label>
                   <label className="space-y-1">
-                    <span className="text-[11px] text-[var(--ink-muted)]">Duration</span>
-                    <select
-                      value={selectedEvent.durationMinutes}
-                      onChange={(e) => updateEvent(selectedEvent.id, { durationMinutes: Number(e.target.value) })}
-                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] text-[11.5px]"
-                    >
-                      {Array.from(new Set([15, 30, 45, 60, 90, 120, 135, 150, 180, selectedEvent.durationMinutes]))
-                        .sort((a, b) => a - b)
-                        .map((m) => (
-                          <option key={m} value={m} className="bg-[var(--bg-surface)]">
-                            {m} min
-                          </option>
-                        ))}
-                    </select>
+                    <span className="text-[11px] text-[var(--ink-muted)]">Start time</span>
+                    <input
+                      type="time"
+                      disabled={Boolean(selectedEvent.allDay)}
+                      value={minutesToTimeInput(selectedEvent.startMinutes)}
+                      onChange={(e) => {
+                        const mins = timeInputToMinutes(e.target.value);
+                        if (mins !== null) updateEvent(selectedEvent.id, { startMinutes: mins });
+                      }}
+                      className="w-full px-2 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11px] disabled:opacity-45"
+                    />
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between text-[11.5px] text-[var(--ink-secondary)]">
-                  <span>Repeat</span>
+                <div className="flex items-center justify-between text-[11px] text-[var(--ink-secondary)]">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selectedEvent.allDay)}
+                      onChange={(e) => updateEvent(selectedEvent.id, { allDay: e.target.checked || undefined })}
+                      className="rounded border"
+                    />
+                    <span>All-day block</span>
+                  </label>
                   <select
                     value={selectedEvent.recurrence}
                     onChange={(e) => updateEvent(selectedEvent.id, { recurrence: e.target.value as RecurrenceRule })}
+                    aria-label="Repeat cadence"
                     className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px] focus:outline-none"
                   >
                     <option value="none" className="bg-[var(--bg-surface)]">No repeat</option>
@@ -400,26 +411,98 @@ export const InspectorRail: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex flex-wrap gap-1 pt-0.5">
-                  {(Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
-                    const m = EVENT_CATEGORY_STYLES[cat];
-                    const active = selectedEvent.category === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => updateEvent(selectedEvent.id, { category: cat })}
-                        className="px-1.5 py-0.5 rounded-full text-[10px] transition-colors"
-                        style={{
-                          backgroundColor: active ? m.bgDark : 'var(--bg-inset)',
-                          color: active ? m.bar : 'var(--ink-secondary)',
-                          boxShadow: active ? `inset 0 0 0 1px ${m.bar}` : 'none',
-                        }}
-                      >
-                        {m.label}
-                      </button>
-                    );
-                  })}
+                {!selectedEvent.allDay && (
+                  <div className="space-y-1">
+                    <span className="text-[11px] text-[var(--ink-muted)] block">
+                      Duration ({formatDurationHuman(selectedEvent.durationMinutes)})
+                    </span>
+                    <DurationSelector
+                      compact
+                      presets={[15, 30, 45, 60, 90, 120]}
+                      value={selectedEvent.durationMinutes}
+                      onChange={(mins) => updateEvent(selectedEvent.id, { durationMinutes: mins })}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--ink-secondary)]">
+                  <span>Reminder</span>
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={
+                        selectedEvent.reminderMinutes === undefined
+                          ? 'none'
+                          : [5, 10, 15, 30].includes(selectedEvent.reminderMinutes)
+                            ? String(selectedEvent.reminderMinutes)
+                            : 'custom'
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === 'none') updateEvent(selectedEvent.id, { reminderMinutes: undefined });
+                        else if (v === 'custom') updateEvent(selectedEvent.id, { reminderMinutes: 20 });
+                        else updateEvent(selectedEvent.id, { reminderMinutes: Number(v) });
+                      }}
+                      className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px] focus:outline-none"
+                    >
+                      <option value="none" className="bg-[var(--bg-surface)]">No alert</option>
+                      <option value="5" className="bg-[var(--bg-surface)]">5m before</option>
+                      <option value="10" className="bg-[var(--bg-surface)]">10m before</option>
+                      <option value="15" className="bg-[var(--bg-surface)]">15m before</option>
+                      <option value="30" className="bg-[var(--bg-surface)]">30m before</option>
+                      <option value="custom" className="bg-[var(--bg-surface)]">Custom...</option>
+                    </select>
+                    {selectedEvent.reminderMinutes !== undefined &&
+                      ![5, 10, 15, 30].includes(selectedEvent.reminderMinutes) && (
+                        <input
+                          type="number"
+                          min={1}
+                          max={240}
+                          value={selectedEvent.reminderMinutes}
+                          onChange={(e) => {
+                            const val = Math.max(1, Math.min(240, Math.round(Number(e.target.value) || 1)));
+                            updateEvent(selectedEvent.id, { reminderMinutes: val });
+                          }}
+                          aria-label="Custom reminder minutes"
+                          className="w-12 px-1.5 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11px]"
+                        />
+                      )}
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-0.5">
+                  <span className="text-[11px] text-[var(--ink-muted)] block">Label / Category</span>
+                  <CategoryLabelSelector
+                    compact
+                    category={selectedEvent.category}
+                    customLabel={selectedEvent.customLabel}
+                    customColor={selectedEvent.customColor}
+                    savedCustomLabels={customLabels}
+                    isDark={isDark}
+                    onSelectPreset={(cat) =>
+                      updateEvent(selectedEvent.id, {
+                        category: cat,
+                        customLabel: undefined,
+                        customColor: undefined,
+                        calendarId:
+                          cat === 'meeting'
+                            ? 'team'
+                            : cat === 'health'
+                              ? 'wellness'
+                              : cat === 'personal'
+                                ? 'personal'
+                                : 'work',
+                      })
+                    }
+                    onSelectCustom={(label, color) =>
+                      updateEvent(selectedEvent.id, {
+                        category: 'custom',
+                        customLabel: label,
+                        customColor: color,
+                        calendarId: 'custom',
+                      })
+                    }
+                    onSaveCustomLabel={saveCustomLabel}
+                  />
                 </div>
 
                 <textarea
@@ -455,33 +538,108 @@ export const InspectorRail: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <select
                     value={selectedTask.priority}
                     onChange={(e) => updateTask(selectedTask.id, { priority: e.target.value as TaskPriority })}
                     className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px]"
                   >
-                    <option value="p1" className="bg-[var(--bg-surface)]">P1 Critical</option>
-                    <option value="p2" className="bg-[var(--bg-surface)]">P2 High</option>
-                    <option value="p3" className="bg-[var(--bg-surface)]">P3 Normal</option>
-                    <option value="p4" className="bg-[var(--bg-surface)]">P4 Low</option>
+                    <option value="p1" className="bg-[var(--bg-surface)]">Critical</option>
+                    <option value="p2" className="bg-[var(--bg-surface)]">High</option>
+                    <option value="p3" className="bg-[var(--bg-surface)]">Normal</option>
+                    <option value="p4" className="bg-[var(--bg-surface)]">Low</option>
                   </select>
 
-                  {!selectedTask.scheduledDate && (
+                  <select
+                    value={selectedTask.listId}
+                    onChange={(e) => updateTask(selectedTask.id, { listId: e.target.value })}
+                    aria-label="Task work area"
+                    className="px-2 py-1 rounded bg-[var(--bg-inset)] text-[11px]"
+                  >
+                    <option value="inbox" className="bg-[var(--bg-surface)]">Inbox</option>
+                    <option value="work" className="bg-[var(--bg-surface)]">Product & Eng</option>
+                    <option value="design" className="bg-[var(--bg-surface)]">Design</option>
+                    <option value="personal" className="bg-[var(--bg-surface)]">Personal</option>
+                    {customTaskLists.map((cl) => (
+                      <option key={cl.id} value={cl.id} className="bg-[var(--bg-surface)]">
+                        {cl.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <label className="space-y-0.5">
+                    <span className="text-[10.5px] text-[var(--ink-muted)] block">Due Date</span>
+                    <input
+                      type="date"
+                      value={selectedTask.dueDate ?? ''}
+                      onChange={(e) => updateTask(selectedTask.id, { dueDate: e.target.value || undefined })}
+                      className="w-full px-1.5 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11px]"
+                    />
+                  </label>
+                  <label className="space-y-0.5">
+                    <span className="text-[10.5px] text-[var(--ink-muted)] block">Calendar Time</span>
+                    <input
+                      type="time"
+                      value={
+                        selectedTask.scheduledStartMinutes !== undefined
+                          ? minutesToTimeInput(selectedTask.scheduledStartMinutes)
+                          : ''
+                      }
+                      onChange={(e) => {
+                        const mins = timeInputToMinutes(e.target.value);
+                        if (mins !== null) {
+                          scheduleTaskToCalendar(selectedTask.id, selectedTask.dueDate ?? selectedDate, mins);
+                        }
+                      }}
+                      className="w-full px-1.5 py-1 rounded bg-[var(--bg-inset)] font-mono-num text-[11px]"
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10.5px] text-[var(--ink-muted)] block">
+                    Work Length ({formatDurationHuman(selectedTask.estimatedMinutes)})
+                  </span>
+                  <DurationSelector
+                    compact
+                    presets={[15, 30, 45, 60, 90]}
+                    value={selectedTask.estimatedMinutes}
+                    onChange={(mins) => updateTask(selectedTask.id, { estimatedMinutes: mins })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  {selectedTask.scheduledDate ? (
                     <button
                       type="button"
-                      onClick={() => scheduleTaskToCalendar(selectedTask.id, selectedDate, 15 * 60)}
+                      onClick={() => unscheduleTaskFromCalendar(selectedTask.id)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-elevated)] text-[11px] text-[var(--ink-secondary)] hover:bg-[var(--bg-hover)]"
+                    >
+                      <span>Remove from calendar</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        scheduleTaskToCalendar(
+                          selectedTask.id,
+                          selectedTask.dueDate ?? selectedDate,
+                          selectedTask.scheduledStartMinutes ?? 9 * 60
+                        )
+                      }
                       className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-elevated)] text-[11px] hover:bg-[var(--bg-hover)]"
                     >
                       <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                      <span>Block {formatMinutes(15 * 60, true)}</span>
+                      <span>Schedule at {formatMinutes(selectedTask.scheduledStartMinutes ?? 9 * 60, true)}</span>
                     </button>
                   )}
                   {!selectedEvent && (
                     <button
                       type="button"
                       onClick={() => deleteTask(selectedTask.id)}
-                      className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--accent-coral)]"
+                      className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--accent-coral)] ml-auto"
                       title="Delete task"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -611,6 +769,10 @@ export const MobileInspectorSheet: React.FC = () => {
     toggleSubtask,
     addSubtask,
     scheduleTaskToCalendar,
+    unscheduleTaskFromCalendar,
+    customLabels,
+    customTaskLists,
+    saveCustomLabel,
     moveTaskKanban,
     moveTaskQuadrant,
     setActiveFocusTaskId,
@@ -735,7 +897,7 @@ export const MobileInspectorSheet: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[11.5px]">
+            <div className="grid grid-cols-2 gap-2 text-[11.5px]">
               <label className="space-y-1">
                 <span className="text-[var(--ink-muted)] block">Date</span>
                 <input
@@ -746,57 +908,68 @@ export const MobileInspectorSheet: React.FC = () => {
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-[var(--ink-muted)] block">Start</span>
-                <select
-                  value={selectedEvent.startMinutes}
-                  onChange={(e) => updateEvent(selectedEvent.id, { startMinutes: Number(e.target.value) })}
-                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[11px]"
-                >
-                  {Array.from({ length: 34 }, (_, i) => (6 * 60) + i * 30).map((m) => (
-                    <option key={m} value={m} className="bg-[var(--bg-surface)]">
-                      {formatMinutes(m, true)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1">
-                <span className="text-[var(--ink-muted)] block">Duration</span>
-                <select
-                  value={selectedEvent.durationMinutes}
-                  onChange={(e) => updateEvent(selectedEvent.id, { durationMinutes: Number(e.target.value) })}
-                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[11.5px]"
-                >
-                  {Array.from(new Set([15, 30, 45, 60, 90, 120, 135, 150, 180, selectedEvent.durationMinutes]))
-                    .sort((a, b) => a - b)
-                    .map((m) => (
-                      <option key={m} value={m} className="bg-[var(--bg-surface)]">
-                        {m} min
-                      </option>
-                    ))}
-                </select>
+                <span className="text-[var(--ink-muted)] block">Start Time</span>
+                <input
+                  type="time"
+                  disabled={Boolean(selectedEvent.allDay)}
+                  value={minutesToTimeInput(selectedEvent.startMinutes)}
+                  onChange={(e) => {
+                    const mins = timeInputToMinutes(e.target.value);
+                    if (mins !== null) updateEvent(selectedEvent.id, { startMinutes: mins });
+                  }}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[11px] disabled:opacity-45"
+                />
               </label>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
-                const m = EVENT_CATEGORY_STYLES[cat];
-                const active = selectedEvent.category === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => updateEvent(selectedEvent.id, { category: cat })}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border"
-                    style={{
-                      backgroundColor: active ? (isDark ? m.bgDark : m.bgLight) : 'var(--bg-inset)',
-                      borderColor: active ? m.bar : 'var(--rule-hairline)',
-                      color: active ? (isDark ? m.textDark : m.textLight) : 'var(--ink-secondary)',
-                    }}
-                  >
-                    {m.label}
-                  </button>
-                );
-              })}
+            {!selectedEvent.allDay && (
+              <div className="space-y-1">
+                <span className="text-[11px] text-[var(--ink-muted)] block">
+                  Duration ({formatDurationHuman(selectedEvent.durationMinutes)})
+                </span>
+                <DurationSelector
+                  compact
+                  presets={[15, 30, 45, 60, 90, 120]}
+                  value={selectedEvent.durationMinutes}
+                  onChange={(mins) => updateEvent(selectedEvent.id, { durationMinutes: mins })}
+                />
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <span className="text-[11px] text-[var(--ink-muted)] block">Label / Category</span>
+              <CategoryLabelSelector
+                compact
+                category={selectedEvent.category}
+                customLabel={selectedEvent.customLabel}
+                customColor={selectedEvent.customColor}
+                savedCustomLabels={customLabels}
+                isDark={isDark}
+                onSelectPreset={(cat) =>
+                  updateEvent(selectedEvent.id, {
+                    category: cat,
+                    customLabel: undefined,
+                    customColor: undefined,
+                    calendarId:
+                      cat === 'meeting'
+                        ? 'team'
+                        : cat === 'health'
+                          ? 'wellness'
+                          : cat === 'personal'
+                            ? 'personal'
+                            : 'work',
+                  })
+                }
+                onSelectCustom={(label, color) =>
+                  updateEvent(selectedEvent.id, {
+                    category: 'custom',
+                    customLabel: label,
+                    customColor: color,
+                    calendarId: 'custom',
+                  })
+                }
+                onSaveCustomLabel={saveCustomLabel}
+              />
             </div>
           </div>
         )}
@@ -855,21 +1028,91 @@ export const MobileInspectorSheet: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              {!selectedTask.scheduledDate && (
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <label className="space-y-1">
+                <span className="text-[var(--ink-muted)] block">Due Date</span>
+                <input
+                  type="date"
+                  value={selectedTask.dueDate ?? ''}
+                  onChange={(e) => updateTask(selectedTask.id, { dueDate: e.target.value || undefined })}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[var(--ink-muted)] block">Calendar Time</span>
+                <input
+                  type="time"
+                  value={
+                    selectedTask.scheduledStartMinutes !== undefined
+                      ? minutesToTimeInput(selectedTask.scheduledStartMinutes)
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const mins = timeInputToMinutes(e.target.value);
+                    if (mins !== null) {
+                      scheduleTaskToCalendar(selectedTask.id, selectedTask.dueDate ?? selectedDate, mins);
+                    }
+                  }}
+                  className="w-full px-2 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num"
+                />
+              </label>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[11px] text-[var(--ink-muted)] block">
+                Work Duration ({formatDurationHuman(selectedTask.estimatedMinutes)})
+              </span>
+              <DurationSelector
+                compact
+                presets={[15, 30, 45, 60, 90]}
+                value={selectedTask.estimatedMinutes}
+                onChange={(mins) => updateTask(selectedTask.id, { estimatedMinutes: mins })}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedTask.scheduledDate ? (
+                <button
+                  type="button"
+                  onClick={() => unscheduleTaskFromCalendar(selectedTask.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[11.5px] font-medium text-[var(--ink-secondary)]"
+                >
+                  <span>Unschedule</span>
+                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={() => {
-                    scheduleTaskToCalendar(selectedTask.id, selectedDate, 15 * 60);
+                    scheduleTaskToCalendar(
+                      selectedTask.id,
+                      selectedTask.dueDate ?? selectedDate,
+                      selectedTask.scheduledStartMinutes ?? 9 * 60
+                    );
                     setMobileInspectorOpen(false);
                     setActiveTab('planner');
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-[var(--bg-elevated)] text-[11.5px] font-medium"
                 >
                   <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                  <span>Block {formatMinutes(15 * 60, true)}</span>
+                  <span>Add to Calendar ({formatMinutes(selectedTask.scheduledStartMinutes ?? 9 * 60, true)})</span>
                 </button>
               )}
+              <select
+                value={selectedTask.listId}
+                onChange={(e) => updateTask(selectedTask.id, { listId: e.target.value })}
+                aria-label="Mobile task list"
+                className="px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[11.5px]"
+              >
+                <option value="inbox">Inbox</option>
+                <option value="work">Product & Eng</option>
+                <option value="design">Design</option>
+                <option value="personal">Personal</option>
+                {customTaskLists.map((cl) => (
+                  <option key={cl.id} value={cl.id}>
+                    {cl.label}
+                  </option>
+                ))}
+              </select>
               {!selectedEvent && (
                 <button
                   type="button"

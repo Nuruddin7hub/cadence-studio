@@ -269,6 +269,8 @@ export function normalizeSnapshot(
     focusHistory: Array.isArray(candidate.focusHistory) ? candidate.focusHistory : [],
     enabledLayers: { ...base.enabledLayers, ...(candidate.enabledLayers ?? {}) },
     preferences: { ...base.preferences, ...(candidate.preferences ?? {}) },
+    customLabels: Array.isArray(candidate.customLabels) ? candidate.customLabels : [],
+    customTaskLists: Array.isArray(candidate.customTaskLists) ? candidate.customTaskLists : [],
     progression: {
       ...fallbackProgression,
       ...(candProg && typeof candProg === 'object' ? candProg : {}),

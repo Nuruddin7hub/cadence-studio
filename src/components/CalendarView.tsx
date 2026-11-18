@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Copy,
   Flame,
   Globe,
@@ -14,11 +13,12 @@ import {
   Repeat,
   Share2,
   SlidersHorizontal,
+  Upload,
   Video,
   X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
-import type { CalendarEvent, CalendarMode, EventCategory } from '../types/workspace';
+import type { CalendarEvent, CalendarMode, EventCategory, RecurrenceRule } from '../types/workspace';
 import {
   addDays,
   addMonths,
@@ -30,11 +30,14 @@ import {
   getMonthGridDates,
   getWeekDates,
   layoutDayEvents,
+  minutesToTimeInput,
   MONTH_NAMES,
   SHORT_MONTH_NAMES,
+  timeInputToMinutes,
   WEEKDAY_SHORT,
 } from '../utils/date';
-import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
+import { EVENT_CATEGORY_STYLES, resolveEventStyle } from '../utils/themeTokens';
+import { CategoryLabelSelector, DurationSelector } from './CustomOptionControls';
 import { AnimatedContent, GlareHover, RubberSegment, ShinyText, SpotlightCard, SquishSwitch } from '../lib/reactbits';
 
 const START_HOUR = 6;
@@ -79,12 +82,21 @@ export const CalendarView: React.FC = () => {
     setFocusRunning,
     setFocusCurtainOpen,
     setMobileInspectorOpen,
+    customLabels,
+    saveCustomLabel,
+    importCalendarIcs,
   } = useWorkspace();
 
   const [quickSlot, setQuickSlot] = useState<{ date: string; startMinutes: number } | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCategory, setDraftCategory] = useState<EventCategory>('deep');
+  const [draftCustomLabel, setDraftCustomLabel] = useState<string | undefined>(undefined);
+  const [draftCustomColor, setDraftCustomColor] = useState<string | undefined>(undefined);
   const [draftDuration, setDraftDuration] = useState(60);
+  const [draftAllDay, setDraftAllDay] = useState(false);
+  const [draftRecurrence, setDraftRecurrence] = useState<RecurrenceRule>('none');
+  const [tzMenuOpen, setTzMenuOpen] = useState(false);
+  const [customTzDraft, setCustomTzDraft] = useState('');
   const [dragHoverCell, setDragHoverCell] = useState<string | null>(null);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<EventCategory | null>(null);
@@ -94,6 +106,7 @@ export const CalendarView: React.FC = () => {
   const resizeRef = useRef<{ id: string; origDuration: number; startY: number } | null>(null);
   const gridBodyRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const icsInputRef = useRef<HTMLInputElement | null>(null);
   const didInitialScrollRef = useRef(false);
   const suppressClickRef = useRef(false);
   const isDark = snapshot.preferences.theme === 'dark';
@@ -144,20 +157,36 @@ export const CalendarView: React.FC = () => {
       title: draftTitle.trim(),
       date: quickSlot.date,
       startMinutes: quickSlot.startMinutes,
-      durationMinutes: draftDuration,
+      durationMinutes: Math.max(15, Math.min(720, draftDuration)),
+      allDay: draftAllDay || undefined,
       category: draftCategory,
+      customLabel: draftCategory === 'custom' ? draftCustomLabel : undefined,
+      customColor: draftCategory === 'custom' ? draftCustomColor : undefined,
       calendarId:
-        draftCategory === 'meeting'
-          ? 'team'
-          : draftCategory === 'health'
-            ? 'wellness'
-            : draftCategory === 'personal'
-              ? 'personal'
-              : 'work',
-      recurrence: 'none',
+        draftCategory === 'custom'
+          ? 'custom'
+          : draftCategory === 'meeting'
+            ? 'team'
+            : draftCategory === 'health'
+              ? 'wellness'
+              : draftCategory === 'personal'
+                ? 'personal'
+                : 'work',
+      recurrence: draftRecurrence,
     });
     setDraftTitle('');
+    setDraftAllDay(false);
+    setDraftRecurrence('none');
     setQuickSlot(null);
+  };
+
+  const handleIcsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void file.text().then((txt) => {
+      importCalendarIcs(txt);
+    });
+    e.target.value = '';
   };
 
   const handleCopyAvailability = () => {
@@ -309,6 +338,7 @@ export const CalendarView: React.FC = () => {
       personal: 0,
       health: 0,
       deadline: 0,
+      custom: 0,
     };
     for (const ev of visibleEvents) {
       map[ev.category] = (map[ev.category] ?? 0) + 1;
@@ -376,6 +406,15 @@ export const CalendarView: React.FC = () => {
           <div className="flex sm:hidden items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={() => icsInputRef.current?.click()}
+              aria-label="Import calendar .ics"
+              title="Import .ics calendar"
+              className="p-1.5 rounded-lg border bg-[var(--bg-inset)] text-[var(--ink-secondary)]"
+            >
+              <Upload className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setAvailabilityMode(!availabilityMode);
                 if (!availabilityMode) pushToast('Pick open slots', 'Tap hours on grid to share');
@@ -438,12 +477,19 @@ export const CalendarView: React.FC = () => {
             </div>
           )}
 
-          <div
-            className="hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-[11.5px] font-mono-num text-[var(--ink-secondary)]"
-            title="Toggle secondary timezone ruler"
-          >
-            <Globe className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
-            <span>{snapshot.preferences.showSecondaryTz ? snapshot.preferences.secondaryTimezone : 'UTC'}</span>
+          <div className="relative hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-[11.5px] font-mono-num text-[var(--ink-secondary)]">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomTzDraft(snapshot.preferences.secondaryTimezone);
+                setTzMenuOpen((v) => !v);
+              }}
+              className="inline-flex items-center gap-1.5 hover:text-[var(--ink-primary)] transition-colors"
+              title="Choose secondary timezone"
+            >
+              <Globe className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+              <span>{snapshot.preferences.secondaryTimezone || 'UTC'}</span>
+            </button>
             <SquishSwitch
               checked={snapshot.preferences.showSecondaryTz}
               onChange={(next: boolean) => updatePreferences({ showSecondaryTz: next })}
@@ -457,6 +503,73 @@ export const CalendarView: React.FC = () => {
               thumbOnColor="#ffffff"
               stretch={45}
             />
+            {tzMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-2 w-60 rounded-xl border p-2.5 z-50 space-y-2 font-sans"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--rule-strong)',
+                  boxShadow: 'var(--shadow-panel)',
+                }}
+              >
+                <div className="text-[11px] font-semibold text-[var(--ink-primary)]">Secondary Timezone</div>
+                <div className="grid grid-cols-2 gap-1">
+                  {['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo'].map((tz) => (
+                    <button
+                      key={tz}
+                      type="button"
+                      onClick={() => {
+                        updatePreferences({ secondaryTimezone: tz, showSecondaryTz: true });
+                        setTzMenuOpen(false);
+                      }}
+                      className="px-2 py-1 rounded-md border text-[11px] text-left truncate"
+                      style={{
+                        borderColor:
+                          snapshot.preferences.secondaryTimezone === tz
+                            ? 'var(--accent-primary)'
+                            : 'var(--rule-hairline)',
+                        backgroundColor:
+                          snapshot.preferences.secondaryTimezone === tz
+                            ? 'var(--accent-primary-soft)'
+                            : 'var(--bg-inset)',
+                        color:
+                          snapshot.preferences.secondaryTimezone === tz
+                            ? 'var(--accent-primary)'
+                            : 'var(--ink-secondary)',
+                      }}
+                    >
+                      {tz}
+                    </button>
+                  ))}
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const clean = customTzDraft.trim();
+                    if (!clean) return;
+                    updatePreferences({ secondaryTimezone: clean, showSecondaryTz: true });
+                    setTzMenuOpen(false);
+                  }}
+                  className="flex items-center gap-1 pt-1 border-t"
+                >
+                  <input
+                    type="text"
+                    value={customTzDraft}
+                    onChange={(e) => setCustomTzDraft(e.target.value)}
+                    placeholder="Custom (e.g. Asia/Singapore)"
+                    aria-label="Custom timezone name"
+                    className="flex-1 min-w-0 px-2 py-1 rounded-md border bg-[var(--bg-inset)] text-[11px] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2 py-1 rounded-md text-[11px] font-semibold text-white shrink-0"
+                    style={{ backgroundColor: 'var(--accent-primary)' }}
+                  >
+                    Set
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
 
           <div className="flex sm:hidden items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 w-full justify-between">
@@ -499,7 +612,16 @@ export const CalendarView: React.FC = () => {
             />
           </div>
 
-          <div className="hidden sm:inline-flex">
+          <div className="hidden sm:inline-flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => icsInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[12px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] transition-colors whitespace-nowrap"
+              title="Import events from an .ics calendar file"
+            >
+              <Upload className="w-3.5 h-3.5 text-[var(--accent-sky)]" />
+              <span>Import .ics</span>
+            </button>
             <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="8px" className="inline-flex">
               <button
                 type="button"
@@ -511,6 +633,13 @@ export const CalendarView: React.FC = () => {
               </button>
             </GlareHover>
           </div>
+          <input
+            ref={icsInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            className="hidden"
+            onChange={handleIcsUpload}
+          />
         </div>
       </div>
 
@@ -693,7 +822,7 @@ export const CalendarView: React.FC = () => {
                   {allDayEvents.length > 0 && (
                     <div className="mt-1.5 space-y-1">
                       {allDayEvents.map((ev) => {
-                        const style = EVENT_CATEGORY_STYLES[ev.category];
+                        const style = resolveEventStyle(ev);
                         return (
                           <button
                             key={ev.id}
@@ -884,7 +1013,7 @@ export const CalendarView: React.FC = () => {
 
                     {/* Positioned Event Blocks (vivid scannable cards + hover focus launch + overlap lanes) */}
                     {positioned.map(({ event, col, totalCols }) => {
-                      const style = EVENT_CATEGORY_STYLES[event.category];
+                      const style = resolveEventStyle(event);
                       const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
                       const height = Math.max(24, (event.durationMinutes / 60) * HOUR_HEIGHT - 2);
                       const leftExpr = `calc(${(col * 100) / totalCols}% + 2px)`;
@@ -1151,14 +1280,14 @@ export const CalendarView: React.FC = () => {
                       <span
                         key={ev.id}
                         className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: EVENT_CATEGORY_STYLES[ev.category].bar }}
+                        style={{ backgroundColor: resolveEventStyle(ev).bar }}
                       />
                     ))}
                   </div>
 
                   <div className="hidden sm:block space-y-1 overflow-hidden">
                     {dayEvents.slice(0, 3).map((ev) => {
-                      const style = EVENT_CATEGORY_STYLES[ev.category];
+                      const style = resolveEventStyle(ev);
                       return (
                         <button
                           key={ev.id}
@@ -1204,7 +1333,7 @@ export const CalendarView: React.FC = () => {
               </button>
             </div>
             {filteredEvents.filter((e) => e.date === selectedDate).map((ev) => {
-              const style = EVENT_CATEGORY_STYLES[ev.category];
+              const style = resolveEventStyle(ev);
               return (
                 <button
                   key={ev.id}
@@ -1275,7 +1404,7 @@ export const CalendarView: React.FC = () => {
                   </div>
                   <div className="divide-y">
                     {dayEvents.map((ev) => {
-                      const style = EVENT_CATEGORY_STYLES[ev.category];
+                      const style = resolveEventStyle(ev);
                       return (
                         <button
                           key={ev.id}
@@ -1309,10 +1438,17 @@ export const CalendarView: React.FC = () => {
 
       {/* Quick Slot Creation Popover Modal */}
       {quickSlot && (
-        <div className="fixed inset-0 z-50 bg-black/55 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 bg-black/55 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setQuickSlot(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Schedule calendar block"
+        >
           <form
             onSubmit={handleCreateQuickSlot}
-            className="w-full max-w-md rounded-2xl border p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border p-5 space-y-4 my-auto"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--rule-strong)',
@@ -1330,7 +1466,7 @@ export const CalendarView: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <input
                 type="text"
                 autoFocus
@@ -1348,50 +1484,80 @@ export const CalendarView: React.FC = () => {
                     type="date"
                     value={quickSlot.date}
                     onChange={(e) => setQuickSlot({ ...quickSlot, date: e.target.value })}
-                    className="w-full px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num"
+                    className="w-full px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[var(--ink-primary)]"
                   />
                 </label>
                 <label className="space-y-1">
-                  <span className="text-[var(--ink-secondary)] block">Duration</span>
-                  <select
-                    value={draftDuration}
-                    onChange={(e) => setDraftDuration(Number(e.target.value))}
-                    className="w-full px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)]"
-                  >
-                    <option value={30}>30 minutes</option>
-                    <option value={45}>45 minutes</option>
-                    <option value={60}>1 hour</option>
-                    <option value={90}>1.5 hours</option>
-                    <option value={120}>2 hours</option>
-                  </select>
+                  <span className="text-[var(--ink-secondary)] block">Start time</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      disabled={draftAllDay}
+                      value={minutesToTimeInput(quickSlot.startMinutes)}
+                      onChange={(e) => {
+                        const mins = timeInputToMinutes(e.target.value);
+                        if (mins !== null) setQuickSlot({ ...quickSlot, startMinutes: mins });
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[var(--ink-primary)] disabled:opacity-45"
+                    />
+                  </div>
                 </label>
               </div>
 
-              <div className="flex items-center gap-2 text-[12px] text-[var(--ink-secondary)]">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Starts at {formatMinutes(quickSlot.startMinutes)}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                <label className="inline-flex items-center gap-2 cursor-pointer text-[var(--ink-secondary)]">
+                  <input
+                    type="checkbox"
+                    checked={draftAllDay}
+                    onChange={(e) => setDraftAllDay(e.target.checked)}
+                    className="rounded border"
+                  />
+                  <span>All-day event</span>
+                </label>
+
+                <div className="flex items-center gap-1.5 text-[var(--ink-secondary)]">
+                  <span>Repeat</span>
+                  <select
+                    value={draftRecurrence}
+                    onChange={(e) => setDraftRecurrence(e.target.value as RecurrenceRule)}
+                    className="px-2 py-1 rounded-lg border bg-[var(--bg-inset)] text-[11.5px] text-[var(--ink-primary)]"
+                  >
+                    <option value="none">No repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Weekdays</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {(Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
-                  const meta = EVENT_CATEGORY_STYLES[cat];
-                  const active = draftCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setDraftCategory(cat)}
-                      className="px-2.5 py-1 rounded-full text-[11.5px] font-medium border transition-colors"
-                      style={{
-                        borderColor: active ? meta.bar : 'var(--rule-hairline)',
-                        backgroundColor: active ? (isDark ? meta.bgDark : meta.bgLight) : 'transparent',
-                        color: active ? (isDark ? meta.textDark : meta.textLight) : 'var(--ink-secondary)',
-                      }}
-                    >
-                      {meta.label}
-                    </button>
-                  );
-                })}
+              {!draftAllDay && (
+                <div className="space-y-1.5">
+                  <span className="text-[12px] text-[var(--ink-secondary)] block">Duration</span>
+                  <DurationSelector value={draftDuration} onChange={setDraftDuration} />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <span className="text-[12px] text-[var(--ink-secondary)] block">Label / Category</span>
+                <CategoryLabelSelector
+                  category={draftCategory}
+                  customLabel={draftCustomLabel}
+                  customColor={draftCustomColor}
+                  savedCustomLabels={customLabels}
+                  isDark={isDark}
+                  onSelectPreset={(cat) => {
+                    setDraftCategory(cat);
+                    setDraftCustomLabel(undefined);
+                    setDraftCustomColor(undefined);
+                  }}
+                  onSelectCustom={(label, color) => {
+                    setDraftCategory('custom');
+                    setDraftCustomLabel(label);
+                    setDraftCustomColor(color);
+                  }}
+                  onSaveCustomLabel={saveCustomLabel}
+                />
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
@@ -19,7 +19,14 @@ import { ToastStack } from './components/ToastStack';
 import { ClickSpark } from './lib/reactbits';
 
 const WorkspaceShell: React.FC = () => {
-  const { activeTab } = useWorkspace();
+  const { activeTab, setActiveTab, importCalendarIcs } = useWorkspace();
+  const globalIcsRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const onTrigger = () => globalIcsRef.current?.click();
+    window.addEventListener('cadence:open-ics-import', onTrigger);
+    return () => window.removeEventListener('cadence:open-ics-import', onTrigger);
+  }, []);
 
   return (
     <ClickSpark
@@ -63,6 +70,21 @@ const WorkspaceShell: React.FC = () => {
         <InstallAppModal />
         <FocusCurtain />
         <ToastStack />
+        <input
+          ref={globalIcsRef}
+          type="file"
+          accept=".ics,text/calendar"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            void file.text().then((txt) => {
+              const res = importCalendarIcs(txt);
+              if (res.ok) setActiveTab('planner');
+            });
+            e.target.value = '';
+          }}
+        />
       </div>
     </ClickSpark>
   );

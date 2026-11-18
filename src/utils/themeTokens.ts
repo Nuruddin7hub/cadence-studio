@@ -1,4 +1,4 @@
-import type { CalendarLayerId, EventCategory, TaskPriority } from '../types/workspace';
+import type { CalendarEvent, CalendarLayerId, EventCategory, TaskPriority } from '../types/workspace';
 
 export interface CategoryStyle {
   label: string;
@@ -11,6 +11,57 @@ export interface CategoryStyle {
   textDark: string;
   textLight: string;
   glowDark: string;
+}
+
+export const CUSTOM_COLOR_SWATCHES: string[] = [
+  '#06B6D4',
+  '#E74004',
+  '#14A4FC',
+  '#2CCC74',
+  '#F4C46C',
+  '#EC4899',
+  '#F97316',
+  '#848F9F',
+];
+
+function parseHexRgb(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '').trim();
+  if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+    return [
+      parseInt(clean.slice(0, 2), 16),
+      parseInt(clean.slice(2, 4), 16),
+      parseInt(clean.slice(4, 6), 16),
+    ];
+  }
+  return [6, 182, 212];
+}
+
+function rgbaFromHex(hex: string, alpha: number): string {
+  const [r, g, b] = parseHexRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** Build accessible dark/light card styling for any custom category name and hex color. */
+export function buildDynamicCategoryStyle(label: string, colorHex = '#06B6D4'): CategoryStyle {
+  const cleanLabel = label.trim() || 'Custom';
+  const safeHex = /^#[0-9a-fA-F]{6}$/.test(colorHex) ? colorHex : '#06B6D4';
+  const [r, g, b] = parseHexRgb(safeHex);
+  // Darken light-mode ink cleanly so any vivid custom swatch remains legible on paper backgrounds
+  const lr = Math.max(12, Math.round(r * 0.56));
+  const lg = Math.max(12, Math.round(g * 0.56));
+  const lb = Math.max(12, Math.round(b * 0.56));
+  return {
+    label: cleanLabel,
+    shortLabel: cleanLabel.slice(0, 8),
+    bar: safeHex,
+    bgDark: rgbaFromHex(safeHex, 0.17),
+    bgLight: rgbaFromHex(safeHex, 0.11),
+    borderDark: rgbaFromHex(safeHex, 0.36),
+    borderLight: rgbaFromHex(safeHex, 0.28),
+    textDark: '#F8FAFC',
+    textLight: `rgb(${lr}, ${lg}, ${lb})`,
+    glowDark: rgbaFromHex(safeHex, 0.26),
+  };
 }
 
 export const EVENT_CATEGORY_STYLES: Record<EventCategory, CategoryStyle> = {
@@ -74,13 +125,36 @@ export const EVENT_CATEGORY_STYLES: Record<EventCategory, CategoryStyle> = {
     textLight: '#85201D',
     glowDark: 'rgba(217, 83, 79, 0.26)',
   },
+  custom: {
+    label: 'Custom',
+    shortLabel: 'Custom',
+    bar: '#06B6D4',
+    bgDark: 'rgba(6, 182, 212, 0.17)',
+    bgLight: 'rgba(6, 182, 212, 0.10)',
+    borderDark: 'rgba(6, 182, 212, 0.36)',
+    borderLight: 'rgba(6, 182, 212, 0.26)',
+    textDark: '#ECFEFF',
+    textLight: '#0E5D6D',
+    glowDark: 'rgba(6, 182, 212, 0.26)',
+  },
 };
+
+export function resolveEventStyle(
+  ev: Pick<CalendarEvent, 'category' | 'customLabel' | 'customColor'>
+): CategoryStyle {
+  if (ev.customLabel || ev.customColor || ev.category === 'custom') {
+    const base = EVENT_CATEGORY_STYLES[ev.category] ?? EVENT_CATEGORY_STYLES.custom;
+    return buildDynamicCategoryStyle(ev.customLabel ?? base.label, ev.customColor ?? base.bar);
+  }
+  return EVENT_CATEGORY_STYLES[ev.category] ?? EVENT_CATEGORY_STYLES.deep;
+}
 
 export const CALENDAR_LAYERS: { id: CalendarLayerId; label: string; color: string }[] = [
   { id: 'work', label: 'Work & Deep Blocks', color: '#E74004' },
   { id: 'team', label: 'Team Syncs', color: '#14A4FC' },
   { id: 'personal', label: 'Personal', color: '#F4C46C' },
   { id: 'wellness', label: 'Health & Training', color: '#2CCC74' },
+  { id: 'custom', label: 'Custom & Imported', color: '#06B6D4' },
 ];
 
 export const PRIORITY_META: Record<

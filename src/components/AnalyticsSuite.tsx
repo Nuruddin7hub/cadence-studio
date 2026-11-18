@@ -4,7 +4,7 @@ import { useWorkspace } from '../context/WorkspaceContext';
 import type { EventCategory } from '../types/workspace';
 import { addDays, getWeekDates, WEEKDAY_SHORT } from '../utils/date';
 import { buildIcsExport, buildJsonBackup, triggerFileDownload } from '../utils/ics';
-import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
+import { EVENT_CATEGORY_STYLES, resolveEventStyle } from '../utils/themeTokens';
 import { AnimatedContent, BorderGlow, CountUp, GlareHover, HoldButton, SpotlightCard } from '../lib/reactbits';
 
 export const AnalyticsSuite: React.FC = () => {
@@ -13,11 +13,14 @@ export const AnalyticsSuite: React.FC = () => {
     selectedDate,
     todayKey,
     importWorkspaceJson,
+    importCalendarIcs,
+    customTaskLists,
     resetToSeed,
     pushToast,
   } = useWorkspace();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const icsInputRef = useRef<HTMLInputElement | null>(null);
 
   const weekDates = useMemo(
     () => getWeekDates(selectedDate, snapshot.preferences.weekStartsOn),
@@ -31,16 +34,37 @@ export const AnalyticsSuite: React.FC = () => {
     const scheduledHours = weekEvents.reduce((acc, ev) => acc + ev.durationMinutes, 0) / 60;
     const focusHours = snapshot.focusHistory.reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
 
-    const byCategory = (Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
+    const baseCats = (['deep', 'meeting', 'personal', 'health', 'deadline'] as EventCategory[]).map((cat) => {
       const mins = weekEvents.filter((e) => e.category === cat).reduce((a, e) => a + e.durationMinutes, 0);
       const count = weekEvents.filter((e) => e.category === cat).length;
       return {
         cat,
         label: EVENT_CATEGORY_STYLES[cat].label,
+        color: EVENT_CATEGORY_STYLES[cat].bar,
         hours: Math.round((mins / 60) * 10) / 10,
         count,
       };
     });
+
+    const customWeekEvents = weekEvents.filter((e) => e.category === 'custom');
+    const byCategory = [
+      ...baseCats,
+      ...(customWeekEvents.length > 0
+        ? [
+            {
+              cat: 'custom' as const,
+              label:
+                customWeekEvents.length === 1 && customWeekEvents[0].customLabel
+                  ? customWeekEvents[0].customLabel
+                  : 'Custom Labels',
+              color: resolveEventStyle(customWeekEvents[0]).bar,
+              hours:
+                Math.round((customWeekEvents.reduce((a, e) => a + e.durationMinutes, 0) / 60) * 10) / 10,
+              count: customWeekEvents.length,
+            },
+          ]
+        : []),
+    ];
 
     const timedCount = weekEvents.length;
 
@@ -69,23 +93,22 @@ export const AnalyticsSuite: React.FC = () => {
       return possible ? Math.round((hit / possible) * 100) : 0;
     })();
 
-    const listBreakdown = (['work', 'design', 'inbox', 'personal'] as const).map((list) => {
+    const listDefs: { id: string; label: string; color: string }[] = [
+      { id: 'work', label: 'Product & Engineering', color: '#E74004' },
+      { id: 'design', label: 'Design Systems', color: '#14A4FC' },
+      { id: 'inbox', label: 'Inbox Triage', color: '#848F9F' },
+      { id: 'personal', label: 'Personal & Life', color: '#F4C46C' },
+      ...customTaskLists.map((cl) => ({ id: cl.id, label: cl.label, color: cl.color })),
+    ];
+
+    const listBreakdown = listDefs.map(({ id: list, label, color }) => {
       const items = snapshot.tasks.filter((t) => t.listId === list);
       const done = items.filter((t) => t.completed).length;
       const mins = items.filter((t) => !t.completed).reduce((a, t) => a + t.estimatedMinutes, 0);
-      const color =
-        list === 'work' ? '#E74004' : list === 'design' ? '#14A4FC' : list === 'inbox' ? '#848F9F' : '#F4C46C';
       return {
         list,
         color,
-        label:
-          list === 'work'
-            ? 'Product & Engineering'
-            : list === 'design'
-              ? 'Design Systems'
-              : list === 'inbox'
-                ? 'Inbox Triage'
-                : 'Personal & Life',
+        label,
         total: items.length,
         done,
         pct: items.length ? Math.round((done / items.length) * 100) : 0,
@@ -150,6 +173,15 @@ export const AnalyticsSuite: React.FC = () => {
               </button>
             </GlareHover>
 
+            <button
+              type="button"
+              onClick={() => icsInputRef.current?.click()}
+              className="studio-card inline-flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] whitespace-nowrap"
+            >
+              <Upload className="w-3.5 h-3.5 text-[var(--accent-sky)] shrink-0" />
+              <span>Import .ics</span>
+            </button>
+
             <div className="flex flex-wrap sm:flex-nowrap items-center rounded-lg border bg-[var(--bg-surface)] p-0.5 max-w-full">
               <button
                 type="button"
@@ -184,14 +216,34 @@ export const AnalyticsSuite: React.FC = () => {
               </HoldButton>
             </div>
             <input
-              ref={fileInputRef}
+              ref={icsInputRef}
               type="file"
-              accept=".json,application/json"
+              accept=".ics,text/calendar"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                file.text().then((txt) => importWorkspaceJson(txt));
+                void file.text().then((txt) => importCalendarIcs(txt));
+                e.target.value = '';
+              }}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.ics,application/json,text/calendar"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const isIcs = file.name.toLowerCase().endsWith('.ics');
+                void file.text().then((txt) => {
+                  if (isIcs || /BEGIN:VCALENDAR/i.test(txt)) {
+                    importCalendarIcs(txt);
+                  } else {
+                    importWorkspaceJson(txt);
+                  }
+                });
+                e.target.value = '';
               }}
             />
           </div>
@@ -397,8 +449,8 @@ export const AnalyticsSuite: React.FC = () => {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: item.hours > 0 ? `${Math.max(6, Math.round((item.hours / maxCatHours) * 100))}%` : '0%',
-                        backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : '#8E99AB',
-                        opacity: item.cat === 'deep' ? 1 : 0.78,
+                        backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : item.cat === 'custom' ? item.color : '#8E99AB',
+                        opacity: item.cat === 'deep' || item.cat === 'custom' ? 1 : 0.78,
                       }}
                     />
                   </div>

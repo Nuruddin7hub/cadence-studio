@@ -102,6 +102,31 @@ export function formatTimeRange(startMinutes: number, durationMinutes: number): 
   return `${formatMinutes(startMinutes)} - ${formatMinutes(startMinutes + durationMinutes)}`;
 }
 
+/** Convert minutes since midnight (0..1439) to <input type="time"> HH:MM string. */
+export function minutesToTimeInput(minutes: number): string {
+  const clamped = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** Parse <input type="time"> HH:MM string into minutes since midnight. */
+export function timeInputToMinutes(hhmm: string): number | null {
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(hhmm.trim());
+  if (!match) return null;
+  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+}
+
+/** Friendly human-readable duration label, e.g. 45 -> "45 min", 90 -> "1h 30m". */
+export function formatDurationHuman(minutes: number): string {
+  const mins = Math.max(1, Math.round(minutes));
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const rem = mins % 60;
+  if (rem === 0) return h === 1 ? '1 hour' : `${h} hours`;
+  return `${h}h ${rem}m`;
+}
+
 /** Format date key nicely, e.g. "Wed, Nov 18". */
 export function formatReadableDate(key: string): string {
   const d = fromDateKey(key);
