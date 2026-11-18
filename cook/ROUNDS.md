@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [complete]
-Best so far: round 08 (`r08-lively`), `cook/stills/r08-lively/`, built and verified with full React Bits motion & micro-interaction upgrade
+Best so far: round 09 (`r09-planner`), `cook/stills/r09-planner/`, built and verified with scannable Planner UI and live interactive controls
 
 ## Decisions
 
@@ -332,4 +332,25 @@ Measured (`r08-lively`):
 - `npm run build`: exited 0 (`✓ built in 9.58s`, `tsc -b && vite build`, `8178` modules, `dist/assets/index-CG58CE6e.css` `124.38 kB`, `dist/assets/index-QgwUOMz8.js` `991.26 kB`).
 - `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
 - `node scripts/render-stills.mjs r08-lively`: `S01` 2442ms, `S02` 2180ms, `S03` 1978ms, `S04` 1330ms, `S05` 1631ms, `S06` 1283ms; `overflow: false`, `errors: []` across all 6 captures.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+
+---
+
+## Round 09-planner (Planner Workspace Clarity, Visual Pop & Interactive Controls)
+
+Time: 19:39 to 19:48 +08:00
+Focus: Address user screenshot feedback on Planner (`CalendarView`, `Sidebar`, `InspectorRail`, `themeTokens`) so the primary scheduling workspace scans immediately at a glance, reacts vibrantly to interactions, and showcases live animations
+
+Changes:
+- Enriched `EVENT_CATEGORY_STYLES` in `src/utils/themeTokens.ts` (`shortLabel`, `glowDark`, stronger saturated gradient washes and category-tinted borders so Deep Focus, Meeting, Personal, Health, and Milestone blocks separate cleanly on dark obsidian).
+- Upgraded `CalendarView.tsx`: added scannable top Category Spotlight filter strip (`All`, `Deep Focus`, `Meeting`, `Personal`, `Health`, `Milestone` pills with counts + dim/highlight isolation) and Today capacity telemetry bar (`7.5h booked` + `due` badge + clickable live `Focusing` timer beacon), per-day booked hour totals (`Mon 16 4h`..`Sun 22 1h`), subtle prime-hours shading + dashed 30m rules, hover `+ 10 AM` slot affordance, pulsing `11:45 AM` current-time marker (`motion-safe:animate-ping`), category tags on blocks + hover `Play` focus trigger, and `AnimatedContent` + `SpotlightCard` transitions across Month/Agenda modes.
+- Upgraded `InspectorRail.tsx`: added active WebGL `ElectricBorder` (`active={focusRunning}`) + pulsing Focus Active `ShinyText` header + rolling `Counter` numerals + full-width `RubberSegment` timer intervals, `GlareHover` CTA, `RubberSegment` `Block Details | Daily Notes` switcher, `SpotlightCard` block editor, and `SpringCheck` checkboxes.
+- Upgraded `Sidebar.tsx`: added active accent bars on Task Lists, interactive Queue `SpotlightCard`s with `SpringCheck` + 1-click `+ Block` buttons, and `GlareHover` quick-add CTA.
+
+Stills: `cook/stills/r09-planner/` | Side by side: `cook/compare/r09-planner/`
+
+Measured (`r09-planner`):
+- `npm run build`: exited 0 (`tsc -b && vite build`, `8178` modules, `dist/assets/index-BYiF10U0.css` `125.85 kB`, `dist/assets/index-D3wbd3jR.js` `1,000.79 kB`).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
+- `node scripts/render-stills.mjs r09-planner`: `S01` 3294ms, `S02` 1385ms, `S03` 1438ms, `S04` 1321ms, `S05` 1719ms, `S06` 1334ms; `overflow: false`, `errors: []`.
 - `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.

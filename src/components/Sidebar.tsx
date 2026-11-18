@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
   CalendarClock,
+  CalendarPlus,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -28,6 +29,7 @@ import {
   WEEKDAY_TWO,
 } from '../utils/date';
 import { CALENDAR_LAYERS, PRIORITY_META } from '../utils/themeTokens';
+import { AnimatedContent, GlareHover, SpotlightCard, SpringCheck } from '../lib/reactbits';
 
 export const Sidebar: React.FC = () => {
   const {
@@ -41,6 +43,7 @@ export const Sidebar: React.FC = () => {
     setActiveTab,
     toggleLayer,
     toggleTaskComplete,
+    scheduleTaskToCalendar,
     addTaskFromText,
     setSelection,
     mobileSidebarOpen,
@@ -50,6 +53,7 @@ export const Sidebar: React.FC = () => {
   const [miniMonthAnchor, setMiniMonthAnchor] = useState<string>(selectedDate);
   const [sidebarDraft, setSidebarDraft] = useState('');
   const [collapsed, setCollapsed] = useState(false);
+  const isDark = snapshot.preferences.theme === 'dark';
 
   const miniDates = useMemo(
     () => getMonthGridDates(miniMonthAnchor, snapshot.preferences.weekStartsOn),
@@ -256,9 +260,10 @@ export const Sidebar: React.FC = () => {
                     setActiveList(item.id);
                     if (activeTab === 'overview' || activeTab === 'analytics') setActiveTab('tasks');
                   }}
-                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors text-left"
+                  className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border-l-2 transition-all duration-150 hover:translate-x-0.5 text-left"
                   style={{
                     backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
+                    borderLeftColor: active ? item.tone ?? 'var(--accent-primary)' : 'transparent',
                     color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
                   }}
                 >
@@ -268,7 +273,15 @@ export const Sidebar: React.FC = () => {
                     </span>
                     <span className="truncate font-medium">{item.label}</span>
                   </span>
-                  <span className="font-mono-num text-[11px] text-[var(--ink-secondary)]">{item.count}</span>
+                  <span
+                    className="px-1.5 py-0.5 rounded font-mono-num text-[10.5px]"
+                    style={{
+                      backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
+                      color: item.tone && item.count > 0 ? item.tone : 'var(--ink-secondary)',
+                    }}
+                  >
+                    {item.count}
+                  </span>
                 </button>
               </li>
             );
@@ -328,61 +341,91 @@ export const Sidebar: React.FC = () => {
             placeholder="Quick task..."
             className="flex-1 min-w-0 px-2.5 py-1 rounded-lg border text-[12px] bg-[var(--bg-inset)] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
           />
-          <button
-            type="submit"
-            aria-label="Add quick task"
-            className="p-1.5 rounded-lg bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)]"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+          <GlareHover glareColor="#ffffff" glareOpacity={0.22} borderRadius="8px" className="inline-flex">
+            <button
+              type="submit"
+              aria-label="Add quick task"
+              className="p-1.5 rounded-lg bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-transform active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </GlareHover>
         </form>
 
-        <ul className="space-y-1">
+        <AnimatedContent
+          trigger="load"
+          distance={8}
+          duration={0.28}
+          stagger={0.045}
+          ease="power2.out"
+          className="space-y-1.5"
+        >
           {unscheduledQueue.map((task) => {
             const pMeta = PRIORITY_META[task.priority];
             return (
-              <li
+              <SpotlightCard
                 key={task.id}
+                theme={isDark ? 'dark' : 'light'}
+                spotlightColor={isDark ? 'rgba(231, 64, 4, 0.14)' : 'rgba(231, 64, 4, 0.06)'}
+                intensity={isDark ? 0.1 : 0.05}
                 draggable
-                onDragStart={(e) => {
+                onDragStart={(e: React.DragEvent) => {
                   e.dataTransfer.setData('text/cadence-task-id', task.id);
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 onClick={() => setSelection({ type: 'task', id: task.id })}
-                className="group flex items-start gap-1.5 px-2 py-1.5 rounded-lg border cursor-grab active:cursor-grabbing hover:bg-[var(--bg-hover)] transition-colors"
+                className="group flex items-start gap-1.5 px-2 py-1.5 rounded-lg border border-l-2 cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all duration-150"
                 style={{
                   backgroundColor: 'var(--bg-elevated)',
                   borderColor: 'var(--rule-hairline)',
+                  borderLeftColor: pMeta.color,
                 }}
               >
                 <GripVertical className="w-3 h-3 mt-0.5 text-[var(--ink-muted)] shrink-0 opacity-60 group-hover:opacity-100" />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleTaskComplete(task.id);
-                  }}
-                  aria-label={`Complete ${task.title}`}
-                  className="mt-0.5 w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 hover:border-[var(--accent-primary)]"
-                  style={{ borderColor: pMeta.color }}
-                >
-                  {task.completed && <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />}
-                </button>
-                <span className="flex-1 text-[11.5px] leading-snug line-clamp-2 text-[var(--ink-primary)]">
-                  {task.title}
-                </span>
-                <span className="font-mono-num text-[10px] text-[var(--ink-muted)] shrink-0 mt-0.5">
-                  {task.estimatedMinutes}m
-                </span>
-              </li>
+                <div className="mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <SpringCheck
+                    checked={task.completed}
+                    onChange={() => toggleTaskComplete(task.id)}
+                    label=""
+                    strike="none"
+                    boxSize={14}
+                    boxRadius={4}
+                    color="var(--ink-primary)"
+                    fillColor={pMeta.color}
+                    checkColor="#ffffff"
+                    ariaLabel={`Complete ${task.title}`}
+                    className="[&]:min-h-0 [&]:gap-0"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[11.5px] leading-snug line-clamp-2 text-[var(--ink-primary)]">
+                    {task.title}
+                  </span>
+                  <div className="mt-1 flex items-center justify-between gap-1 text-[10px] font-mono-num">
+                    <span className="text-[var(--ink-muted)]">{task.estimatedMinutes}m · {pMeta.short}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scheduleTaskToCalendar(task.id, selectedDate, 16 * 60);
+                      }}
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[var(--accent-primary-soft)] text-[var(--accent-primary)] opacity-85 group-hover:opacity-100 hover:bg-[var(--accent-primary)] hover:text-white transition-colors"
+                      title="Schedule directly at 4 PM today"
+                    >
+                      <CalendarPlus className="w-2.5 h-2.5" />
+                      <span>Block</span>
+                    </button>
+                  </div>
+                </div>
+              </SpotlightCard>
             );
           })}
           {unscheduledQueue.length === 0 && (
-            <li className="px-2 py-2 text-[11.5px] text-[var(--ink-muted)] text-center rounded-lg border border-dashed">
+            <div className="px-2 py-2 text-[11.5px] text-[var(--ink-muted)] text-center rounded-lg border border-dashed">
               Every active task is scheduled.
-            </li>
+            </div>
           )}
-        </ul>
+        </AnimatedContent>
       </section>
 
       {/* Calendar Layers */}

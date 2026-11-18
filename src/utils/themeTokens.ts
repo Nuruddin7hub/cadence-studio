@@ -2,6 +2,7 @@ import type { CalendarLayerId, EventCategory, TaskPriority } from '../types/work
 
 export interface CategoryStyle {
   label: string;
+  shortLabel: string;
   bar: string;
   bgDark: string;
   bgLight: string;
@@ -9,58 +10,69 @@ export interface CategoryStyle {
   borderLight: string;
   textDark: string;
   textLight: string;
+  glowDark: string;
 }
 
 export const EVENT_CATEGORY_STYLES: Record<EventCategory, CategoryStyle> = {
   deep: {
     label: 'Deep Focus',
+    shortLabel: 'Focus',
     bar: '#E74004',
-    bgDark: 'rgba(231, 64, 4, 0.11)',
-    bgLight: 'rgba(231, 64, 4, 0.08)',
-    borderDark: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(231, 64, 4, 0.18)',
-    textDark: '#F5ECE9',
+    bgDark: 'rgba(231, 64, 4, 0.18)',
+    bgLight: 'rgba(231, 64, 4, 0.10)',
+    borderDark: 'rgba(231, 64, 4, 0.36)',
+    borderLight: 'rgba(231, 64, 4, 0.26)',
+    textDark: '#FFF2ED',
     textLight: '#8E2906',
+    glowDark: 'rgba(231, 64, 4, 0.28)',
   },
   meeting: {
     label: 'Meeting',
+    shortLabel: 'Meet',
     bar: '#14A4FC',
-    bgDark: 'rgba(20, 164, 252, 0.1)',
-    bgLight: 'rgba(11, 140, 224, 0.075)',
-    borderDark: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(11, 140, 224, 0.18)',
-    textDark: '#E4F1FC',
+    bgDark: 'rgba(20, 164, 252, 0.16)',
+    bgLight: 'rgba(11, 140, 224, 0.095)',
+    borderDark: 'rgba(20, 164, 252, 0.34)',
+    borderLight: 'rgba(11, 140, 224, 0.24)',
+    textDark: '#ECF6FF',
     textLight: '#095387',
+    glowDark: 'rgba(20, 164, 252, 0.25)',
   },
   personal: {
     label: 'Personal',
+    shortLabel: 'Life',
     bar: '#F4C46C',
-    bgDark: 'rgba(244, 196, 108, 0.095)',
-    bgLight: 'rgba(214, 149, 14, 0.09)',
-    borderDark: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(214, 149, 14, 0.2)',
-    textDark: '#F6EEDF',
+    bgDark: 'rgba(244, 196, 108, 0.16)',
+    bgLight: 'rgba(214, 149, 14, 0.105)',
+    borderDark: 'rgba(244, 196, 108, 0.34)',
+    borderLight: 'rgba(214, 149, 14, 0.26)',
+    textDark: '#FFF6E3',
     textLight: '#734E07',
+    glowDark: 'rgba(244, 196, 108, 0.24)',
   },
   health: {
     label: 'Health',
+    shortLabel: 'Health',
     bar: '#2CCC74',
-    bgDark: 'rgba(44, 204, 116, 0.1)',
-    bgLight: 'rgba(20, 158, 86, 0.08)',
-    borderDark: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(20, 158, 86, 0.18)',
-    textDark: '#E2F5EB',
+    bgDark: 'rgba(44, 204, 116, 0.16)',
+    bgLight: 'rgba(20, 158, 86, 0.095)',
+    borderDark: 'rgba(44, 204, 116, 0.34)',
+    borderLight: 'rgba(20, 158, 86, 0.24)',
+    textDark: '#E9FFF2',
     textLight: '#0F6336',
+    glowDark: 'rgba(44, 204, 116, 0.24)',
   },
   deadline: {
     label: 'Milestone',
+    shortLabel: 'Goal',
     bar: '#D9534F',
-    bgDark: 'rgba(217, 83, 79, 0.11)',
-    bgLight: 'rgba(201, 59, 55, 0.085)',
-    borderDark: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(201, 59, 55, 0.2)',
-    textDark: '#F7E2E1',
+    bgDark: 'rgba(217, 83, 79, 0.18)',
+    bgLight: 'rgba(201, 59, 55, 0.105)',
+    borderDark: 'rgba(217, 83, 79, 0.36)',
+    borderLight: 'rgba(201, 59, 55, 0.26)',
+    textDark: '#FFECEB',
     textLight: '#85201D',
+    glowDark: 'rgba(217, 83, 79, 0.26)',
   },
 };
 

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   CalendarPlus,
-  Check,
   Copy,
   Maximize2,
   PanelRightClose,
@@ -17,12 +16,16 @@ import { useWorkspace } from '../context/WorkspaceContext';
 import type { EventCategory, RecurrenceRule, TaskPriority } from '../types/workspace';
 import { formatMinutes, formatTimeRange } from '../utils/date';
 import { EVENT_CATEGORY_STYLES, PRIORITY_META } from '../utils/themeTokens';
-
-function formatTimer(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
+import {
+  AnimatedContent,
+  Counter,
+  ElectricBorder,
+  GlareHover,
+  RubberSegment,
+  ShinyText,
+  SpotlightCard,
+  SpringCheck,
+} from '../lib/reactbits';
 
 export const InspectorRail: React.FC = () => {
   const {
@@ -88,6 +91,9 @@ export const InspectorRail: React.FC = () => {
         : snapshot.preferences.longBreakMinutes) * 60;
   const progress = Math.max(0, Math.min(1, 1 - focusSecondsLeft / Math.max(1, totalFocusMinutes)));
   const activeTaskObj = snapshot.tasks.find((t) => t.id === activeFocusTaskId);
+  const isDark = snapshot.preferences.theme === 'dark';
+  const focusMins = Math.floor(focusSecondsLeft / 60);
+  const focusSecs = focusSecondsLeft % 60;
 
   if (collapsed) {
     return (
@@ -114,8 +120,19 @@ export const InspectorRail: React.FC = () => {
       <section className="p-3 border-b shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
-            <h3 className="font-display font-semibold text-[13px]">Focus Timer</h3>
+            <span className="relative flex h-2 w-2">
+              {focusRunning && (
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75" />
+              )}
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]" />
+            </span>
+            <h3 className="font-display font-semibold text-[13px]">
+              {focusRunning ? (
+                <ShinyText text="Focus Active" color="var(--ink-primary)" shineColor="#E74004" speed={2.2} />
+              ) : (
+                'Focus Timer'
+              )}
+            </h3>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -139,80 +156,106 @@ export const InspectorRail: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-inset)] mb-2.5">
-          {([
-            ['focus', '25m'],
-            ['short_break', '5m'],
-            ['long_break', '15m'],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setFocusMode(id)}
-              className="flex-1 py-1 rounded-md text-[11px] font-mono-num font-medium transition-colors"
-              style={{
-                backgroundColor: focusMode === id ? 'var(--bg-elevated)' : 'transparent',
-                color: focusMode === id ? 'var(--ink-primary)' : 'var(--ink-muted)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="mb-2.5">
+          <RubberSegment
+            items={[
+              { value: 'focus', label: '25m' },
+              { value: 'short_break', label: '5m' },
+              { value: 'long_break', label: '15m' },
+            ]}
+            value={focusMode}
+            onChange={(val: string) => setFocusMode(val as 'focus' | 'short_break' | 'long_break')}
+            size="sm"
+            equalSlots
+            radius={9}
+            stretch={32}
+            squash={20}
+            trackColor={isDark ? '#151821' : '#eaedf3'}
+            thumbColor={isDark ? '#242938' : '#ffffff'}
+            textColor={isDark ? '#adb6c4' : '#4b5563'}
+            activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+            ariaLabel="Inspector timer interval"
+            className="w-full border"
+          />
         </div>
 
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[var(--bg-elevated)]/70" style={{ boxShadow: 'var(--surface-sheen)' }}>
-          <div className="relative w-12 h-12 shrink-0 flex items-center justify-center">
-            <svg className="w-12 h-12 -rotate-90" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="23" fill="none" stroke="var(--rule-strong)" strokeWidth="3.5" />
-              <circle
-                cx="28"
-                cy="28"
-                r="23"
-                fill="none"
-                stroke="var(--accent-primary)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 23}
-                strokeDashoffset={2 * Math.PI * 23 * (1 - progress)}
-              />
-            </svg>
-            <span className="absolute font-mono-num text-[11px] font-semibold">
-              {formatTimer(focusSecondsLeft)}
-            </span>
-          </div>
+        <ElectricBorder
+          active={focusRunning}
+          color="#E74004"
+          speed={1.55}
+          chaos={0.24}
+          strands={2}
+          intensity={0.95}
+          glow={0.5}
+          thickness={1.2}
+          borderRadius={12}
+          theme={isDark ? 'dark' : 'light'}
+        >
+          <div
+            className="flex items-center gap-3 p-2.5 rounded-xl bg-[var(--bg-elevated)]/90 border"
+            style={{
+              borderColor: focusRunning ? 'rgba(231, 64, 4, 0.35)' : 'var(--rule-hairline)',
+              boxShadow: 'var(--surface-sheen)',
+            }}
+          >
+            <div className="relative w-12 h-12 shrink-0 flex items-center justify-center">
+              <svg className="w-12 h-12 -rotate-90" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="var(--rule-strong)" strokeWidth="3.5" />
+                <circle
+                  cx="28"
+                  cy="28"
+                  r="23"
+                  fill="none"
+                  stroke="var(--accent-primary)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 23}
+                  strokeDashoffset={2 * Math.PI * 23 * (1 - progress)}
+                  className="transition-all duration-300"
+                />
+              </svg>
+              <span className="absolute inline-flex items-center font-mono-num text-[11px] font-bold text-[var(--ink-primary)]">
+                <Counter value={focusMins} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" />
+                <span className="text-[var(--accent-primary)]">:</span>
+                <Counter value={focusSecs} minDigits={2} fontSize={11} fontWeight={700} textColor="var(--ink-primary)" />
+              </span>
+            </div>
 
-          <div className="flex-1 min-w-0">
-            <p className="text-[11.5px] font-medium text-[var(--ink-primary)] line-clamp-2 leading-snug">
-              {activeTaskObj ? activeTaskObj.title : 'Free focus block'}
-            </p>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setFocusRunning(!focusRunning)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white"
-                style={{ backgroundColor: 'var(--accent-primary)' }}
-              >
-                {focusRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                <span>{focusRunning ? 'Pause' : 'Start'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => resetFocusTimer()}
-                className="p-1 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-                aria-label="Reset focus timer"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPickerOpen((v) => !v)}
-                className="ml-auto text-[10.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-              >
-                Switch
-              </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11.5px] font-medium text-[var(--ink-primary)] line-clamp-2 leading-snug">
+                {activeTaskObj ? activeTaskObj.title : 'Free focus block'}
+              </p>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <GlareHover glareColor="#ffffff" glareOpacity={0.22} borderRadius="6px" className="inline-flex">
+                  <button
+                    type="button"
+                    onClick={() => setFocusRunning(!focusRunning)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white transition-transform active:scale-95"
+                    style={{ backgroundColor: 'var(--accent-primary)' }}
+                  >
+                    {focusRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                    <span>{focusRunning ? 'Pause' : 'Start'}</span>
+                  </button>
+                </GlareHover>
+                <button
+                  type="button"
+                  onClick={() => resetFocusTimer()}
+                  className="p-1 rounded-md hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                  aria-label="Reset focus timer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen((v) => !v)}
+                  className="ml-auto text-[10.5px] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                >
+                  Switch
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ElectricBorder>
 
         {pickerOpen && (
           <select
@@ -237,40 +280,50 @@ export const InspectorRail: React.FC = () => {
       </section>
 
       {/* Inspector vs Daily Notes Switcher */}
-      <div className="px-3 pt-2 pb-1.5 border-b flex items-center gap-1 shrink-0 bg-[var(--bg-inset)]/40">
-        <button
-          type="button"
-          onClick={() => setRailTab('inspect')}
-          className="flex-1 py-1 rounded-md text-[11.5px] font-medium transition-colors"
-          style={{
-            backgroundColor: railTab === 'inspect' ? 'var(--bg-elevated)' : 'transparent',
-            color: railTab === 'inspect' ? 'var(--ink-primary)' : 'var(--ink-muted)',
-            boxShadow: railTab === 'inspect' ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
-          }}
-        >
-          {selectedEvent ? 'Block Details' : 'Task Details'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setRailTab('notes')}
-          className="flex-1 py-1 rounded-md text-[11.5px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
-          style={{
-            backgroundColor: railTab === 'notes' ? 'var(--bg-elevated)' : 'transparent',
-            color: railTab === 'notes' ? 'var(--ink-primary)' : 'var(--ink-muted)',
-            boxShadow: railTab === 'notes' ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
-          }}
-        >
-          <Sparkles className="w-3 h-3 text-[var(--accent-amber)]" />
-          <span>Daily Notes</span>
-        </button>
+      <div className="px-3 py-2 border-b shrink-0 bg-[var(--bg-inset)]/35">
+        <RubberSegment
+          items={[
+            { value: 'inspect', label: selectedEvent ? 'Block Details' : 'Task Details' },
+            {
+              value: 'notes',
+              label: 'Daily Notes',
+              icon: <Sparkles className="w-3 h-3 text-[var(--accent-amber)]" />,
+            },
+          ]}
+          value={railTab}
+          onChange={(val: string) => setRailTab(val as 'inspect' | 'notes')}
+          size="sm"
+          equalSlots
+          radius={9}
+          stretch={32}
+          squash={20}
+          trackColor={isDark ? '#151821' : '#eaedf3'}
+          thumbColor={isDark ? '#242938' : '#ffffff'}
+          textColor={isDark ? '#adb6c4' : '#4b5563'}
+          activeTextColor={isDark ? '#ffffff' : '#0f1115'}
+          ariaLabel="Inspector panel tab"
+          className="w-full border"
+        />
       </div>
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto p-3 pb-8">
+        <AnimatedContent
+          key={`${railTab}-${selectedEvent?.id ?? selectedTask?.id ?? 'empty'}`}
+          trigger="load"
+          distance={8}
+          duration={0.24}
+          ease="power2.out"
+        >
         {railTab === 'inspect' ? (
           <div className="space-y-2.5 text-[12.5px]">
             {selectedEvent && (
-              <div className="space-y-2">
+              <SpotlightCard
+                theme={isDark ? 'dark' : 'light'}
+                spotlightColor={isDark ? 'rgba(231, 64, 4, 0.12)' : 'rgba(231, 64, 4, 0.06)'}
+                intensity={isDark ? 0.1 : 0.05}
+                className="p-2.5 rounded-xl border bg-[var(--bg-elevated)]/45 space-y-2"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono-num text-[var(--ink-muted)]">
                     {selectedEvent.allDay ? 'All day' : formatTimeRange(selectedEvent.startMinutes, selectedEvent.durationMinutes)}
@@ -374,24 +427,28 @@ export const InspectorRail: React.FC = () => {
                   placeholder="Block notes..."
                   className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg-inset)] text-[12px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
                 />
-              </div>
+              </SpotlightCard>
             )}
 
             {selectedTask && (
               <div className="pt-2.5 border-t space-y-2">
                 <div className="flex items-start gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleTaskComplete(selectedTask.id)}
-                    className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0"
-                    style={{
-                      borderColor: PRIORITY_META[selectedTask.priority].color,
-                      backgroundColor: selectedTask.completed ? 'var(--accent-primary)' : 'transparent',
-                    }}
-                  >
-                    {selectedTask.completed && <Check className="w-3 h-3 text-white stroke-[3]" />}
-                  </button>
-                  <span className="flex-1 font-medium text-[12.5px] leading-snug text-[var(--ink-primary)]">
+                  <div className="mt-0.5 shrink-0">
+                    <SpringCheck
+                      checked={selectedTask.completed}
+                      onChange={() => toggleTaskComplete(selectedTask.id)}
+                      label=""
+                      strike="none"
+                      boxSize={16}
+                      boxRadius={4}
+                      color="var(--ink-primary)"
+                      fillColor={PRIORITY_META[selectedTask.priority].color}
+                      checkColor="#ffffff"
+                      ariaLabel={`Complete ${selectedTask.title}`}
+                      className="[&]:min-h-0 [&]:gap-0"
+                    />
+                  </div>
+                  <span className={`flex-1 font-medium text-[12.5px] leading-snug ${selectedTask.completed ? 'line-through text-[var(--ink-muted)]' : 'text-[var(--ink-primary)]'}`}>
                     {selectedTask.title}
                   </span>
                 </div>
@@ -432,25 +489,30 @@ export const InspectorRail: React.FC = () => {
 
                 <div className="space-y-1">
                   {selectedTask.subtasks.map((st) => (
-                    <button
+                    <div
                       key={st.id}
-                      type="button"
                       onClick={() => toggleSubtask(selectedTask.id, st.id)}
-                      className="w-full flex items-center gap-2 text-left py-1 px-1.5 rounded hover:bg-[var(--bg-hover)] text-[11.5px]"
+                      className="w-full flex items-center gap-2 text-left py-1 px-1.5 rounded hover:bg-[var(--bg-hover)] text-[11.5px] cursor-pointer"
                     >
-                      <span
-                        className="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0"
-                        style={{
-                          backgroundColor: st.done ? 'var(--accent-emerald)' : 'transparent',
-                          borderColor: st.done ? 'var(--accent-emerald)' : 'var(--rule-strong)',
-                        }}
-                      >
-                        {st.done && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
-                      </span>
+                      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <SpringCheck
+                          checked={st.done}
+                          onChange={() => toggleSubtask(selectedTask.id, st.id)}
+                          label=""
+                          strike="none"
+                          boxSize={14}
+                          boxRadius={4}
+                          color="var(--ink-primary)"
+                          fillColor="var(--accent-emerald)"
+                          checkColor="#ffffff"
+                          ariaLabel={`Toggle subtask ${st.title}`}
+                          className="[&]:min-h-0 [&]:gap-0"
+                        />
+                      </div>
                       <span className={st.done ? 'line-through text-[var(--ink-muted)]' : 'text-[var(--ink-secondary)]'}>
                         {st.title}
                       </span>
-                    </button>
+                    </div>
                   ))}
                   <form
                     onSubmit={(e) => {
@@ -515,6 +577,7 @@ export const InspectorRail: React.FC = () => {
             )}
           </div>
         )}
+        </AnimatedContent>
       </div>
     </aside>
   );

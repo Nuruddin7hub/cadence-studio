@@ -5,7 +5,10 @@ import {
   ChevronRight,
   Clock,
   Copy,
+  Flame,
   Globe,
+  Pause,
+  Play,
   Plus,
   Repeat,
   Video,
@@ -29,7 +32,7 @@ import {
   WEEKDAY_SHORT,
 } from '../utils/date';
 import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
-import { RubberSegment, SquishSwitch } from '../lib/reactbits';
+import { AnimatedContent, GlareHover, RubberSegment, ShinyText, SpotlightCard, SquishSwitch } from '../lib/reactbits';
 
 const START_HOUR = 6;
 const END_HOUR = 23;
@@ -66,6 +69,12 @@ export const CalendarView: React.FC = () => {
     clearAvailabilitySlots,
     updatePreferences,
     pushToast,
+    focusRunning,
+    focusSecondsLeft,
+    activeFocusTaskId,
+    setActiveFocusTaskId,
+    setFocusRunning,
+    setFocusCurtainOpen,
   } = useWorkspace();
 
   const [quickSlot, setQuickSlot] = useState<{ date: string; startMinutes: number } | null>(null);
@@ -73,6 +82,8 @@ export const CalendarView: React.FC = () => {
   const [draftCategory, setDraftCategory] = useState<EventCategory>('deep');
   const [draftDuration, setDraftDuration] = useState(60);
   const [dragHoverCell, setDragHoverCell] = useState<string | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<EventCategory | null>(null);
 
   const resizeRef = useRef<{ id: string; origDuration: number; startY: number } | null>(null);
   const isDark = snapshot.preferences.theme === 'dark';
@@ -165,6 +176,43 @@ export const CalendarView: React.FC = () => {
   const showTimeGrid = calendarMode !== 'month' && calendarMode !== 'agenda';
   // Pixel-exact coordinate aligned cleanly with hour rows (no double pt offset!)
   const nowTopPx = ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+
+  const visibleDateSet = useMemo(() => new Set(visibleDates), [visibleDates]);
+  const visibleEvents = useMemo(
+    () => filteredEvents.filter((e) => visibleDateSet.has(e.date)),
+    [filteredEvents, visibleDateSet]
+  );
+
+  const categoryCounts = useMemo(() => {
+    const map: Record<EventCategory, number> = {
+      deep: 0,
+      meeting: 0,
+      personal: 0,
+      health: 0,
+      deadline: 0,
+    };
+    for (const ev of visibleEvents) {
+      map[ev.category] = (map[ev.category] ?? 0) + 1;
+    }
+    return map;
+  }, [visibleEvents]);
+
+  const selectedDayBookedMins = useMemo(
+    () =>
+      filteredEvents
+        .filter((e) => e.date === selectedDate && !e.allDay)
+        .reduce((acc, e) => acc + e.durationMinutes, 0),
+    [filteredEvents, selectedDate]
+  );
+
+  const todayOpenTasks = useMemo(
+    () => snapshot.tasks.filter((t) => !t.completed && t.dueDate === todayKey).length,
+    [snapshot.tasks, todayKey]
+  );
+
+  const focusTimerLabel = `${String(Math.floor(focusSecondsLeft / 60)).padStart(2, '0')}:${String(
+    focusSecondsLeft % 60
+  ).padStart(2, '0')}`;
 
   return (
     <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-canvas)] overflow-hidden relative">
@@ -296,14 +344,109 @@ export const CalendarView: React.FC = () => {
             />
           </div>
 
+          <div className="hidden sm:inline-flex">
+            <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="8px" className="inline-flex">
+              <button
+                type="button"
+                onClick={() => setQuickSlot({ date: selectedDate, startMinutes: 10 * 60 })}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg studio-card text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>New block</span>
+              </button>
+            </GlareHover>
+          </div>
+        </div>
+      </div>
+
+      {/* Scannable Category Spotlight & Live Today Status Strip */}
+      <div
+        className="px-3 sm:px-4 py-1.5 border-b flex items-center justify-between gap-3 bg-[var(--bg-surface)]/55 overflow-x-auto no-scrollbar shrink-0"
+        style={{ borderColor: 'var(--rule-hairline)' }}
+      >
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
-            onClick={() => setQuickSlot({ date: selectedDate, startMinutes: 10 * 60 })}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg studio-card text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            onClick={() => setCategoryFilter(null)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+            style={{
+              backgroundColor: categoryFilter === null ? 'var(--bg-elevated)' : 'transparent',
+              borderColor: categoryFilter === null ? 'var(--rule-strong)' : 'var(--rule-hairline)',
+              color: categoryFilter === null ? 'var(--ink-primary)' : 'var(--ink-secondary)',
+            }}
           >
-            <Plus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-            <span>New block</span>
+            <span>All</span>
+            <span className="font-mono-num text-[10px] opacity-75">{visibleEvents.length}</span>
           </button>
+
+          {(Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
+            const meta = EVENT_CATEGORY_STYLES[cat];
+            const active = categoryFilter === cat;
+            const count = categoryCounts[cat];
+            if (count === 0 && !active) return null;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(active ? null : cat)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all hover:scale-[1.02]"
+                style={{
+                  backgroundColor: active ? (isDark ? meta.bgDark : meta.bgLight) : 'transparent',
+                  borderColor: active ? meta.bar : 'var(--rule-hairline)',
+                  color: active ? (isDark ? meta.textDark : meta.textLight) : 'var(--ink-secondary)',
+                }}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: meta.bar }} />
+                <span>{meta.label}</span>
+                <span className="font-mono-num text-[10px] opacity-80">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="hidden md:flex items-center gap-3 shrink-0 text-[11.5px]">
+          {focusRunning && (
+            <button
+              type="button"
+              onClick={() => setFocusCurtainOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors"
+              style={{
+                borderColor: 'rgba(231, 64, 4, 0.45)',
+                backgroundColor: 'rgba(231, 64, 4, 0.14)',
+                color: 'var(--ink-primary)',
+              }}
+              title="Open distraction-free Focus Curtain"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-primary)] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-primary)]" />
+              </span>
+              <Flame className="w-3 h-3 text-[var(--accent-primary)]" />
+              <ShinyText text={`Focusing ${focusTimerLabel}`} color="var(--ink-primary)" shineColor="#FFFFFF" speed={2.2} />
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 text-[var(--ink-secondary)]">
+            <span className="font-mono-num">
+              {selectedDate === todayKey ? 'Today' : SHORT_MONTH_NAMES[selectedDateObj.getMonth()] + ' ' + selectedDateObj.getDate()}:{' '}
+              <strong className="text-[var(--ink-primary)] font-semibold">
+                {Math.round((selectedDayBookedMins / 60) * 10) / 10}h
+              </strong>{' '}
+              booked
+            </span>
+            <div className="w-16 h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(100, Math.round((selectedDayBookedMins / 480) * 100))}%`,
+                  backgroundColor: selectedDayBookedMins >= 360 ? 'var(--accent-primary)' : 'var(--accent-sky)',
+                }}
+              />
+            </div>
+            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] font-mono-num text-[10.5px] text-[var(--ink-secondary)]">
+              {todayOpenTasks} due
+            </span>
+          </div>
         </div>
       </div>
 
@@ -328,6 +471,14 @@ export const CalendarView: React.FC = () => {
               const isToday = dKey === todayKey;
               const isSel = dKey === selectedDate;
               const allDayEvents = filteredEvents.filter((e) => e.date === dKey && e.allDay);
+              const dayHours =
+                Math.round(
+                  (filteredEvents
+                    .filter((e) => e.date === dKey && !e.allDay)
+                    .reduce((acc, e) => acc + e.durationMinutes, 0) /
+                    60) *
+                    10
+                ) / 10;
 
               return (
                 <div
@@ -337,7 +488,7 @@ export const CalendarView: React.FC = () => {
                   style={{
                     backgroundColor: isToday
                       ? isDark
-                        ? 'rgba(231,64,4,0.045)'
+                        ? 'rgba(231,64,4,0.05)'
                         : 'rgba(231,64,4,0.035)'
                       : 'var(--bg-surface)',
                     borderColor: isDark ? 'rgba(255,255,255,0.075)' : 'rgba(15,23,42,0.07)',
@@ -363,6 +514,11 @@ export const CalendarView: React.FC = () => {
                     >
                       {d.getDate()}
                     </span>
+                    {dayHours > 0 && (
+                      <span className="hidden lg:inline text-[10px] font-mono-num text-[var(--ink-muted)]">
+                        {dayHours}h
+                      </span>
+                    )}
                   </div>
 
                   {allDayEvents.length > 0 && (
@@ -447,12 +603,16 @@ export const CalendarView: React.FC = () => {
                     {hours.map((h) => {
                       const cellId = `${dKey}-${h}`;
                       const startMins = h * 60;
+                      const isPrimeHour = h >= 9 && h <= 17;
+                      const isCellHovered = hoveredCell === cellId;
                       const avail = availabilitySlots.find(
                         (s) => s.date === dKey && s.startMinutes === startMins
                       );
                       return (
                         <div
                           key={h}
+                          onMouseEnter={() => setHoveredCell(cellId)}
+                          onMouseLeave={() => setHoveredCell(null)}
                           onClick={() => {
                             if (availabilityMode) {
                               toggleAvailabilitySlot(dKey, startMins, 60);
@@ -478,7 +638,7 @@ export const CalendarView: React.FC = () => {
                               scheduleTaskToCalendar(taskId, dKey, startMins);
                             }
                           }}
-                          className="border-b transition-colors cursor-pointer"
+                          className="relative border-b transition-colors cursor-pointer group/cell"
                           style={{
                             height: `${HOUR_HEIGHT}px`,
                             borderColor: isDark ? 'rgba(255,255,255,0.065)' : 'rgba(15,23,42,0.07)',
@@ -486,33 +646,66 @@ export const CalendarView: React.FC = () => {
                               ? 'var(--accent-emerald-soft)'
                               : dragHoverCell === cellId
                                 ? 'var(--accent-primary-soft)'
-                                : 'transparent',
+                                : isCellHovered
+                                  ? isDark
+                                    ? 'rgba(231, 64, 4, 0.055)'
+                                    : 'rgba(231, 64, 4, 0.04)'
+                                  : isPrimeHour
+                                    ? isDark
+                                      ? 'rgba(255,255,255,0.012)'
+                                      : 'rgba(15,23,42,0.008)'
+                                    : 'transparent',
                           }}
                         >
+                          {/* Crisp subtle 30-minute guide rule */}
+                          <div
+                            className="pointer-events-none absolute left-0 right-0 top-1/2 border-t border-dashed"
+                            style={{ borderColor: isDark ? 'rgba(255,255,255,0.032)' : 'rgba(15,23,42,0.035)' }}
+                          />
+
                           {avail && (
                             <div className="px-2 py-1 text-[10.5px] font-medium text-[var(--accent-emerald)]">
                               Open slot
+                            </div>
+                          )}
+
+                          {!avail && isCellHovered && (
+                            <div className="pointer-events-none px-1.5 py-1 flex items-center gap-1 text-[10px] font-mono-num text-[var(--accent-primary)] opacity-90">
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>{availabilityMode ? 'Pick open' : formatMinutes(startMins, true)}</span>
                             </div>
                           )}
                         </div>
                       );
                     })}
 
-                    {/* Current Time Indicator */}
+                    {/* Live Pulsing Current Time Indicator */}
                     {isToday && nowTopPx >= 0 && nowTopPx <= hours.length * HOUR_HEIGHT && (
                       <div
-                        className="absolute left-0 right-0 z-10 pointer-events-none flex items-center"
+                        className="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
                         style={{ top: `${nowTopPx}px` }}
                       >
+                        <span className="relative flex items-center justify-center ml-1 shrink-0">
+                          <span
+                            className="motion-safe:animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-60"
+                            style={{ backgroundColor: 'var(--accent-primary)' }}
+                          />
+                          <span
+                            className="relative w-2 h-2 rounded-full"
+                            style={{ backgroundColor: 'var(--accent-primary)' }}
+                          />
+                        </span>
                         <span
-                          className="w-2 h-2 rounded-full ml-1.5 shrink-0"
+                          className="ml-1 px-1 py-0 rounded text-[9px] font-mono-num font-bold text-white leading-tight shrink-0"
                           style={{ backgroundColor: 'var(--accent-primary)' }}
-                        />
+                        >
+                          {formatMinutes(nowMinutes, true)}
+                        </span>
                         <div className="flex-1 h-[1.5px]" style={{ backgroundColor: 'var(--accent-primary)' }} />
                       </div>
                     )}
 
-                    {/* Positioned Event Blocks (exact Y coordinates + clean side-by-side overlap lanes) */}
+                    {/* Positioned Event Blocks (vivid scannable cards + hover focus launch + overlap lanes) */}
                     {positioned.map(({ event, col, totalCols }) => {
                       const style = EVENT_CATEGORY_STYLES[event.category];
                       const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
@@ -525,6 +718,11 @@ export const CalendarView: React.FC = () => {
                         ? snapshot.tasks.find((t) => t.id === event.linkedTaskId)
                         : undefined;
                       const isDone = linkedTask ? linkedTask.completed : Boolean(event.completed);
+                      const isFocusLinked =
+                        focusRunning &&
+                        ((linkedTask && activeFocusTaskId === linkedTask.id) ||
+                          (!activeFocusTaskId && isToday && event.category === 'deep' && event.id === 'ev-wed-1'));
+                      const isDimmed = categoryFilter !== null && event.category !== categoryFilter;
 
                       return (
                         <div
@@ -539,21 +737,31 @@ export const CalendarView: React.FC = () => {
                             e.stopPropagation();
                             setSelection({ type: 'event', id: event.id });
                           }}
-                          className="group absolute z-20 rounded-md px-1.5 py-1 overflow-hidden cursor-pointer select-none transition-shadow flex flex-col gap-1.5 backdrop-blur-[2px]"
+                          className="group absolute z-20 rounded-lg px-2 py-1 overflow-hidden cursor-pointer select-none transition-all duration-150 hover:-translate-y-[1px] hover:z-30 flex flex-col gap-1 backdrop-blur-[3px]"
                           style={{
                             top: `${top + 1}px`,
                             height: `${height}px`,
                             left: leftExpr,
                             width: widthExpr,
-                            backgroundColor: isDark ? style.bgDark : style.bgLight,
-                            border: `1px solid ${isDark ? style.borderDark : style.borderLight}`,
-                            borderLeftWidth: '2.5px',
+                            background: isDark
+                              ? `linear-gradient(155deg, ${style.bgDark} 0%, rgba(17, 19, 25, 0.72) 100%)`
+                              : `linear-gradient(155deg, ${style.bgLight} 0%, rgba(255, 255, 255, 0.85) 100%)`,
+                            border: `1px solid ${
+                              isFocusLinked
+                                ? 'var(--accent-primary)'
+                                : isDark
+                                  ? style.borderDark
+                                  : style.borderLight
+                            }`,
+                            borderLeftWidth: '3px',
                             borderLeftColor: style.bar,
                             color: isDark ? style.textDark : style.textLight,
-                            opacity: isDone ? 0.65 : 1,
-                            boxShadow: isSelected
-                              ? '0 0 0 1px rgba(255,255,255,0.28), 0 4px 12px rgba(0,0,0,0.35)'
-                              : 'none',
+                            opacity: isDone ? 0.58 : isDimmed ? 0.22 : 1,
+                            boxShadow: isFocusLinked
+                              ? `0 0 0 1px rgba(231,64,4,0.6), 0 8px 24px -6px rgba(231,64,4,0.45)`
+                              : isSelected
+                                ? `0 0 0 1px ${style.bar}, 0 8px 20px -6px ${isDark ? style.glowDark : 'rgba(15,23,42,0.16)'}`
+                                : `0 2px 8px -2px ${isDark ? 'rgba(0,0,0,0.4)' : 'rgba(15,23,42,0.06)'}`,
                           }}
                         >
                           <div className="flex items-start gap-1.5 min-w-0">
@@ -565,7 +773,7 @@ export const CalendarView: React.FC = () => {
                                   toggleTaskComplete(linkedTask.id);
                                 }}
                                 aria-label={`Toggle ${linkedTask.title}`}
-                                className="mt-0.5 w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center shrink-0"
+                                className="mt-0.5 w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center shrink-0 transition-transform active:scale-75 hover:scale-110"
                                 style={{
                                   borderColor: style.bar,
                                   backgroundColor: isDone ? style.bar : 'transparent',
@@ -575,25 +783,68 @@ export const CalendarView: React.FC = () => {
                               </button>
                             )}
                             <div className="min-w-0 flex-1">
-                              <div
-                                className={`text-[11px] font-semibold leading-[1.22] ${
-                                  height >= 48 ? 'line-clamp-2' : 'truncate'
-                                }`}
-                              >
-                                {event.title}
-                                {!linkedTask && isDone && (
-                                  <Check className="inline-block w-3 h-3 ml-1 text-[var(--accent-emerald)] align-text-bottom" />
+                              <div className="flex items-start justify-between gap-1">
+                                <div
+                                  className={`text-[11px] font-semibold leading-[1.22] ${
+                                    height >= 48 ? 'line-clamp-2' : 'truncate'
+                                  }`}
+                                >
+                                  {event.title}
+                                  {!linkedTask && isDone && (
+                                    <Check className="inline-block w-3 h-3 ml-1 text-[var(--accent-emerald)] align-text-bottom" />
+                                  )}
+                                </div>
+
+                                {height >= 36 && totalCols === 1 && calendarMode !== 'week' && (
+                                  <span
+                                    className="shrink-0 px-1.5 py-0 rounded text-[9px] font-semibold group-hover:opacity-0 transition-opacity"
+                                    style={{
+                                      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)',
+                                      color: style.bar,
+                                    }}
+                                  >
+                                    {isFocusLinked ? 'LIVE' : style.shortLabel}
+                                  </span>
                                 )}
                               </div>
+
+                              {height >= 36 && totalCols === 1 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (linkedTask) setActiveFocusTaskId(linkedTask.id);
+                                    setSelection({ type: 'event', id: event.id });
+                                    setFocusRunning(isFocusLinked ? !focusRunning : true);
+                                  }}
+                                  title={isFocusLinked ? 'Pause focus timer' : 'Start focus timer on this block'}
+                                  aria-label={isFocusLinked ? `Pause focus for ${event.title}` : `Focus on ${event.title}`}
+                                  className="hidden group-hover:inline-flex items-center justify-center absolute top-1.5 right-1.5 w-5 h-5 rounded-full text-white shadow-sm transition-transform hover:scale-110 z-10"
+                                  style={{ backgroundColor: style.bar }}
+                                >
+                                  {isFocusLinked ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                                </button>
+                              )}
+
                               {height >= 34 && (
-                                <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-85 font-mono-num truncate">
-                                  <span>
-                                    {calendarMode !== 'week' && height >= 92
-                                      ? formatTimeRange(event.startMinutes, event.durationMinutes)
-                                      : formatMinutes(event.startMinutes, true)}
-                                  </span>
-                                  {event.videoLink && <Video className="w-2.5 h-2.5 shrink-0" />}
-                                  {event.recurrence !== 'none' && <Repeat className="w-2.5 h-2.5 shrink-0" />}
+                                <div className="mt-0.5 flex items-center justify-between gap-1 text-[10px] opacity-90 font-mono-num">
+                                  <div className="flex items-center gap-1 truncate">
+                                    <span>
+                                      {calendarMode !== 'week' && height >= 92
+                                        ? formatTimeRange(event.startMinutes, event.durationMinutes)
+                                        : formatMinutes(event.startMinutes, true)}
+                                    </span>
+                                    {event.videoLink && <Video className="w-2.5 h-2.5 shrink-0" />}
+                                    {event.recurrence !== 'none' && <Repeat className="w-2.5 h-2.5 shrink-0" />}
+                                  </div>
+                                  {calendarMode === 'week' && totalCols === 1 && (
+                                    <span
+                                      className="text-[9px] font-sans font-semibold shrink-0 opacity-85"
+                                      style={{ color: style.bar }}
+                                    >
+                                      {isFocusLinked ? 'LIVE' : style.shortLabel}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -640,7 +891,14 @@ export const CalendarView: React.FC = () => {
 
       {/* MONTH GRID VIEW */}
       {calendarMode === 'month' && (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <AnimatedContent
+          key="month-view"
+          trigger="load"
+          distance={10}
+          duration={0.26}
+          ease="power2.out"
+          className="flex-1 flex flex-col overflow-hidden"
+        >
           <div className="grid grid-cols-7 border-b bg-[var(--bg-surface)]">
             {(snapshot.preferences.weekStartsOn === 1
               ? [...WEEKDAY_SHORT.slice(1), WEEKDAY_SHORT[0]]
@@ -718,64 +976,80 @@ export const CalendarView: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </AnimatedContent>
       )}
 
       {/* AGENDA TIMELINE VIEW */}
       {calendarMode === 'agenda' && (
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 max-w-4xl">
-          {Array.from({ length: 10 }, (_, idx) => addDays(selectedDate, idx)).map((dKey) => {
-            const d = fromDateKey(dKey);
-            const dayEvents = filteredEvents
-              .filter((e) => e.date === dKey)
-              .sort((a, b) => a.startMinutes - b.startMinutes);
-            const dayTasks = snapshot.tasks.filter((t) => t.dueDate === dKey);
-            if (dayEvents.length === 0 && dayTasks.length === 0) return null;
+        <div className="flex-1 overflow-y-auto p-5">
+          <AnimatedContent
+            key="agenda-view"
+            trigger="load"
+            distance={12}
+            duration={0.32}
+            stagger={0.04}
+            ease="back.out(1.2)"
+            className="space-y-5 max-w-4xl"
+          >
+            {Array.from({ length: 10 }, (_, idx) => addDays(selectedDate, idx)).map((dKey) => {
+              const d = fromDateKey(dKey);
+              const dayEvents = filteredEvents
+                .filter((e) => e.date === dKey)
+                .sort((a, b) => a.startMinutes - b.startMinutes);
+              const dayTasks = snapshot.tasks.filter((t) => t.dueDate === dKey);
+              if (dayEvents.length === 0 && dayTasks.length === 0) return null;
 
-            return (
-              <div key={dKey} className="studio-card rounded-xl overflow-hidden">
-                <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/60">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-display font-bold text-[14px]">
-                      {WEEKDAY_SHORT[d.getDay()]}, {SHORT_MONTH_NAMES[d.getMonth()]} {d.getDate()}
-                    </span>
-                    {dKey === todayKey && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--accent-primary)] text-white">
-                        Today
+              return (
+                <SpotlightCard
+                  key={dKey}
+                  theme={isDark ? 'dark' : 'light'}
+                  spotlightColor={isDark ? 'rgba(231, 64, 4, 0.12)' : 'rgba(231, 64, 4, 0.06)'}
+                  intensity={isDark ? 0.1 : 0.05}
+                  className="studio-card rounded-xl overflow-hidden"
+                >
+                  <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/60">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-display font-bold text-[14px]">
+                        {WEEKDAY_SHORT[d.getDay()]}, {SHORT_MONTH_NAMES[d.getMonth()]} {d.getDate()}
                       </span>
-                    )}
-                  </div>
-                  <span className="text-[11.5px] font-mono-num text-[var(--ink-muted)]">
-                    {dayEvents.length} events · {dayTasks.length} tasks
-                  </span>
-                </div>
-                <div className="divide-y">
-                  {dayEvents.map((ev) => {
-                    const style = EVENT_CATEGORY_STYLES[ev.category];
-                    return (
-                      <button
-                        key={ev.id}
-                        type="button"
-                        onClick={() => setSelection({ type: 'event', id: ev.id })}
-                        className="w-full text-left px-4 py-3 flex items-center justify-between gap-4 hover:bg-[var(--bg-hover)]/40"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: style.bar }} />
-                          <div className="min-w-0">
-                            <p className="font-medium text-[13.5px] truncate">{ev.title}</p>
-                            {ev.location && <p className="text-[12px] text-[var(--ink-muted)]">{ev.location}</p>}
-                          </div>
-                        </div>
-                        <span className="font-mono-num text-[12px] text-[var(--ink-secondary)] shrink-0">
-                          {ev.allDay ? 'All day' : formatTimeRange(ev.startMinutes, ev.durationMinutes)}
+                      {dKey === todayKey && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--accent-primary)] text-white">
+                          Today
                         </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                      )}
+                    </div>
+                    <span className="text-[11.5px] font-mono-num text-[var(--ink-muted)]">
+                      {dayEvents.length} events · {dayTasks.length} tasks
+                    </span>
+                  </div>
+                  <div className="divide-y">
+                    {dayEvents.map((ev) => {
+                      const style = EVENT_CATEGORY_STYLES[ev.category];
+                      return (
+                        <button
+                          key={ev.id}
+                          type="button"
+                          onClick={() => setSelection({ type: 'event', id: ev.id })}
+                          className="w-full text-left px-4 py-3 flex items-center justify-between gap-4 hover:bg-[var(--bg-hover)]/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: style.bar }} />
+                            <div className="min-w-0">
+                              <p className="font-medium text-[13.5px] truncate">{ev.title}</p>
+                              {ev.location && <p className="text-[12px] text-[var(--ink-muted)]">{ev.location}</p>}
+                            </div>
+                          </div>
+                          <span className="font-mono-num text-[12px] text-[var(--ink-secondary)] shrink-0">
+                            {ev.allDay ? 'All day' : formatTimeRange(ev.startMinutes, ev.durationMinutes)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </SpotlightCard>
+              );
+            })}
+          </AnimatedContent>
         </div>
       )}
 
