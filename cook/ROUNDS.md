@@ -1,0 +1,42 @@
+# Cook ledger: Cadence (Calendar & To-Do Studio)
+
+Started: 2026-11-18 17:29 +08:00
+Time: floor 4 Cook rounds + React Bits pass (session cap) | cap single-session completion
+Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/10
+Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
+Usage: paced across parallel subagent critics and layered build steps
+Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [pending Phase 1 completion]
+Best so far: round 01 (pending critic scores), `cook/stills/r01/`, initial commit pending
+
+## Decisions
+
+Made without asking, one line each.
+- 2026-11-18 17:29 Resolved Cook Intake defaults directly from prompt and attached skills (React + TypeScript + Vite + Tailwind + shadcn, inspo-mcp references, strict slop ban list, zero external raster assets), because prompt requested autonomous end-to-end execution of Cook A-to-Z followed by React Bits Effects.
+- 2026-11-18 17:29 Selected dual-register architecture (Obsidian Studio dark default `#0B0C0F` + `#E74004` ember + `#F4C46C` amber, plus Daylight Paper light `#FFFFFF` + `#14A4FC` + `#D6950E`), because `inspo-mcp` top calendar/task references split across dark (`cron-com`, `morgen-so`, `linear-app`, `superlist-com`) and light (`amie-so`, `todoist-com`) while strictly avoiding banned purple and beige.
+- 2026-11-18 17:29 Chose `playwright-core` driving installed Google Chrome (`C:/Program Files/Google/Chrome/Application/chrome.exe`) for deterministic `1440x900` and `375x812` still captures, because Chrome is present locally and avoids slow multi-hundred-MB browser downloads.
+- 2026-11-18 17:29 Included deterministic `?shot=<preset>` URL query presets and seeded date `2026-11-18` alongside normal interactive app state, because Cook requires identical framing and reproducible still comparisons across every round.
+
+## User feedback inbox
+
+- 2026-11-18 17:21 "make sure you actually use the whole cook skill A to Z, everything and the inspo mcp to fetch references to : I need you to make a calander and to do list website but consider many feature that relate to it put it in one website. After you finish the website using cook skill, use the react skill and apply it to the website. remember full award winning best looking website." | intake | open
+
+---
+
+## Round 01
+
+Time: 17:29 to 17:38 +08:00 | total elapsed 0.15h
+Usage: not readable
+Focus: Initial full-feature Calendar & To-Do Studio build and verification harness across S01-S06
+
+Changes:
+- Built complete unified WorkspaceContext (`src/context/WorkspaceContext.tsx`) with localStorage persistence, Undo stack, keyboard shortcuts, deterministic `?shot=` presets, NLP task parser (`src/utils/nlp.ts`), RFC 5545 `.ics` exporter (`src/utils/ics.ts`), and subtle Web Audio chime synth (`src/utils/sound.ts`).
+- Built TopBar (`src/components/TopBar.tsx`), Sidebar with mini-calendar & drag-to-calendar queue (`src/components/Sidebar.tsx`), multi-view Calendar with overlap layout & drag/resize (`src/components/CalendarView.tsx`), InspectorRail with Pomodoro timer & Daily Notes extractor (`src/components/InspectorRail.tsx`), TasksWorkspace with List/Kanban/Eisenhower Matrix (`src/components/TasksWorkspace.tsx`), FocusHabitsStudio (`src/components/FocusHabitsStudio.tsx`), AnalyticsSuite (`src/components/AnalyticsSuite.tsx`), ProductivityOverview (`src/components/ProductivityOverview.tsx`), CommandPalette (`src/components/CommandPalette.tsx`), FocusCurtain, MobileDock, and ToastStack.
+- Built Cook still renderer (`scripts/render-stills.mjs`) and interaction test suite (`scripts/verify-interactions.mjs`).
+
+Stills: `cook/stills/r01/` | Side by side: `cook/compare/r01/`
+
+Measured (command and result):
+- `npm run build`: `tsc -b && vite build` exited 0 in 3.14s (`dist/assets/index-b7DmfGQi.js` 373.51 kB).
+- `node scripts/render-stills.mjs r01`: S01 1448ms, S02 1621ms, S03 1553ms, S04 1338ms, S05 1330ms, S06 1314ms; horizontal overflow `false` on all 6 shots; 1 console 404 (`favicon.ico`) caught on S01.
+- `python cook/color_check.py`: S01 vs R01 sat `+0.157` bright `-0.034`; S02 vs R04 sat `-0.145` bright `-0.186`; S03 vs R03 sat `+0.012` bright `+0.006`; S04 vs R05 sat `+0.138` bright `+0.015`; S05 vs R01 sat `+0.131` bright `-0.048`.
+- `node scripts/verify-interactions.mjs`: failed on `favicon.ico` 404 console error check (all UI flow assertions passed prior to error gate).
