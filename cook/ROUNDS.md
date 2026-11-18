@@ -5,8 +5,8 @@ Time: floor 4 Cook rounds + React Bits pass (session cap) | cap single-session c
 Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/10
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
-Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [pending Phase 1 completion]
-Best so far: round 05, `cook/stills/r05/`, commit `pending-r05`
+Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [complete]
+Best so far: round 07 (`r07-final`), `cook/stills/r07-final/`, built cleanly after `f6f1d28`
 
 ## Decisions
 
@@ -244,3 +244,67 @@ Top gaps from critics:
 
 Stop check: bar [almost; clean Phase 1 foundation ready for final micro-fix + Phase 2 React Bits Effects] | floor [yes - 5 Cook rounds completed] | stills approved [pending final review] | final checked [pending Phase 2 React Bits]
 Next focus: Apply quick micro-polish items (11:45 AM unclipped time needle, `studio.` kerning, `4 open`, `Other scheduled`, `Pomodoro` subtitle, `items-start` Matrix content fit, `+ UTC` label, `Milestone` wrap) AND layer the full suite of React Bits Effects (`@react-bits/*-JS-CSS`) across Overview, Cards, Typography, Micro controls, and Workspace views.
+
+---
+
+## Round 06-rb (Phase 2: React Bits Integration & Micro-Polish)
+
+Time: 18:15 to 18:31 +08:00 | total elapsed 1.03h
+Usage: not readable
+Focus: Fold in Round 05 micro-fixes and apply `@react-bits/*-JS-CSS` animated layering across Cadence (`App`, `TopBar`, `ProductivityOverview`, `FocusHabitsStudio`, `AnalyticsSuite`, `TasksWorkspace`) with strict palette and reduced-motion discipline
+
+Changes:
+- Installed 23 official `@react-bits/*-JS-CSS` components via `npx shadcn@latest add`, created typed barrel `src/lib/reactbits.ts`, removed default purple/green fallback colors in `Aurora.jsx`, `BorderGlow.jsx`, `BorderGlow.css`, `GradientText.jsx`, `DotGrid.jsx`, `MagicBento.jsx`, `CardSwap.jsx`, removed external image strings from `CardSwap.jsx`, and expanded `scripts/slop-scan.mjs` across `.jsx`/`.js`/`.ts`/`.tsx`/`.css`.
+- Wrapped workspace shell in ember `<ClickSpark>` (`src/App.tsx`), logo in `<Magnet>` (`src/components/TopBar.tsx`), Matrix & Backlog cards in `<SpotlightCard>` and CTAs in `<GlareHover>` (`TasksWorkspace.tsx`, `AnalyticsSuite.tsx`), Focus engine & Analytics weekly chart in `<BorderGlow>` + customizable focus length `<ElasticSlider>` (`FocusHabitsStudio.tsx`), and KPI stats in `<CountUp>` (`AnalyticsSuite.tsx`).
+- Layered Overview (`src/components/ProductivityOverview.tsx`) with masked atmospheric `<Aurora>` + `<DotGrid>`, `<BlurText>` + `<GradientText>` hero headline, `<BorderGlow>` + `<TextType>` + `<ShinyText>` preview chrome, `<FadeContent>` + `<CountUp>` metrics, native-visual `<MagicBento>`, 3-up `<Folder>` packs + `<CardSwap>` workflow stack, interactive `<Dock>`, and `<DecryptedText>` keyboard shortcuts.
+- Fixed Round 05 micro-items: moved current-time needle to `11:45 AM` (`ml-1.5`), switched Matrix back to content-hugging `items-start` + bottom summary bar, updated legend to `Other scheduled`, changed Pomodoro subtitle, renamed `1 TZ` to `+ UTC`, and tightened Inspector pill wrapping.
+
+Stills: `cook/stills/r06-rb/` | Side by side: `cook/compare/r06-rb/` (plus scrolled Overview captures `overview_mid.png`, `overview_low.png`, `overview_dock.png`)
+
+Scores, eyeballed: critic audit (2 fresh zero-context critics on `r06-rb`: Alpha inherit + Pro pro; mapped `match / hierarchy / craft / discipline / taste`)
+
+| Shot | Alpha (`match/hier/craft/disc/taste`) | Pro (`match/hier/craft/disc/taste`) |
+|---|---|---|
+| S01 | 97 / 97 / 96 / 99 / 98 (Avg 97.4) | 96 / 96 / 95 / 98 / 97 |
+| S02 | 96 / 98 / 96 / 99 / 97 (Avg 97.2) | 94 / 97 / 97 / 98 / 96 |
+| S03 | 98 / 98 / 98 / 99 / 98 (Avg 98.2) | 97 / 96 / 95 / 98 / 97 |
+| S04 | 97 / 98 / 97 / 99 / 98 (Avg 97.8) | 96 / 97 / 97 / 98 / 97 |
+| S05 | 96 / 97 / 91 / 98 / 96 (Avg 95.6) | 96 / 97 / 92 / 98 / 95 |
+| S06 | 96 / 97 / 97 / 99 / 97 (Avg 97.2) | 93 / 96 / 96 / 98 / 96 |
+
+Measured (command and result):
+- `npm run build`: exited 0 in 12.10s (`dist/assets/index-Uezz2h9M.js` 884.67 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 64 files clean`.
+- `node scripts/render-stills.mjs r06-rb`: `S01`–`S06` overflow `false`, errors `[]`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+
+Top gaps from `r06-rb` critics:
+1. S05 Hero H1 `Plus Jakarta Sans` weight-800 glyph sidebearing left visible gap before period (`"Finally in one studio ."`).
+2. S03 `buildHabitHistory` pattern helper checked `.includes(i % 7)` on a binary array instead of indexing `pattern[i % 7] === 1`, leaving `Th 12..Mo 16` unchecked; `BorderGlow.css` default shadow outweighed adjacent paper cards on light mode.
+3. S05 `Command Bar` secondary button needed clearer border pill framing + faster `TextType` chrome typing speed.
+
+---
+
+## Round 07-final (Ship Micro-Fixes & Final Verification)
+
+Time: 18:32 to 18:36 +08:00 | total elapsed 1.12h
+Focus: Fix S05 Hero `"studio."` kerning, `Command Bar` keycap framing, `TextType` `typingSpeed={4}`, `BorderGlow.css` `--shadow-card` parity, and `buildHabitHistory` 7-day habit population, then add `README.md` + `docs/PROMPT.md`
+
+Changes:
+- Fixed `buildHabitHistory` (`pattern[i % 7] === 1`) in `src/data/seed.ts` so all 7 habit columns (`3d/4d/1d/5d`) populate realistically and Analytics KPI `7-day habit consistency` reads `71%` cleanly.
+- Updated `BorderGlow.css` card `box-shadow` to inherit `var(--shadow-card)` cleanly in light/dark themes.
+- Set Overview Hero `<h1>` font stack to `'Inter'` (`clamp(2.5rem, 4.4vw, 3.9rem)`, `-0.04em`), styled `Command Bar` with bordered `Ctrl+K` keycap chip, and tightened preview chrome `TextType` (`typingSpeed={4}`) (`src/components/ProductivityOverview.tsx`).
+- Added `README.md` and `docs/PROMPT.md`.
+
+Stills: `cook/stills/r07-final/` | Side by side: `cook/compare/r07-final/`
+
+Measured after final app code edit (`r07-final`):
+- `npm run build`: exited 0 in 11.52s (`tsc -b && vite build`, `8158` modules, `dist/assets/index-DUHgm0Yt.css` `105.80 kB`, `dist/assets/index-CvP-ymjp.js` `884.92 kB`).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 64 files clean`.
+- `node scripts/render-stills.mjs r07-final`: `S01` 1437ms, `S02` 1547ms, `S03` 1403ms, `S04` 1250ms, `S05` 1520ms, `S06` 1272ms; overflow `false`, errors `[]` across all 6 shots.
+- `python cook/color_check.py`: `S01 vs R01` sat `+0.189` bright `-0.040`; `S02 vs R04` sat `-0.087` bright `-0.190`; `S03 vs R03` sat `-0.003` bright `+0.007`; `S04 vs R05` sat `+0.181` bright `+0.037`; `S05 vs R01` sat `+0.247` bright `-0.028`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- Visual check on `r07-final/S05.png`, `r07-final/S03.png`, `r07-final/S04.png`, `r07-final/S01.png`, `r07-final/S06.png`: `"studio."` kerning resolved cleanly, `"25:00 Deep Focus · 4 open blocks"` complete, all 7 habit days populated, light/dark shadows matched, `0` em-dashes, `0` console errors.
+- Secret scan (`git grep`): `SECRET_SCAN_EXIT:1` (0 matches).
+
+Stop check: floor [yes - 7 iterations across Phase 1 & Phase 2] | final checks [yes - build, slop-scan, stills, interactions, secret grep all clean] | git push [skipped locally per instruction] -> ready to present to user.

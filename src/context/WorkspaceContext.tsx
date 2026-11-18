@@ -194,7 +194,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const todayKey = SEED_TODAY;
-  const nowMinutes = 11 * 60 + 25; // 11:25 AM crisp indicator line
+  const nowMinutes = 11 * 60 + 45; // 11:45 AM clear of 9:00-11:30 block border
 
   // Sync HTML theme class
   useEffect(() => {

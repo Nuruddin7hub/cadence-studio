@@ -7,16 +7,17 @@ function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full);
-    else if (/\.(ts|tsx|css)$/.test(entry.name)) files.push(full);
+    else if (/\.(ts|tsx|js|jsx|css)$/.test(entry.name)) files.push(full);
   }
 }
 walk(srcDir);
 
 const bans = [
   ['em-dash', /\u2014/],
-  ['purple-hex', /#(8b5cf6|a855f7|9333ea|7c3aed|6a30ea|c084fc)/i],
+  ['purple-hex', /#(8b5cf6|a855f7|9333ea|7c3aed|6a30ea|c084fc|5227ff|8400ff|f472b6|c299ff|b497cf|ff9ffc)/i],
   ['beige', /\bbeige\b/i],
   ['uppercase-mono', /font-mono[^"']*uppercase|uppercase[^"']*font-mono/],
+  ['external-image', /unsplash\.com|pexels\.com/i],
 ];
 
 const hits = [];

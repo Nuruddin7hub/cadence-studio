@@ -5,8 +5,8 @@ function buildHabitHistory(pattern: number[]): Record<string, boolean> {
   const out: Record<string, boolean> = {};
   for (let i = 0; i < 21; i++) {
     const key = addDays(SEED_TODAY, -i);
-    if (pattern.includes(i % 7) || i === 0) {
-      out[key] = i === 0 ? pattern[0] === 1 : true;
+    if (pattern[i % 7] === 1) {
+      out[key] = true;
     }
   }
   return out;

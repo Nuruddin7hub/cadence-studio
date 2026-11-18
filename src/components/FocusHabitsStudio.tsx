@@ -15,6 +15,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { HabitItem } from '../types/workspace';
 import { addDays, formatReadableDate, WEEKDAY_TWO } from '../utils/date';
+import { BorderGlow, ElasticSlider, GlareHover, ShinyText, SpotlightCard } from '../lib/reactbits';
 
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -48,6 +49,7 @@ export const FocusHabitsStudio: React.FC = () => {
   const [habitName, setHabitName] = useState('');
   const [habitCat, setHabitCat] = useState<HabitItem['category']>('focus');
   const [noteDraft, setNoteDraft] = useState('');
+  const isDark = snapshot.preferences.theme === 'dark';
 
   const last7Days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(todayKey, i - 6)),
@@ -148,130 +150,178 @@ export const FocusHabitsStudio: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Balanced Pomodoro Focus Engine (Cohesive Ember Brand Accent!) */}
-          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display font-bold text-[15px]">Pomodoro Session</h2>
-                <p className="text-[12px] text-[var(--ink-muted)] font-mono-num">
-                  {todayFocusMins}m today · {totalFocusMins}m all-time
-                </p>
+          {/* Balanced Pomodoro Focus Engine with BorderGlow, GlareHover & ElasticSlider */}
+          <BorderGlow
+            className="lg:col-span-5"
+            colors={['#E74004', '#F4C46C', '#14A4FC']}
+            glowColor="18 92 52"
+            backgroundColor="var(--bg-surface)"
+            borderRadius={16}
+            glowRadius={32}
+            glowIntensity={isDark ? 0.6 : 0.25}
+            fillOpacity={0.25}
+          >
+            <section className="studio-card rounded-2xl p-5 w-full h-full flex flex-col justify-between space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display font-bold text-[15px]">Pomodoro Session</h2>
+                  <p className="text-[12px] text-[var(--ink-muted)] font-mono-num">
+                    {focusRunning ? (
+                      <ShinyText text="Deep focus timer active" color="var(--accent-primary)" shineColor="#FFFFFF" speed={2.5} />
+                    ) : (
+                      `25 / 5 / 15m cadences · ${totalFocusMins}m all-time`
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 p-0.5 rounded-lg border bg-[var(--bg-inset)]">
+                  {([
+                    ['focus', '25m'],
+                    ['short_break', '5m'],
+                    ['long_break', '15m'],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setFocusMode(mode)}
+                      className="px-2.5 py-1 rounded-md text-[11.5px] font-mono-num font-medium transition-colors"
+                      style={{
+                        backgroundColor: focusMode === mode ? 'var(--bg-surface)' : 'transparent',
+                        color: focusMode === mode ? 'var(--ink-primary)' : 'var(--ink-muted)',
+                        boxShadow: focusMode === mode ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-1 p-0.5 rounded-lg border bg-[var(--bg-inset)]">
-                {([
-                  ['focus', '25m'],
-                  ['short_break', '5m'],
-                  ['long_break', '15m'],
-                ] as const).map(([mode, label]) => (
+
+              <div className="flex flex-col sm:flex-row items-center gap-5 py-1">
+                <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
+                  <svg className="w-32 h-32 -rotate-90" viewBox="0 0 160 160">
+                    <circle cx="80" cy="80" r="66" fill="none" stroke="var(--rule-strong)" strokeWidth="6.5" />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="66"
+                      fill="none"
+                      stroke="var(--accent-primary)"
+                      strokeWidth="6.5"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 66}
+                      strokeDashoffset={2 * Math.PI * 66 * (1 - pct)}
+                    />
+                  </svg>
+                  <div className="absolute text-center">
+                    <div className="font-mono-num text-[26px] font-bold tracking-tight">
+                      {formatClock(focusSecondsLeft)}
+                    </div>
+                    <div className="text-[10.5px] text-[var(--ink-muted)]">
+                      {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-w-0 space-y-2.5">
+                  <div className="px-3 py-2 rounded-xl bg-[var(--bg-inset)] space-y-0.5">
+                    <span className="text-[11px] text-[var(--ink-muted)]">Active target</span>
+                    <select
+                      value={activeFocusTaskId ?? ''}
+                      onChange={(e) => setActiveFocusTaskId(e.target.value || null)}
+                      aria-label="Linked focus task"
+                      className="w-full bg-transparent text-[12.5px] font-medium text-[var(--ink-primary)] focus:outline-none cursor-pointer"
+                    >
+                      <option value="">Free focus session</option>
+                      {snapshot.tasks
+                        .filter((t) => !t.completed)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
+                      <div className="font-mono-num font-bold text-[15px]">{todayFocusMins}m</div>
+                      <div className="text-[10.5px] text-[var(--ink-muted)]">Today logged</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
+                      <div className="font-mono-num font-bold text-[15px]">{snapshot.focusHistory.length}</div>
+                      <div className="text-[10.5px] text-[var(--ink-muted)]">Sprints done</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="12px" className="inline-flex">
+                      <button
+                        type="button"
+                        onClick={() => setFocusRunning(!focusRunning)}
+                        aria-label={focusRunning ? 'Pause timer' : 'Start session'}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors"
+                        style={{ backgroundColor: 'var(--accent-primary)' }}
+                      >
+                        {focusRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        <span>{focusRunning ? 'Pause timer' : 'Start session'}</span>
+                      </button>
+                    </GlareHover>
+                    <button
+                      type="button"
+                      onClick={() => resetFocusTimer()}
+                      className="p-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                      aria-label="Reset timer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
                   <button
-                    key={mode}
                     type="button"
-                    onClick={() => setFocusMode(mode)}
-                    className="px-2.5 py-1 rounded-md text-[11.5px] font-mono-num font-medium transition-colors"
-                    style={{
-                      backgroundColor: focusMode === mode ? 'var(--bg-surface)' : 'transparent',
-                      color: focusMode === mode ? 'var(--ink-primary)' : 'var(--ink-muted)',
-                      boxShadow: focusMode === mode ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    }}
+                    onClick={completeFocusNow}
+                    className="px-3.5 py-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[12px] font-medium"
                   >
-                    {label}
+                    Log sprint
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-5 py-2">
-              <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 160 160">
-                  <circle cx="80" cy="80" r="66" fill="none" stroke="var(--rule-strong)" strokeWidth="6.5" />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="66"
-                    fill="none"
-                    stroke="var(--accent-primary)"
-                    strokeWidth="6.5"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 66}
-                    strokeDashoffset={2 * Math.PI * 66 * (1 - pct)}
+                {/* Tactile React Bits ElasticSlider for customizable sprint duration */}
+                <div className="pt-2 border-t flex items-center justify-between gap-3">
+                  <span className="text-[11.5px] text-[var(--ink-muted)] shrink-0">
+                    Sprint length
+                  </span>
+                  <ElasticSlider
+                    value={snapshot.preferences.focusMinutes}
+                    startingValue={15}
+                    maxValue={60}
+                    isStepped
+                    stepSize={5}
+                    onChange={(v: number) => updatePreferences({ focusMinutes: v })}
+                    leftIcon={<span className="font-mono-num text-[10.5px] opacity-65">15m</span>}
+                    rightIcon={<span className="font-mono-num text-[10.5px] opacity-65">60m</span>}
+                    rangeColor="var(--accent-primary)"
+                    thumbColor="#FFFFFF"
+                    valuePosition="none"
+                    thickness={5}
+                    activeThickness={8}
+                    ariaLabel="Focus session duration minutes"
+                    style={{ width: '100%' }}
                   />
-                </svg>
-                <div className="absolute text-center">
-                  <div className="font-mono-num text-[26px] font-bold tracking-tight">
-                    {formatClock(focusSecondsLeft)}
-                  </div>
-                  <div className="text-[10.5px] text-[var(--ink-muted)]">
-                    {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
-                  </div>
                 </div>
               </div>
+            </section>
+          </BorderGlow>
 
-              <div className="flex-1 w-full min-w-0 space-y-2.5">
-                <div className="px-3 py-2 rounded-xl bg-[var(--bg-inset)] space-y-0.5">
-                  <span className="text-[11px] text-[var(--ink-muted)]">Active target</span>
-                  <select
-                    value={activeFocusTaskId ?? ''}
-                    onChange={(e) => setActiveFocusTaskId(e.target.value || null)}
-                    aria-label="Linked focus task"
-                    className="w-full bg-transparent text-[12.5px] font-medium text-[var(--ink-primary)] focus:outline-none cursor-pointer"
-                  >
-                    <option value="">Free focus session</option>
-                    {snapshot.tasks
-                      .filter((t) => !t.completed)
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.title}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
-                    <div className="font-mono-num font-bold text-[15px]">{todayFocusMins}m</div>
-                    <div className="text-[10.5px] text-[var(--ink-muted)]">Today logged</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
-                    <div className="font-mono-num font-bold text-[15px]">{snapshot.focusHistory.length}</div>
-                    <div className="text-[10.5px] text-[var(--ink-muted)]">Sprints done</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFocusRunning(!focusRunning)}
-                  aria-label={focusRunning ? 'Pause timer' : 'Start session'}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors"
-                  style={{ backgroundColor: 'var(--accent-primary)' }}
-                >
-                  {focusRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  <span>{focusRunning ? 'Pause timer' : 'Start session'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => resetFocusTimer()}
-                  className="p-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-                  aria-label="Reset timer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={completeFocusNow}
-                className="px-3.5 py-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[12px] font-medium"
-              >
-                Log sprint
-              </button>
-            </div>
-          </section>
-
-          {/* Habit Streak Matrix (Harmonized Ember/Sage Pills) */}
-          <section className="lg:col-span-7 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          {/* Habit Streak Matrix with SpotlightCard */}
+          <SpotlightCard
+            theme={isDark ? 'dark' : 'light'}
+            spotlightColor={isDark ? 'rgba(231, 64, 4, 0.12)' : 'rgba(231, 64, 4, 0.06)'}
+            intensity={isDark ? 0.11 : 0.06}
+            className="lg:col-span-7 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4"
+          >
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -407,12 +457,17 @@ export const FocusHabitsStudio: React.FC = () => {
                 </table>
               </div>
             </div>
-          </section>
+          </SpotlightCard>
         </div>
 
-        {/* Clean Hairline-Divided Daily Journal & Rebalanced Recent Focus Log */}
+        {/* Clean Hairline-Divided Daily Journal & Rebalanced Recent Focus Log with SpotlightCard */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-3.5">
+          <SpotlightCard
+            theme={isDark ? 'dark' : 'light'}
+            spotlightColor={isDark ? 'rgba(231, 64, 4, 0.11)' : 'rgba(231, 64, 4, 0.06)'}
+            intensity={isDark ? 0.1 : 0.05}
+            className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-3.5"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="font-display font-bold text-[15px]">
@@ -483,9 +538,14 @@ export const FocusHabitsStudio: React.FC = () => {
                 );
               })}
             </div>
-          </section>
+          </SpotlightCard>
 
-          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-3">
+          <SpotlightCard
+            theme={isDark ? 'dark' : 'light'}
+            spotlightColor={isDark ? 'rgba(231, 64, 4, 0.11)' : 'rgba(231, 64, 4, 0.06)'}
+            intensity={isDark ? 0.1 : 0.05}
+            className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-3"
+          >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -523,7 +583,7 @@ export const FocusHabitsStudio: React.FC = () => {
                 ))}
               </ul>
             </div>
-          </section>
+          </SpotlightCard>
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ import { useWorkspace } from '../context/WorkspaceContext';
 import type { WorkspaceTab } from '../types/workspace';
 import { formatMinutes } from '../utils/date';
 import { parseQuickInput } from '../utils/nlp';
+import { Magnet } from '../lib/reactbits';
 
 const TABS: { id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'planner', label: 'Planner', icon: Calendar },
@@ -81,28 +82,30 @@ export const TopBar: React.FC = () => {
         }}
       >
         <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => setActiveTab('planner')}
-            className="flex items-center gap-2.5 shrink-0 group focus:outline-none"
-          >
-            <span
-              className="w-7 h-7 rounded-lg flex items-center justify-center border transition-transform group-hover:scale-105"
-              style={{
-                backgroundColor: 'var(--accent-primary)',
-                borderColor: 'rgba(255,255,255,0.2)',
-              }}
+          <Magnet padding={28} magnetStrength={5}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('planner')}
+              className="flex items-center gap-2.5 shrink-0 group focus:outline-none"
             >
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <rect x="2" y="3" width="12" height="10" rx="2" stroke="#FFFFFF" strokeWidth="1.6" />
-                <path d="M5 1.75V4M11 1.75V4M2 6.5H14" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="8" cy="9.8" r="1.35" fill="#FFFFFF" />
-              </svg>
-            </span>
-            <span className="font-display font-bold text-[15px] tracking-tight text-[var(--ink-primary)]">
-              Cadence
-            </span>
-          </button>
+              <span
+                className="w-7 h-7 rounded-lg flex items-center justify-center border transition-transform group-hover:scale-105"
+                style={{
+                  backgroundColor: 'var(--accent-primary)',
+                  borderColor: 'rgba(255,255,255,0.2)',
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="10" rx="2" stroke="#FFFFFF" strokeWidth="1.6" />
+                  <path d="M5 1.75V4M11 1.75V4M2 6.5H14" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="8" cy="9.8" r="1.35" fill="#FFFFFF" />
+                </svg>
+              </span>
+              <span className="font-display font-bold text-[15px] tracking-tight text-[var(--ink-primary)]">
+                Cadence
+              </span>
+            </button>
+          </Magnet>
 
           <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium text-[var(--ink-secondary)]">
             <button type="button" onClick={() => jumpTo('overview-features')} className="hover:text-[var(--ink-primary)] transition-colors">

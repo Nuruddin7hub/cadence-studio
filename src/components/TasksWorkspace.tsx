@@ -16,6 +16,7 @@ import type { EisenhowerQuadrant, TaskStatus, TaskViewMode } from '../types/work
 import { formatMinutes, formatReadableDate } from '../utils/date';
 import { parseQuickInput } from '../utils/nlp';
 import { PRIORITY_META } from '../utils/themeTokens';
+import { GlareHover, SpotlightCard } from '../lib/reactbits';
 
 const KANBAN_COLS: { id: TaskStatus; label: string; accent: string }[] = [
   { id: 'backlog', label: 'Backlog', accent: '#848F9F' },
@@ -61,6 +62,7 @@ export const TasksWorkspace: React.FC = () => {
   const [subtaskDrafts, setSubtaskDrafts] = useState<Record<string, string>>({});
   const [quadDrafts, setQuadDrafts] = useState<Record<string, string>>({});
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const isDark = snapshot.preferences.theme === 'dark';
 
   const parsedPreview = useMemo(
     () => (draft.trim() ? parseQuickInput(draft, todayKey) : null),
@@ -201,13 +203,15 @@ export const TasksWorkspace: React.FC = () => {
                 )}
               </div>
             )}
-            <button
-              type="submit"
-              className="px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-white shrink-0 transition-colors"
-              style={{ backgroundColor: 'var(--accent-primary)' }}
-            >
-              Add task
-            </button>
+            <GlareHover glareColor="#ffffff" glareOpacity={0.22} borderRadius="8px" className="inline-flex shrink-0">
+              <button
+                type="submit"
+                className="px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-white shrink-0 transition-colors"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                Add task
+              </button>
+            </GlareHover>
           </form>
 
           <div className="lg:col-span-5 flex items-center gap-2 relative">
@@ -522,22 +526,26 @@ export const TasksWorkspace: React.FC = () => {
           </div>
         )}
 
-        {/* MODE 3: EISENHOWER PRIORITY MATRIX (Symmetric hairline rows + bottom-pinned quick add) */}
+        {/* MODE 3: EISENHOWER PRIORITY MATRIX (Content-hugging hairline rows + bottom telemetry strip) */}
         {taskViewMode === 'matrix' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-            {MATRIX_QUADS.map((q) => {
-              const items = filteredTasks.filter((t) => !t.completed && t.quadrant === q.id);
-              return (
-                <div
-                  key={q.id}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    const id = e.dataTransfer.getData('text/cadence-matrix-task');
-                    if (id) moveTaskQuadrant(id, q.id);
-                  }}
-                  className="studio-card rounded-2xl overflow-hidden flex flex-col justify-between"
-                >
-                  <div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              {MATRIX_QUADS.map((q) => {
+                const items = filteredTasks.filter((t) => !t.completed && t.quadrant === q.id);
+                return (
+                  <SpotlightCard
+                    key={q.id}
+                    theme={isDark ? 'dark' : 'light'}
+                    spotlightColor={isDark ? 'rgba(231, 64, 4, 0.11)' : 'rgba(231, 64, 4, 0.06)'}
+                    intensity={isDark ? 0.1 : 0.05}
+                    borderGlow={0.5}
+                    onDragOver={(e: React.DragEvent) => e.preventDefault()}
+                    onDrop={(e: React.DragEvent) => {
+                      const id = e.dataTransfer.getData('text/cadence-matrix-task');
+                      if (id) moveTaskQuadrant(id, q.id);
+                    }}
+                    className="studio-card rounded-2xl overflow-hidden flex flex-col"
+                  >
                     <div className="px-4 py-3.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/40">
                       <div className="flex items-center gap-2.5">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: q.accent }} />
@@ -625,23 +633,31 @@ export const TasksWorkspace: React.FC = () => {
                         );
                       })}
                     </div>
-                  </div>
 
-                  <form
-                    onSubmit={(e) => handleQuadAdd(q.id, e)}
-                    className="mt-auto px-4 py-2.5 border-t bg-[var(--bg-inset)]/45"
-                  >
-                    <input
-                      type="text"
-                      value={quadDrafts[q.id] ?? ''}
-                      onChange={(e) => setQuadDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                      placeholder={`+ Add directly to ${q.title}...`}
-                      className="w-full bg-transparent text-[12px] text-[var(--ink-primary)] placeholder:text-[var(--ink-secondary)]/75 focus:outline-none"
-                    />
-                  </form>
-                </div>
-              );
-            })}
+                    <form
+                      onSubmit={(e) => handleQuadAdd(q.id, e)}
+                      className="px-4 py-2.5 border-t bg-[var(--bg-inset)]/45"
+                    >
+                      <input
+                        type="text"
+                        value={quadDrafts[q.id] ?? ''}
+                        onChange={(e) => setQuadDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder={`+ Add directly to ${q.title}...`}
+                        className="w-full bg-transparent text-[12px] text-[var(--ink-primary)] placeholder:text-[var(--ink-secondary)]/75 focus:outline-none"
+                      />
+                    </form>
+                  </SpotlightCard>
+                );
+              })}
+            </div>
+
+            <div className="studio-card rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--ink-secondary)]">
+              <span>Drag any task row between quadrants to reprioritize or click Block to schedule onto today&apos;s timeline.</span>
+              <span className="font-mono-num text-[var(--ink-muted)]">
+                {filteredTasks.filter((t) => !t.completed).length} active ·{' '}
+                {filteredTasks.filter((t) => !t.completed && t.scheduledDate).length} time-blocked
+              </span>
+            </div>
           </div>
         )}
       </div>

@@ -241,7 +241,7 @@ export const CalendarView: React.FC = () => {
             title="Toggle secondary timezone ruler"
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>{snapshot.preferences.showSecondaryTz ? snapshot.preferences.secondaryTimezone : '1 TZ'}</span>
+            <span>{snapshot.preferences.showSecondaryTz ? snapshot.preferences.secondaryTimezone : '+ UTC'}</span>
           </button>
 
           <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5 w-full sm:w-auto justify-between sm:justify-start">
@@ -475,7 +475,7 @@ export const CalendarView: React.FC = () => {
                         style={{ top: `${nowTopPx}px` }}
                       >
                         <span
-                          className="w-2 h-2 rounded-full ml-0.5 shrink-0"
+                          className="w-2 h-2 rounded-full ml-1.5 shrink-0"
                           style={{ backgroundColor: 'var(--accent-primary)' }}
                         />
                         <div className="flex-1 h-[1.5px]" style={{ backgroundColor: 'var(--accent-primary)' }} />

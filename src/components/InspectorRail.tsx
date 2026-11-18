@@ -354,7 +354,7 @@ export const InspectorRail: React.FC = () => {
                         key={cat}
                         type="button"
                         onClick={() => updateEvent(selectedEvent.id, { category: cat })}
-                        className="px-2 py-0.5 rounded-full text-[10.5px] transition-colors"
+                        className="px-1.5 py-0.5 rounded-full text-[10px] transition-colors"
                         style={{
                           backgroundColor: active ? m.bgDark : 'var(--bg-inset)',
                           color: active ? m.bar : 'var(--ink-secondary)',

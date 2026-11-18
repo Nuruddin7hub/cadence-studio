@@ -5,6 +5,7 @@ import type { EventCategory } from '../types/workspace';
 import { addDays, getWeekDates, WEEKDAY_SHORT } from '../utils/date';
 import { buildIcsExport, buildJsonBackup, triggerFileDownload } from '../utils/ics';
 import { EVENT_CATEGORY_STYLES } from '../utils/themeTokens';
+import { BorderGlow, CountUp, GlareHover, SpotlightCard } from '../lib/reactbits';
 
 export const AnalyticsSuite: React.FC = () => {
   const {
@@ -138,14 +139,16 @@ export const AnalyticsSuite: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportIcs}
-              className="studio-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
-            >
-              <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-              <span>Export .ics</span>
-            </button>
+            <GlareHover glareColor="#ffffff" glareOpacity={0.14} borderRadius="8px" className="inline-flex">
+              <button
+                type="button"
+                onClick={handleExportIcs}
+                className="studio-card inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+              >
+                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>Export .ics</span>
+              </button>
+            </GlareHover>
 
             <div className="flex items-center rounded-lg border bg-[var(--bg-surface)] p-0.5">
               <button
@@ -187,42 +190,57 @@ export const AnalyticsSuite: React.FC = () => {
           </div>
         </div>
 
-        {/* Monochrome Obsidian KPI Row with inline progress strips */}
+        {/* Monochrome Obsidian KPI Row with SpotlightCard & CountUp */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               label: 'Scheduled this week',
-              value: `${stats.scheduledHours}h`,
+              raw: stats.scheduledHours,
+              decimals: 1,
+              suffix: 'h',
               delta: `${stats.timedCount} blocks`,
               pct: Math.min(100, Math.round((stats.scheduledHours / 40) * 100)),
               accent: 'var(--accent-primary)',
             },
             {
               label: 'Task completion rate',
-              value: `${stats.completionRate}%`,
+              raw: stats.completionRate,
+              decimals: 0,
+              suffix: '%',
               delta: `${stats.completedTasks}/${stats.totalTasks} done`,
               pct: stats.completionRate,
               accent: 'var(--ink-secondary)',
             },
             {
               label: 'Deep focus logged',
-              value: `${stats.focusHours}h`,
+              raw: stats.focusHours,
+              decimals: 1,
+              suffix: 'h',
               delta: `${snapshot.focusHistory.length} sprints`,
               pct: Math.min(100, Math.round((stats.focusHours / 10) * 100)),
               accent: 'var(--accent-primary)',
             },
             {
               label: '7-day habit consistency',
-              value: `${stats.habitCompletionPct}%`,
+              raw: stats.habitCompletionPct,
+              decimals: 0,
+              suffix: '%',
               delta: `${snapshot.habits.length} habits`,
               pct: stats.habitCompletionPct,
               accent: 'var(--ink-secondary)',
             },
           ].map((kpi) => (
-            <div key={kpi.label} className="studio-card rounded-xl p-4 flex flex-col justify-between gap-3">
+            <SpotlightCard
+              key={kpi.label}
+              theme={isDark ? 'dark' : 'light'}
+              spotlightColor={isDark ? 'rgba(231, 64, 4, 0.16)' : 'rgba(231, 64, 4, 0.08)'}
+              intensity={isDark ? 0.14 : 0.08}
+              borderGlow={0.55}
+              className="studio-card rounded-xl p-4 flex flex-col justify-between gap-3"
+            >
               <div className="flex items-baseline justify-between gap-2">
                 <div className="font-display font-bold text-[28px] leading-none tracking-tight tabular-nums text-[var(--ink-primary)]">
-                  {kpi.value}
+                  <CountUp to={kpi.raw} decimals={kpi.decimals} suffix={kpi.suffix} duration={0.3} trigger="load" />
                 </div>
                 <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11px] text-[var(--ink-secondary)]">
                   {kpi.delta}
@@ -234,14 +252,24 @@ export const AnalyticsSuite: React.FC = () => {
                 </div>
                 <p className="text-[12.5px] text-[var(--ink-secondary)]">{kpi.label}</p>
               </div>
-            </div>
+            </SpotlightCard>
           ))}
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Weekly Load with Exact Percentage Y-Axis Lines & Directly Anchored Bar Labels */}
-          <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-4">
+          {/* Weekly Load with BorderGlow Ember Illumination */}
+          <BorderGlow
+            className="lg:col-span-7"
+            colors={['#E74004', '#F4C46C', '#14A4FC']}
+            glowColor="18 92 52"
+            backgroundColor="var(--bg-surface)"
+            borderRadius={16}
+            glowRadius={32}
+            glowIntensity={isDark ? 0.65 : 0.35}
+            fillOpacity={0.28}
+          >
+            <section className="studio-card rounded-2xl p-5 space-y-4 w-full h-full">
             <div className="flex items-center justify-between">
               <h2 className="font-display font-bold text-[15px]">Weekly Load & Deep Focus Balance</h2>
               <div className="flex items-center gap-4 text-[11.5px] text-[var(--ink-secondary)]">
@@ -254,7 +282,7 @@ export const AnalyticsSuite: React.FC = () => {
                     className="w-2.5 h-2.5 rounded-sm"
                     style={{ backgroundColor: isDark ? 'rgba(148,163,184,0.34)' : 'rgba(15,23,42,0.18)' }}
                   />
-                  Total scheduled
+                  Other scheduled
                 </span>
               </div>
             </div>
@@ -325,9 +353,15 @@ export const AnalyticsSuite: React.FC = () => {
               </div>
             </div>
           </section>
+          </BorderGlow>
 
-          {/* Disciplined Category Breakdown */}
-          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          {/* Disciplined Category Breakdown with SpotlightCard */}
+          <SpotlightCard
+            theme={isDark ? 'dark' : 'light'}
+            spotlightColor={isDark ? 'rgba(231, 64, 4, 0.14)' : 'rgba(231, 64, 4, 0.07)'}
+            intensity={isDark ? 0.12 : 0.07}
+            className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4"
+          >
             <div className="flex items-center justify-between">
               <h2 className="font-display font-bold text-[15px]">Time Allocation by Category</h2>
               <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">
@@ -357,11 +391,16 @@ export const AnalyticsSuite: React.FC = () => {
                 </div>
               ))}
             </div>
-          </section>
+          </SpotlightCard>
         </div>
 
-        {/* Rich Executive Backlog Table with Progress Bars & Color Indicators */}
-        <section className="studio-card rounded-2xl overflow-hidden">
+        {/* Rich Executive Backlog Table with SpotlightCard */}
+        <SpotlightCard
+          theme={isDark ? 'dark' : 'light'}
+          spotlightColor={isDark ? 'rgba(231, 64, 4, 0.1)' : 'rgba(231, 64, 4, 0.05)'}
+          intensity={isDark ? 0.1 : 0.06}
+          className="studio-card rounded-2xl overflow-hidden"
+        >
           <div className="px-5 py-3.5 border-b flex items-center justify-between">
             <h2 className="font-display font-bold text-[14.5px]">Project Backlog & Remaining Effort</h2>
             <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">Live workspace totals</span>
@@ -411,7 +450,7 @@ export const AnalyticsSuite: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </section>
+        </SpotlightCard>
       </div>
     </div>
   );
