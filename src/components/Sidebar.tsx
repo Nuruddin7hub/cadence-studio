@@ -10,6 +10,8 @@ import {
   GripVertical,
   Inbox,
   Layers,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Sparkles,
   Sun,
@@ -47,6 +49,7 @@ export const Sidebar: React.FC = () => {
 
   const [miniMonthAnchor, setMiniMonthAnchor] = useState<string>(selectedDate);
   const [sidebarDraft, setSidebarDraft] = useState('');
+  const [collapsed, setCollapsed] = useState(false);
 
   const miniDates = useMemo(
     () => getMonthGridDates(miniMonthAnchor, snapshot.preferences.weekStartsOn),
@@ -83,7 +86,7 @@ export const Sidebar: React.FC = () => {
   const unscheduledQueue = useMemo(() => {
     return snapshot.tasks
       .filter((t) => !t.completed && !t.scheduledDate)
-      .slice(0, 5);
+      .slice(0, 4);
   }, [snapshot.tasks]);
 
   const smartLists: {
@@ -119,7 +122,7 @@ export const Sidebar: React.FC = () => {
       : WEEKDAY_TWO;
 
   const content = (
-    <div className="h-full flex flex-col overflow-y-auto px-3 py-3.5 space-y-5 text-[12.5px]">
+    <div className="h-full flex flex-col overflow-y-auto px-3 py-3 space-y-4 text-[12.5px]">
       {/* Mini Calendar (Cron style) */}
       <section aria-label="Mini calendar">
         <div className="flex items-center justify-between px-1 mb-2">
@@ -153,6 +156,15 @@ export const Sidebar: React.FC = () => {
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="hidden lg:inline-flex p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--ink-muted)]"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -169,7 +181,7 @@ export const Sidebar: React.FC = () => {
             const weekNum = getIsoWeekNumber(rowDates[0]);
             return (
               <React.Fragment key={rowDates[0]}>
-                <span className="text-[10px] font-mono-num text-[var(--ink-muted)] opacity-60">
+                <span className="text-[10px] font-mono-num text-[var(--ink-muted)] opacity-75">
                   {weekNum}
                 </span>
                 {rowDates.map((dKey) => {
@@ -198,7 +210,7 @@ export const Sidebar: React.FC = () => {
                           : inMonth
                             ? 'var(--ink-primary)'
                             : 'var(--ink-muted)',
-                        opacity: inMonth || isToday ? 1 : 0.45,
+                        opacity: inMonth || isToday ? 1 : 0.52,
                         boxShadow:
                           isSelected && !isToday ? 'inset 0 0 0 1px var(--rule-strong)' : 'none',
                       }}
@@ -219,9 +231,9 @@ export const Sidebar: React.FC = () => {
         </div>
       </section>
 
-      {/* Smart Task Views (Morgen + Superlist) */}
+      {/* Smart Task Views */}
       <section aria-label="Task lists">
-        <div className="flex items-center justify-between px-1.5 mb-1.5">
+        <div className="flex items-center justify-between px-1.5 mb-1">
           <span className="text-[12px] font-semibold text-[var(--ink-secondary)]">Task Lists</span>
           <button
             type="button"
@@ -256,15 +268,15 @@ export const Sidebar: React.FC = () => {
                     </span>
                     <span className="truncate font-medium">{item.label}</span>
                   </span>
-                  <span className="font-mono-num text-[11px] text-[var(--ink-muted)]">{item.count}</span>
+                  <span className="font-mono-num text-[11px] text-[var(--ink-secondary)]">{item.count}</span>
                 </button>
               </li>
             );
           })}
         </ul>
 
-        <div className="mt-3 pt-3 border-t">
-          <div className="flex items-center gap-1.5 px-1.5 mb-1.5 text-[12px] font-semibold text-[var(--ink-secondary)]">
+        <div className="mt-2.5 pt-2.5 border-t">
+          <div className="flex items-center gap-1.5 px-1.5 mb-1 text-[12px] font-semibold text-[var(--ink-secondary)]">
             <FolderKanban className="w-3.5 h-3.5" />
             <span>Projects</span>
           </div>
@@ -279,7 +291,7 @@ export const Sidebar: React.FC = () => {
                       setActiveList(proj.id);
                       if (activeTab === 'overview' || activeTab === 'analytics') setActiveTab('tasks');
                     }}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors"
                     style={{
                       backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
                       color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
@@ -289,7 +301,7 @@ export const Sidebar: React.FC = () => {
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: proj.dot }} />
                       <span className="truncate">{proj.label}</span>
                     </span>
-                    <span className="font-mono-num text-[11px] text-[var(--ink-muted)]">{proj.count}</span>
+                    <span className="font-mono-num text-[11px] text-[var(--ink-secondary)]">{proj.count}</span>
                   </button>
                 </li>
               );
@@ -299,11 +311,11 @@ export const Sidebar: React.FC = () => {
       </section>
 
       {/* Drag-to-Calendar Time-Blocking Queue */}
-      <section aria-label="Drag to time block" className="pt-3 border-t">
-        <div className="flex items-center justify-between px-1.5 mb-2">
+      <section aria-label="Drag to time block" className="pt-2.5 border-t">
+        <div className="flex items-center justify-between px-1 mb-1.5">
           <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ink-secondary)]">
             <Sparkles className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
-            <span>Time-block queue</span>
+            <span>Queue</span>
           </span>
           <span className="text-[10.5px] text-[var(--ink-muted)]">Drag to grid</span>
         </div>
@@ -314,7 +326,7 @@ export const Sidebar: React.FC = () => {
             value={sidebarDraft}
             onChange={(e) => setSidebarDraft(e.target.value)}
             placeholder="Quick task..."
-            className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border text-[12px] bg-[var(--bg-inset)] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+            className="flex-1 min-w-0 px-2.5 py-1 rounded-lg border text-[12px] bg-[var(--bg-inset)] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
           />
           <button
             type="submit"
@@ -337,13 +349,13 @@ export const Sidebar: React.FC = () => {
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 onClick={() => setSelection({ type: 'task', id: task.id })}
-                className="group flex items-center gap-2 px-2 py-1.5 rounded-lg border cursor-grab active:cursor-grabbing hover:bg-[var(--bg-hover)] transition-colors"
+                className="group flex items-start gap-1.5 px-2 py-1.5 rounded-lg border cursor-grab active:cursor-grabbing hover:bg-[var(--bg-hover)] transition-colors"
                 style={{
                   backgroundColor: 'var(--bg-elevated)',
                   borderColor: 'var(--rule-hairline)',
                 }}
               >
-                <GripVertical className="w-3 h-3 text-[var(--ink-muted)] shrink-0 opacity-60 group-hover:opacity-100" />
+                <GripVertical className="w-3 h-3 mt-0.5 text-[var(--ink-muted)] shrink-0 opacity-60 group-hover:opacity-100" />
                 <button
                   type="button"
                   onClick={(e) => {
@@ -351,13 +363,15 @@ export const Sidebar: React.FC = () => {
                     toggleTaskComplete(task.id);
                   }}
                   aria-label={`Complete ${task.title}`}
-                  className="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 hover:border-[var(--accent-primary)]"
+                  className="mt-0.5 w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 hover:border-[var(--accent-primary)]"
                   style={{ borderColor: pMeta.color }}
                 >
                   {task.completed && <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />}
                 </button>
-                <span className="flex-1 truncate text-[12px] text-[var(--ink-primary)]">{task.title}</span>
-                <span className="font-mono-num text-[10.5px] text-[var(--ink-muted)] shrink-0">
+                <span className="flex-1 text-[11.5px] leading-snug line-clamp-2 text-[var(--ink-primary)]">
+                  {task.title}
+                </span>
+                <span className="font-mono-num text-[10px] text-[var(--ink-muted)] shrink-0 mt-0.5">
                   {task.estimatedMinutes}m
                 </span>
               </li>
@@ -372,12 +386,12 @@ export const Sidebar: React.FC = () => {
       </section>
 
       {/* Calendar Layers */}
-      <section aria-label="Calendar layers" className="pt-3 border-t">
-        <div className="flex items-center gap-1.5 px-1.5 mb-2 text-[12px] font-semibold text-[var(--ink-secondary)]">
+      <section aria-label="Calendar layers" className="pt-2.5 border-t">
+        <div className="flex items-center gap-1.5 px-1.5 mb-1.5 text-[12px] font-semibold text-[var(--ink-secondary)]">
           <Layers className="w-3.5 h-3.5" />
           <span>Calendars</span>
         </div>
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           {CALENDAR_LAYERS.map((layer) => {
             const on = snapshot.enabledLayers[layer.id];
             return (
@@ -409,19 +423,30 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <aside
-        className="hidden lg:block w-[258px] shrink-0 border-r bg-[var(--bg-surface)]"
-        style={{ borderColor: 'var(--rule-hairline)' }}
-      >
-        {content}
-      </aside>
+      {collapsed ? (
+        <aside className="hidden lg:flex w-11 shrink-0 border-r bg-[var(--bg-surface)] flex-col items-center py-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+        </aside>
+      ) : (
+        <aside
+          className="hidden lg:block w-[238px] shrink-0 border-r bg-[var(--bg-surface)]"
+          style={{ borderColor: 'var(--rule-hairline)' }}
+        >
+          {content}
+        </aside>
+      )}
 
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/60"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/60" onClick={() => setMobileSidebarOpen(false)} />
           <aside className="relative w-[280px] max-w-[85vw] h-full bg-[var(--bg-surface)] border-r z-10 flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <span className="font-display font-bold text-[14px]">Cadence Studio</span>

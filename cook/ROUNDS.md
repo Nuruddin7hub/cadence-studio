@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [pending Phase 1 completion]
-Best so far: round 01 (pending critic scores), `cook/stills/r01/`, initial commit pending
+Best so far: round 01, `cook/stills/r01/`, commit `94515e3`
 
 ## Decisions
 
@@ -40,3 +40,26 @@ Measured (command and result):
 - `node scripts/render-stills.mjs r01`: S01 1448ms, S02 1621ms, S03 1553ms, S04 1338ms, S05 1330ms, S06 1314ms; horizontal overflow `false` on all 6 shots; 1 console 404 (`favicon.ico`) caught on S01.
 - `python cook/color_check.py`: S01 vs R01 sat `+0.157` bright `-0.034`; S02 vs R04 sat `-0.145` bright `-0.186`; S03 vs R03 sat `+0.012` bright `+0.006`; S04 vs R05 sat `+0.138` bright `+0.015`; S05 vs R01 sat `+0.131` bright `-0.048`.
 - `node scripts/verify-interactions.mjs`: failed on `favicon.ico` 404 console error check (all UI flow assertions passed prior to error gate).
+
+Scores, eyeballed: critic median after calibration (2 fresh zero-context critics, Critic A inherit + Critic B flash; >10pt spread on S02/S04/S05 noted — Round 02 adds 3rd critic)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
+|---|---|---|---|---|---|---|---|
+| S01 | 71 | 71 | 75 | 69 | 70 | not scored | baseline |
+| S02 | 66 | 60 | 67 | 67 | 68 | not scored | baseline |
+| S03 | 71 | 73 | 69 | 70 | 68 | not scored | baseline |
+| S04 | 68 | 64 | 63 | 67 | 64 | not scored | baseline |
+| S05 | 55 | 56 | 71 | 64 | 53 | not scored | baseline |
+| S06 | 67 | 71 | 78 | 67 | 68 | not scored | baseline |
+
+Raw critic medians before calibration: identical (calibration offset none yet).
+Own score (logged, never decides): S01 72, S05 55.
+
+Top gaps from critics:
+1. S05 Overview hero: unanchored flat black background, orphan 3-line headline wrap, workspace toolbar collision, no framed live product showcase above fold.
+2. S04 & S02 dark mode flatness & rainbow KPIs/tags: dead black cards without top-edge light sheen, 4 neon KPI hues vs Linear restraint, 16-pill wrapping tag bar, compressed Eisenhower matrix from locked sidebars.
+3. S01, S03 & S06 truncation & overflow: locked 3-column layout truncating calendar titles, clipped right-rail Daily Notes, truncated `+ To-Do:` buttons on S03, `3-Day` wrap and overlapping `+08`/`22h` mobile gutter on S06.
+
+Progress note sent: 2026-11-18 17:39 +08:00
+Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 02)
+Next focus: Overhaul S05 Overview hero with Cron-inspired centered 2-line display + atmospheric glow + live framed showcase; unify S04/S02 tonal lighting, monochrome KPI craft, and full-width Tasks matrix; fix S01/S03/S06 wrapping, rail collapsibility, and mobile header.

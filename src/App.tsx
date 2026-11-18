@@ -30,12 +30,7 @@ const WorkspaceShell: React.FC = () => {
           </>
         )}
 
-        {activeTab === 'tasks' && (
-          <>
-            <TasksWorkspace />
-            <InspectorRail />
-          </>
-        )}
+        {activeTab === 'tasks' && <TasksWorkspace />}
 
         {activeTab === 'focus' && <FocusHabitsStudio />}
 

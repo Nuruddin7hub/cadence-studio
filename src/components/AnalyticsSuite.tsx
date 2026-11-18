@@ -27,28 +27,24 @@ export const AnalyticsSuite: React.FC = () => {
     const totalTasks = snapshot.tasks.length;
     const completedTasks = snapshot.tasks.filter((t) => t.completed).length;
     const weekEvents = snapshot.events.filter((e) => !e.allDay && weekDates.includes(e.date));
-    const scheduledHours =
-      weekEvents.reduce((acc, ev) => acc + ev.durationMinutes, 0) / 60;
-    const focusHours =
-      snapshot.focusHistory.reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
+    const scheduledHours = weekEvents.reduce((acc, ev) => acc + ev.durationMinutes, 0) / 60;
+    const focusHours = snapshot.focusHistory.reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
 
     const byCategory = (Object.keys(EVENT_CATEGORY_STYLES) as EventCategory[]).map((cat) => {
-      const mins = weekEvents
-        .filter((e) => e.category === cat)
-        .reduce((a, e) => a + e.durationMinutes, 0);
+      const mins = weekEvents.filter((e) => e.category === cat).reduce((a, e) => a + e.durationMinutes, 0);
+      const count = weekEvents.filter((e) => e.category === cat).length;
       return {
         cat,
         label: EVENT_CATEGORY_STYLES[cat].label,
-        color: EVENT_CATEGORY_STYLES[cat].bar,
+        color: cat === 'deep' ? '#E74004' : cat === 'meeting' ? '#64748B' : '#475569',
         hours: Math.round((mins / 60) * 10) / 10,
+        count,
       };
     });
 
     const dailyBars = weekDates.map((dKey) => {
       const d = new Date(`${dKey}T00:00:00`);
-      const mins = weekEvents
-        .filter((e) => e.date === dKey)
-        .reduce((a, e) => a + e.durationMinutes, 0);
+      const mins = weekEvents.filter((e) => e.date === dKey).reduce((a, e) => a + e.durationMinutes, 0);
       const deepMins = weekEvents
         .filter((e) => e.date === dKey && e.category === 'deep')
         .reduce((a, e) => a + e.durationMinutes, 0);
@@ -62,7 +58,7 @@ export const AnalyticsSuite: React.FC = () => {
 
     const habitCompletionPct = (() => {
       let hit = 0;
-      let possible = snapshot.habits.length * 7;
+      const possible = snapshot.habits.length * 7;
       for (const h of snapshot.habits) {
         for (let i = 0; i < 7; i++) {
           if (h.history[addDays(todayKey, -i)]) hit++;
@@ -70,6 +66,26 @@ export const AnalyticsSuite: React.FC = () => {
       }
       return possible ? Math.round((hit / possible) * 100) : 0;
     })();
+
+    const listBreakdown = (['work', 'design', 'inbox', 'personal'] as const).map((list) => {
+      const items = snapshot.tasks.filter((t) => t.listId === list);
+      const done = items.filter((t) => t.completed).length;
+      const mins = items.filter((t) => !t.completed).reduce((a, t) => a + t.estimatedMinutes, 0);
+      return {
+        list,
+        label:
+          list === 'work'
+            ? 'Product & Engineering'
+            : list === 'design'
+              ? 'Design Systems'
+              : list === 'inbox'
+                ? 'Inbox Triage'
+                : 'Personal & Life',
+        total: items.length,
+        done,
+        remainingMins: mins,
+      };
+    });
 
     return {
       totalTasks,
@@ -80,10 +96,11 @@ export const AnalyticsSuite: React.FC = () => {
       byCategory,
       dailyBars,
       habitCompletionPct,
+      listBreakdown,
     };
   }, [snapshot.events, snapshot.focusHistory, snapshot.habits, snapshot.tasks, todayKey, weekDates]);
 
-  const maxDayHours = Math.max(6, ...stats.dailyBars.map((b) => b.totalHours));
+  const maxDayHours = 8;
   const maxCatHours = Math.max(1, ...stats.byCategory.map((c) => c.hours));
 
   const handleExportIcs = () => {
@@ -99,155 +116,235 @@ export const AnalyticsSuite: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[var(--bg-canvas)]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display font-bold text-[22px] tracking-tight text-[var(--ink-primary)]">
-            Time Analytics & Portability
-          </h1>
-          <p className="text-[13px] text-[var(--ink-secondary)] mt-0.5">
-            Real numbers computed directly from your scheduled blocks, completed tasks, and focus logs.
-          </p>
-        </div>
+    <div className="flex-1 min-w-0 overflow-y-auto p-5 sm:p-6 space-y-5 bg-[var(--bg-canvas)] studio-spotlight-dark">
+      <div className="max-w-7xl mx-auto space-y-5">
+        {/* Header & Consolidated Portability Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display font-bold text-[22px] tracking-tight text-[var(--ink-primary)]">
+              Time Analytics & Portability
+            </h1>
+            <p className="text-[13px] text-[var(--ink-secondary)] mt-0.5">
+              Telemetry computed directly from your scheduled blocks, completed tasks, and focus logs.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportIcs}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]"
-          >
-            <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-            <span>Export .ics</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportJson}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Backup JSON</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Import JSON</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              file.text().then((txt) => importWorkspaceJson(txt));
-            }}
-          />
-          <button
-            type="button"
-            onClick={resetToSeed}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] text-[var(--ink-secondary)] hover:bg-[var(--bg-hover)]"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset demo</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4-Stat KPI Row (inspo-mcp stat/row precision) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Scheduled this week', value: `${stats.scheduledHours}h`, tone: 'var(--accent-primary)' },
-          { label: 'Task completion rate', value: `${stats.completionRate}%`, tone: 'var(--accent-emerald)' },
-          { label: 'Deep focus logged', value: `${stats.focusHours}h`, tone: 'var(--accent-amber)' },
-          { label: '7-day habit consistency', value: `${stats.habitCompletionPct}%`, tone: 'var(--accent-sky)' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="rounded-xl border bg-[var(--bg-surface)] p-4">
-            <div
-              className="font-display font-bold text-[30px] leading-none tracking-tight tabular-nums"
-              style={{ color: kpi.tone }}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportIcs}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white"
+              style={{ backgroundColor: 'var(--accent-primary)' }}
             >
-              {kpi.value}
+              <Download className="w-3.5 h-3.5" />
+              <span>Export .ics</span>
+            </button>
+
+            <div className="flex items-center rounded-lg border bg-[var(--bg-surface)] p-0.5">
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Backup</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Import</span>
+              </button>
+              <button
+                type="button"
+                onClick={resetToSeed}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-hover)]"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
             </div>
-            <p className="mt-2.5 text-[12.5px] text-[var(--ink-secondary)]">{kpi.label}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                file.text().then((txt) => importWorkspaceJson(txt));
+              }}
+            />
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Daily Planned vs Deep Focus Bars */}
-        <section className="lg:col-span-7 rounded-2xl border bg-[var(--bg-surface)] p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display font-bold text-[15px]">Weekly Load & Deep Focus Balance</h2>
-            <div className="flex items-center gap-3 text-[11.5px] text-[var(--ink-secondary)]">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[var(--accent-primary)]" />
-                Deep focus
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[var(--ink-muted)]/40" />
-                Total scheduled
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-3 pt-4 items-end h-52 border-b pb-3">
-            {stats.dailyBars.map((bar) => {
-              const totalPct = Math.round((bar.totalHours / maxDayHours) * 100);
-              const deepPct = Math.round((bar.deepHours / maxDayHours) * 100);
-              return (
-                <div key={bar.date} className="flex flex-col items-center gap-2 h-full justify-end">
-                  <span className="font-mono-num text-[11px] text-[var(--ink-muted)]">
-                    {bar.totalHours}h
-                  </span>
-                  <div className="w-full max-w-[38px] h-36 rounded-lg bg-[var(--bg-inset)] relative overflow-hidden flex flex-col justify-end">
-                    <div
-                      className="w-full rounded-t-md transition-all relative"
-                      style={{
-                        height: `${Math.max(4, totalPct)}%`,
-                        backgroundColor: 'var(--rule-strong)',
-                      }}
-                    >
-                      <div
-                        className="absolute bottom-0 left-0 right-0 rounded-t-sm"
-                        style={{
-                          height: bar.totalHours > 0 ? `${Math.round((deepPct / Math.max(1, totalPct)) * 100)}%` : '0%',
-                          backgroundColor: 'var(--accent-primary)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-[12px] font-medium text-[var(--ink-secondary)]">{bar.label}</span>
+        {/* Restrained Monochrome Linear-Style KPI Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Scheduled this week', value: `${stats.scheduledHours}h`, delta: '20 blocks' },
+            {
+              label: 'Task completion rate',
+              value: `${stats.completionRate}%`,
+              delta: `${stats.completedTasks}/${stats.totalTasks} done`,
+            },
+            {
+              label: 'Deep focus logged',
+              value: `${stats.focusHours}h`,
+              delta: `${snapshot.focusHistory.length} sprints`,
+            },
+            {
+              label: '7-day habit consistency',
+              value: `${stats.habitCompletionPct}%`,
+              delta: `${snapshot.habits.length} habits`,
+            },
+          ].map((kpi) => (
+            <div key={kpi.label} className="studio-card rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="font-display font-bold text-[30px] leading-none tracking-tight tabular-nums text-[var(--ink-primary)]">
+                  {kpi.value}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Category Breakdown (inspo-mcp pure bar chart style) */}
-        <section className="lg:col-span-5 rounded-2xl border bg-[var(--bg-surface)] p-5 space-y-4">
-          <h2 className="font-display font-bold text-[15px]">Time Allocation by Category</h2>
-          <div className="space-y-3.5 pt-1">
-            {stats.byCategory.map((item) => (
-              <div key={item.cat} className="space-y-1.5">
-                <div className="flex items-center justify-between text-[12.5px]">
-                  <span className="font-medium text-[var(--ink-primary)]">{item.label}</span>
-                  <span className="font-mono-num text-[var(--ink-secondary)]">{item.hours}h</span>
-                </div>
-                <div className="h-2 rounded-full bg-[var(--bg-inset)] overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.max(4, Math.round((item.hours / maxCatHours) * 100))}%`,
-                      backgroundColor: item.color,
-                    }}
-                  />
-                </div>
+                <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11px] text-[var(--ink-secondary)]">
+                  {kpi.delta}
+                </span>
               </div>
-            ))}
+              <p className="mt-3 text-[12.5px] text-[var(--ink-secondary)]">{kpi.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Weekly Load with Y-axis Gridlines */}
+          <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-bold text-[15px]">Weekly Load & Deep Focus Balance</h2>
+              <div className="flex items-center gap-4 text-[11.5px] text-[var(--ink-secondary)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[var(--accent-primary)]" />
+                  Deep focus
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[var(--rule-strong)]" />
+                  Total scheduled
+                </span>
+              </div>
+            </div>
+
+            <div className="relative pt-2 pl-8">
+              {/* Horizontal Y-Axis Guide Lines */}
+              <div className="absolute inset-x-0 top-2 bottom-7 pl-8 flex flex-col justify-between pointer-events-none">
+                {[8, 6, 4, 2, 0].map((tick) => (
+                  <div key={tick} className="flex items-center gap-2 w-full">
+                    <span className="-ml-8 w-6 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)]">
+                      {tick}h
+                    </span>
+                    <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)]" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative z-10 grid grid-cols-7 gap-3 items-end h-44">
+                {stats.dailyBars.map((bar) => {
+                  const totalPct = Math.min(100, Math.round((bar.totalHours / maxDayHours) * 100));
+                  const deepPct = Math.min(100, Math.round((bar.deepHours / maxDayHours) * 100));
+                  return (
+                    <div key={bar.date} className="flex flex-col items-center gap-1.5 h-full justify-end">
+                      <span className="font-mono-num text-[11px] font-medium text-[var(--ink-secondary)]">
+                        {bar.totalHours}h
+                      </span>
+                      <div className="w-full max-w-[38px] h-32 rounded-lg bg-[var(--bg-inset)]/80 border relative overflow-hidden flex flex-col justify-end">
+                        <div
+                          className="w-full rounded-t-sm relative"
+                          style={{
+                            height: `${Math.max(4, totalPct)}%`,
+                            backgroundColor: 'var(--rule-strong)',
+                          }}
+                        >
+                          <div
+                            className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                            style={{
+                              height:
+                                bar.totalHours > 0
+                                  ? `${Math.min(100, Math.round((deepPct / Math.max(1, totalPct)) * 100))}%`
+                                  : '0%',
+                              backgroundColor: 'var(--accent-primary)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-[12px] font-medium text-[var(--ink-secondary)]">{bar.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* Disciplined Category Breakdown */}
+          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-bold text-[15px]">Time Allocation by Category</h2>
+              <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">
+                {stats.scheduledHours}h total
+              </span>
+            </div>
+
+            <div className="space-y-3.5">
+              {stats.byCategory.map((item) => (
+                <div key={item.cat} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[12.5px]">
+                    <span className="font-medium text-[var(--ink-primary)]">{item.label}</span>
+                    <span className="font-mono-num text-[var(--ink-secondary)]">
+                      {item.hours}h · {item.count} blocks
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(4, Math.round((item.hours / maxCatHours) * 100))}%`,
+                        backgroundColor: item.cat === 'deep' ? 'var(--accent-primary)' : 'var(--ink-secondary)',
+                        opacity: item.cat === 'deep' ? 1 : 0.65,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Lower Telemetry Table (eliminates bottom dead space, inspired by inspo-mcp spec sheet) */}
+        <section className="studio-card rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b flex items-center justify-between">
+            <h2 className="font-display font-bold text-[14.5px]">Project Backlog & Remaining Effort</h2>
+            <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">Live workspace totals</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-[13px]">
+              <thead>
+                <tr className="border-b text-[11.5px] text-[var(--ink-muted)]">
+                  <th className="py-2.5 px-5 font-medium">Workspace List</th>
+                  <th className="py-2.5 px-4 font-medium">Completed</th>
+                  <th className="py-2.5 px-4 font-medium">Open Tasks</th>
+                  <th className="py-2.5 px-5 text-right font-medium">Queued Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {stats.listBreakdown.map((row) => (
+                  <tr key={row.list} className="hover:bg-[var(--bg-hover)]/35 transition-colors">
+                    <td className="py-3 px-5 font-medium text-[var(--ink-primary)]">{row.label}</td>
+                    <td className="py-3 px-4 font-mono-num text-[var(--ink-secondary)]">{row.done}</td>
+                    <td className="py-3 px-4 font-mono-num text-[var(--ink-secondary)]">{row.total - row.done}</td>
+                    <td className="py-3 px-5 text-right font-mono-num text-[var(--ink-primary)]">
+                      {row.remainingMins} min
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

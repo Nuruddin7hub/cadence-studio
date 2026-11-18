@@ -3,6 +3,7 @@ import {
   CalendarPlus,
   Check,
   Columns3,
+  Filter,
   Grid2x2,
   ListTodo,
   Plus,
@@ -17,7 +18,7 @@ import { parseQuickInput } from '../utils/nlp';
 import { PRIORITY_META } from '../utils/themeTokens';
 
 const KANBAN_COLS: { id: TaskStatus; label: string; accent: string }[] = [
-  { id: 'backlog', label: 'Backlog', accent: '#687283' },
+  { id: 'backlog', label: 'Backlog', accent: '#848E9F' },
   { id: 'todo', label: 'Planned Today', accent: '#14A4FC' },
   { id: 'in_progress', label: 'In Focus', accent: '#E74004' },
   { id: 'done', label: 'Completed', accent: '#2CCC74' },
@@ -27,7 +28,7 @@ const MATRIX_QUADS: { id: EisenhowerQuadrant; title: string; subtitle: string; a
   { id: 'do', title: 'Do First', subtitle: 'Urgent and high impact', accent: '#E74004' },
   { id: 'schedule', title: 'Schedule', subtitle: 'Strategic deep work', accent: '#14A4FC' },
   { id: 'delegate', title: 'Delegate', subtitle: 'Quick coordination & ops', accent: '#F4C46C' },
-  { id: 'eliminate', title: 'Backlog / Trim', subtitle: 'Low leverage or someday', accent: '#687283' },
+  { id: 'eliminate', title: 'Backlog / Trim', subtitle: 'Low leverage or someday', accent: '#848E9F' },
 ];
 
 export const TasksWorkspace: React.FC = () => {
@@ -56,6 +57,7 @@ export const TasksWorkspace: React.FC = () => {
   const [draft, setDraft] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>('task-1');
   const [subtaskDrafts, setSubtaskDrafts] = useState<Record<string, string>>({});
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
 
   const parsedPreview = useMemo(
     () => (draft.trim() ? parseQuickInput(draft, todayKey) : null),
@@ -99,7 +101,7 @@ export const TasksWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 space-y-5 bg-[var(--bg-canvas)]">
+    <div className="flex-1 min-w-0 overflow-y-auto p-5 sm:p-6 space-y-5 bg-[var(--bg-canvas)] studio-spotlight-dark">
       {/* Header & View Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -107,54 +109,52 @@ export const TasksWorkspace: React.FC = () => {
             Tasks, Kanban & Priority Matrix
           </h1>
           <p className="text-[13px] text-[var(--ink-secondary)] mt-0.5">
-            Capture with natural language, break into subtasks, or drag into time blocks.
+            Capture with natural language, break into subtasks, or block straight onto your calendar.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5">
-            {([
-              ['list', 'Smart List', ListTodo],
-              ['kanban', 'Kanban Board', Columns3],
-              ['matrix', 'Eisenhower Matrix', Grid2x2],
-            ] as [TaskViewMode, string, React.ComponentType<{ className?: string }>][]).map(
-              ([id, label, Icon]) => {
-                const active = taskViewMode === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setTaskViewMode(id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-colors"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
-                      color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
-                      boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
-                    }}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{label}</span>
-                  </button>
-                );
-              }
-            )}
-          </div>
+        <div className="flex items-center rounded-lg border bg-[var(--bg-inset)] p-0.5">
+          {([
+            ['list', 'Smart List', ListTodo],
+            ['kanban', 'Kanban Board', Columns3],
+            ['matrix', 'Eisenhower Matrix', Grid2x2],
+          ] as [TaskViewMode, string, React.ComponentType<{ className?: string }>][]).map(
+            ([id, label, Icon]) => {
+              const active = taskViewMode === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTaskViewMode(id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12.5px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
+                    color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
+                    boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{label}</span>
+                </button>
+              );
+            }
+          )}
         </div>
       </div>
 
-      {/* Natural Language Capture + Search & Tag Strip */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      {/* Natural Language Capture + Search & Single Clean Filter Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
         <form
           onSubmit={handleSubmit}
-          className="lg:col-span-7 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border bg-[var(--bg-surface)] focus-within:border-[var(--accent-primary)]"
+          className="lg:col-span-7 studio-card flex items-center gap-2.5 px-3.5 py-2 rounded-xl focus-within:border-[var(--accent-primary)]"
         >
           <Plus className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
           <input
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Try: 'Prepare Q4 launch notes tomorrow 2pm 45m !p1 #work'"
-            className="flex-1 min-w-0 bg-transparent text-[13.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
+            placeholder="Add task: 'Review deck tomorrow 2pm 45m !p1 #work'"
+            className="flex-1 min-w-0 bg-transparent text-[13px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
           />
           {parsedPreview && (
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
@@ -177,94 +177,122 @@ export const TasksWorkspace: React.FC = () => {
           )}
           <button
             type="submit"
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white shrink-0"
+            className="px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-white shrink-0 transition-colors"
             style={{ backgroundColor: 'var(--accent-primary)' }}
           >
-            Add
+            Add task
           </button>
         </form>
 
-        <div className="lg:col-span-5 flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-[var(--bg-surface)]">
+        <div className="lg:col-span-5 flex items-center gap-2 relative">
+          <div className="flex-1 studio-card flex items-center gap-2 px-3 py-2 rounded-xl">
             <Search className="w-4 h-4 text-[var(--ink-muted)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter tasks or tags..."
+              placeholder="Search tasks or notes..."
               className="flex-1 min-w-0 bg-transparent text-[13px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
             />
           </div>
-          {tagFilter && (
+
+          <div className="relative">
             <button
               type="button"
-              onClick={() => setTagFilter(null)}
-              className="px-2.5 py-2 rounded-xl border text-[12px] bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]"
+              onClick={() => setTagMenuOpen((v) => !v)}
+              className="studio-card inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12.5px] font-medium hover:bg-[var(--bg-hover)]"
+              style={{
+                color: tagFilter ? 'var(--accent-sky)' : 'var(--ink-secondary)',
+              }}
             >
-              #{tagFilter} ×
+              <Filter className="w-3.5 h-3.5" />
+              <span>{tagFilter ? `#${tagFilter}` : 'Filters'}</span>
             </button>
-          )}
+
+            {tagMenuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-60 rounded-xl border p-2.5 z-30 space-y-2"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--rule-strong)',
+                  boxShadow: 'var(--shadow-panel)',
+                }}
+              >
+                <div className="flex items-center justify-between text-[11.5px] font-semibold px-1">
+                  <span>Filter by tag</span>
+                  {tagFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTagFilter(null);
+                        setTagMenuOpen(false);
+                      }}
+                      className="text-[var(--accent-primary)]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setTagFilter(tagFilter === tag ? null : tag);
+                        setTagMenuOpen(false);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px]"
+                      style={{
+                        borderColor: tagFilter === tag ? 'var(--accent-sky)' : 'var(--rule-hairline)',
+                        backgroundColor: tagFilter === tag ? 'var(--accent-sky-soft)' : 'var(--bg-inset)',
+                        color: tagFilter === tag ? 'var(--accent-sky)' : 'var(--ink-secondary)',
+                      }}
+                    >
+                      <Tag className="w-2.5 h-2.5" />
+                      <span>{tag}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tag pills + Smart list strip when in List mode */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {taskViewMode === 'list' ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {([
-              ['today', 'Today'],
-              ['inbox', 'Inbox'],
-              ['upcoming', 'Upcoming'],
-              ['overdue', 'Overdue'],
-              ['work', 'Product & Eng'],
-              ['design', 'Design'],
-              ['personal', 'Personal'],
-              ['completed', 'Completed'],
-            ] as const).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveList(id)}
-                className="px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-colors"
-                style={{
-                  backgroundColor: activeList === id ? 'var(--bg-elevated)' : 'transparent',
-                  borderColor: activeList === id ? 'var(--rule-strong)' : 'var(--rule-hairline)',
-                  color: activeList === id ? 'var(--ink-primary)' : 'var(--ink-secondary)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span className="text-[12.5px] text-[var(--ink-secondary)]">
-            Drag any task card across columns to reprioritize or update workflow status.
-          </span>
-        )}
-
+      {/* Single Clean Context Strip */}
+      {taskViewMode === 'list' && (
         <div className="flex flex-wrap items-center gap-1.5">
-          {allTags.map((tag) => (
+          {([
+            ['today', 'Today'],
+            ['inbox', 'Inbox'],
+            ['upcoming', 'Upcoming'],
+            ['overdue', 'Overdue'],
+            ['work', 'Product & Eng'],
+            ['design', 'Design'],
+            ['personal', 'Personal'],
+            ['completed', 'Completed'],
+          ] as const).map(([id, label]) => (
             <button
-              key={tag}
+              key={id}
               type="button"
-              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors"
+              onClick={() => setActiveList(id)}
+              className="px-2.5 py-1 rounded-lg border text-[12px] font-medium transition-colors"
               style={{
-                borderColor: tagFilter === tag ? 'var(--accent-sky)' : 'var(--rule-hairline)',
-                backgroundColor: tagFilter === tag ? 'var(--accent-sky-soft)' : 'transparent',
-                color: tagFilter === tag ? 'var(--accent-sky)' : 'var(--ink-muted)',
+                backgroundColor: activeList === id ? 'var(--bg-elevated)' : 'transparent',
+                borderColor: activeList === id ? 'var(--rule-strong)' : 'var(--rule-hairline)',
+                color: activeList === id ? 'var(--ink-primary)' : 'var(--ink-secondary)',
               }}
             >
-              <Tag className="w-2.5 h-2.5" />
-              <span>{tag}</span>
+              {label}
             </button>
           ))}
         </div>
-      </div>
+      )}
 
       {/* MODE 1: SMART LIST */}
       {taskViewMode === 'list' && (
-        <div className="rounded-xl border bg-[var(--bg-surface)] divide-y">
+        <div className="studio-card rounded-xl divide-y">
           {filteredTasks.map((task) => {
             const pMeta = PRIORITY_META[task.priority];
             const isExpanded = expandedId === task.id;
@@ -317,9 +345,7 @@ export const TasksWorkspace: React.FC = () => {
                       ))}
                     </div>
 
-                    {task.notes && (
-                      <p className="text-[12.5px] text-[var(--ink-secondary)] mt-1">{task.notes}</p>
-                    )}
+                    {task.notes && <p className="text-[12.5px] text-[var(--ink-secondary)] mt-1">{task.notes}</p>}
 
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-[11.5px] text-[var(--ink-muted)] font-mono-num">
                       {task.dueDate && <span>Due {formatReadableDate(task.dueDate)}</span>}
@@ -394,9 +420,7 @@ export const TasksWorkspace: React.FC = () => {
                       <input
                         type="text"
                         value={subtaskDrafts[task.id] ?? ''}
-                        onChange={(e) =>
-                          setSubtaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))
-                        }
+                        onChange={(e) => setSubtaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))}
                         placeholder="Add subtask and press Enter..."
                         className="flex-1 max-w-sm px-2.5 py-1 rounded-md border bg-[var(--bg-inset)] text-[12px] focus:outline-none focus:border-[var(--accent-primary)]"
                       />
@@ -427,14 +451,15 @@ export const TasksWorkspace: React.FC = () => {
                   const id = e.dataTransfer.getData('text/cadence-kanban-task');
                   if (id) moveTaskKanban(id, col.id);
                 }}
-                className="rounded-xl border bg-[var(--bg-surface)] p-3 flex flex-col min-h-[360px]"
+                className="studio-card rounded-xl p-3 flex flex-col min-h-[360px]"
+                style={{ borderTop: `2px solid ${col.accent}` }}
               >
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: col.accent }} />
                     <h3 className="font-display font-semibold text-[13.5px]">{col.label}</h3>
                   </div>
-                  <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">{items.length}</span>
+                  <span className="font-mono-num text-[11.5px] text-[var(--ink-secondary)]">{items.length}</span>
                 </div>
 
                 <div className="space-y-2 flex-1">
@@ -446,7 +471,8 @@ export const TasksWorkspace: React.FC = () => {
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('text/cadence-kanban-task', task.id)}
                         onClick={() => setSelection({ type: 'task', id: task.id })}
-                        className="p-3 rounded-lg border bg-[var(--bg-elevated)]/75 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing space-y-2"
+                        className="p-3 rounded-lg border bg-[var(--bg-elevated)]/80 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing space-y-2"
+                        style={{ boxShadow: 'var(--surface-sheen)' }}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-[13px] font-medium leading-snug">{task.title}</span>
@@ -471,7 +497,7 @@ export const TasksWorkspace: React.FC = () => {
         </div>
       )}
 
-      {/* MODE 3: EISENHOWER PRIORITY MATRIX */}
+      {/* MODE 3: EISENHOWER PRIORITY MATRIX (Full width without right rail compression!) */}
       {taskViewMode === 'matrix' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {MATRIX_QUADS.map((q) => {
@@ -484,56 +510,79 @@ export const TasksWorkspace: React.FC = () => {
                   const id = e.dataTransfer.getData('text/cadence-matrix-task');
                   if (id) moveTaskQuadrant(id, q.id);
                 }}
-                className="rounded-xl border bg-[var(--bg-surface)] p-4 flex flex-col min-h-[250px]"
+                className="studio-card rounded-xl p-4 flex flex-col min-h-[215px]"
+                style={{ borderTop: `2px solid ${q.accent}` }}
               >
                 <div className="flex items-center justify-between pb-3 mb-3 border-b">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: q.accent }} />
-                      <h3 className="font-display font-bold text-[14.5px]">{q.title}</h3>
+                      <h3 className="font-display font-bold text-[15px]">{q.title}</h3>
                     </div>
-                    <p className="text-[12px] text-[var(--ink-muted)] mt-0.5">{q.subtitle}</p>
+                    <p className="text-[12px] text-[var(--ink-secondary)] mt-0.5">{q.subtitle}</p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11.5px] text-[var(--ink-secondary)]">
+                  <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11.5px] text-[var(--ink-primary)]">
                     {items.length}
                   </span>
                 </div>
 
                 <div className="space-y-2 flex-1">
-                  {items.map((task) => (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/cadence-matrix-task', task.id)}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-[var(--bg-elevated)]/70 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleTaskComplete(task.id)}
-                          className="w-4 h-4 rounded border flex items-center justify-center shrink-0"
-                          style={{ borderColor: q.accent }}
-                          aria-label={`Complete ${task.title}`}
-                        />
-                        <span className="text-[13px] font-medium truncate">{task.title}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono-num text-[var(--ink-muted)]">
-                        <span>{task.estimatedMinutes}m</span>
-                        {!task.scheduledDate && (
+                  {items.map((task) => {
+                    const doneSubs = task.subtasks.filter((s) => s.done).length;
+                    return (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('text/cadence-matrix-task', task.id)}
+                        className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-[var(--bg-elevated)]/75 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing"
+                        style={{ boxShadow: 'var(--surface-sheen)' }}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0">
                           <button
                             type="button"
-                            onClick={() => scheduleTaskToCalendar(task.id, todayKey, 15 * 60)}
-                            className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--accent-primary)]"
-                            title="Block onto calendar"
-                          >
-                            <CalendarPlus className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                            onClick={() => toggleTaskComplete(task.id)}
+                            className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+                            style={{ borderColor: q.accent }}
+                            aria-label={`Complete ${task.title}`}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-[13.5px] font-medium text-[var(--ink-primary)] leading-snug">
+                              {task.title}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-mono-num text-[var(--ink-muted)]">
+                              <span>{task.estimatedMinutes}m</span>
+                              {task.dueDate && <span>Due {task.dueDate.slice(5)}</span>}
+                              {task.subtasks.length > 0 && (
+                                <span>
+                                  {doneSubs}/{task.subtasks.length} subtasks
+                                </span>
+                              )}
+                              {task.tags.slice(0, 2).map((tg) => (
+                                <span key={tg} className="text-[var(--ink-secondary)]">
+                                  #{tg}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!task.scheduledDate && (
+                            <button
+                              type="button"
+                              onClick={() => scheduleTaskToCalendar(task.id, todayKey, 15 * 60)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border bg-[var(--bg-surface)] text-[11px] font-medium hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                              title="Block onto today's calendar"
+                            >
+                              <CalendarPlus className="w-3 h-3 text-[var(--accent-primary)]" />
+                              <span>Block</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {items.length === 0 && (
-                    <div className="py-8 text-center text-[12px] text-[var(--ink-muted)] border border-dashed rounded-lg">
+                    <div className="py-6 text-center text-[12px] text-[var(--ink-muted)] border border-dashed rounded-lg">
                       Drop tasks here to assign to {q.title}
                     </div>
                   )}

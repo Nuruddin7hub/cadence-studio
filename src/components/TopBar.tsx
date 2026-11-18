@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ArrowRight,
   BarChart3,
   Bell,
   Calendar,
@@ -58,8 +59,6 @@ export const TopBar: React.FC = () => {
       .slice(0, 4);
   }, [snapshot.events, todayKey, nowMinutes]);
 
-  const nextBlock = upcomingToday[0];
-
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickDraft.trim()) return;
@@ -67,16 +66,89 @@ export const TopBar: React.FC = () => {
     setQuickDraft('');
   };
 
+  // Dedicated clean editorial header on Overview tab (matching Cron R01 & Linear R05)
+  if (activeTab === 'overview') {
+    return (
+      <header
+        className="sticky top-0 z-40 h-14 border-b px-4 sm:px-8 flex items-center justify-between gap-4 backdrop-blur-md"
+        style={{
+          backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 88%, transparent)',
+          borderColor: 'var(--rule-hairline)',
+        }}
+      >
+        <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab('planner')}
+            className="flex items-center gap-2.5 shrink-0 group focus:outline-none"
+          >
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center border transition-transform group-hover:scale-105"
+              style={{
+                backgroundColor: 'var(--accent-primary)',
+                borderColor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="2" y="3" width="12" height="10" rx="2" stroke="#FFFFFF" strokeWidth="1.6" />
+                <path d="M5 1.75V4M11 1.75V4M2 6.5H14" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="8" cy="9.8" r="1.35" fill="#FFFFFF" />
+              </svg>
+            </span>
+            <span className="font-display font-bold text-[15px] tracking-tight text-[var(--ink-primary)]">
+              Cadence
+            </span>
+          </button>
+
+          <div className="flex items-center gap-5 sm:gap-7">
+            <nav className="hidden md:flex items-center gap-6 text-[13px] font-medium text-[var(--ink-secondary)]">
+              {TABS.filter((t) => t.id !== 'overview').map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTab(t.id)}
+                  className="hover:text-[var(--ink-primary)] transition-colors"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                aria-label="Toggle dark or light theme"
+              >
+                {snapshot.preferences.theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('planner')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                <span>Open Studio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header
       className="sticky top-0 z-40 h-14 border-b px-3 sm:px-5 flex items-center justify-between gap-3 backdrop-blur-md"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--bg-surface) 88%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
         borderColor: 'var(--rule-hairline)',
       }}
     >
       {/* Left: Brand mark & primary views */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0">
         <button
           type="button"
           onClick={() => setMobileSidebarOpen(true)}
@@ -89,7 +161,7 @@ export const TopBar: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('planner')}
-          className="flex items-center gap-2.5 shrink-0 group focus:outline-none"
+          className="flex items-center gap-2 shrink-0 group focus:outline-none"
         >
           <span
             className="w-7 h-7 rounded-lg flex items-center justify-center border transition-transform group-hover:scale-105"
@@ -118,7 +190,7 @@ export const TopBar: React.FC = () => {
                 key={t.id}
                 type="button"
                 onClick={() => setActiveTab(t.id)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12.5px] font-medium transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
                   color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
@@ -133,7 +205,7 @@ export const TopBar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Center: Search-First NLP Quick Capture + Cmd+K (inspo N9 Search-first) */}
+      {/* Center: Search-First NLP Quick Capture + Cmd+K */}
       <form
         onSubmit={handleQuickSubmit}
         className="hidden sm:flex flex-1 max-w-md relative items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors focus-within:border-[var(--accent-primary)]"
@@ -147,7 +219,7 @@ export const TopBar: React.FC = () => {
           type="text"
           value={quickDraft}
           onChange={(e) => setQuickDraft(e.target.value)}
-          placeholder="Add task or event: 'Design review 3pm 45m !p1 #work'"
+          placeholder="Quick add: 'Review 2pm 45m !p1 #work'"
           aria-label="Quick capture task or event"
           className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
         />
@@ -176,17 +248,8 @@ export const TopBar: React.FC = () => {
         </button>
       </form>
 
-      {/* Right: Status cue, Availability share, Notifications, Theme toggle */}
+      {/* Right: Availability share, Notifications, Theme toggle */}
       <div className="flex items-center gap-1.5 shrink-0 relative">
-        {nextBlock && (
-          <div className="hidden 2xl:flex items-center gap-2 px-2.5 py-1 rounded-md border text-[12px] text-[var(--ink-secondary)] bg-[var(--bg-inset)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-            <span className="truncate max-w-[175px]">
-              Next {formatMinutes(nextBlock.startMinutes, true)}: {nextBlock.title}
-            </span>
-          </div>
-        )}
-
         <button
           type="button"
           onClick={() => {
