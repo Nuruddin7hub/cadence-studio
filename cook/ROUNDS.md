@@ -1,379 +1,514 @@
-# Cook ledger: Cadence (Calendar & To-Do Studio)
+# Cook ledger: Cadence Rewards, Streaks & Comeback System
 
-Started: 2026-11-18 17:29 +08:00
-Time: floor 4 Cook rounds + React Bits pass (session cap) | cap single-session completion
+Started: 2026-11-19 01:55 +08:00
+Time: autonomous single-session full Cook run (minimum 4 rounds + React Bits tactile polish) | cap none
 Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/10
-Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
-Usage: paced across parallel subagent critics and layered build steps
-Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [complete]
-Best so far: round 10 (`r10-mobile`), `cook/stills/r10-mobile/`, built and verified across desktop (`1440x900`) and mobile (`375x812`) with touch drag/resize and full feature parity
+Calibration offset: none yet
+Usage: paced across parallel builders and fresh zero-context critic subagents
+Gate: stills approved [pending user review] | final deploy [not started]
+Best so far: Round 02 (`cook/stills/r02/`) — all 16 emblems visible, zero viewport overflow; Round 03 fixing aligned 4/8 vertical columns, truncation-free crate titles, inverted bounty focus, etched trophies, and S02/S05 edge framing.
 
 ## Decisions
 
 Made without asking, one line each.
-- 2026-11-18 17:29 Resolved Cook Intake defaults directly from prompt and attached skills (React + TypeScript + Vite + Tailwind + shadcn, inspo-mcp references, strict slop ban list, zero external raster assets), because prompt requested autonomous end-to-end execution of Cook A-to-Z followed by React Bits Effects.
-- 2026-11-18 17:29 Selected dual-register architecture (Obsidian Studio dark default `#0B0C0F` + `#E74004` ember + `#F4C46C` amber, plus Daylight Paper light `#FFFFFF` + `#14A4FC` + `#D6950E`), because `inspo-mcp` top calendar/task references split across dark (`cron-com`, `morgen-so`, `linear-app`, `superlist-com`) and light (`amie-so`, `todoist-com`) while strictly avoiding banned purple and beige.
-- 2026-11-18 17:29 Chose `playwright-core` driving installed Google Chrome (`C:/Program Files/Google/Chrome/Application/chrome.exe`) for deterministic `1440x900` and `375x812` still captures, because Chrome is present locally and avoids slow multi-hundred-MB browser downloads.
-- 2026-11-18 17:29 Included deterministic `?shot=<preset>` URL query presets and seeded date `2026-11-18` alongside normal interactive app state, because Cook requires identical framing and reproducible still comparisons across every round.
+- 2026-11-19 01:56 Archived previous shipped workspace Cook run to `cook-archive/2026-11-18/` before starting clean Step 1 for the exclusive Comeback/Rewards redesign per Cook skill rules.
+- 2026-11-19 01:57 Selected 5 `inspo` MCP references (`linear-app` R01, `designmaestro-io` R02, `duolingo-com--plus` R03, `morgen-so` R04, `obsidian-md` R05) blending Linear/DesignMaestro obsidian hardware precision with Duolingo/Morgen addictive streak escalation and warm ember/gold accents (zero banned purple default accent).
+- 2026-11-19 01:58 Deleted previous `StreakAchievementsPanel.tsx` and chose to build dedicated from-zero `TrophyEmblem.tsx`, `RewardsStudio.tsx`, `ComebackModal.tsx`, `ComebackOverviewBand.tsx`, and upgraded `gamification.ts` (`?shot=rewards-*` deterministic showcase states alongside clean blank real-world default state).
+- 2026-11-19 02:08 Confirmed root cause of S02 blank trophy grid (`AnimatedContent trigger="load"` staying opacity 0 when `#rewards-scroll` scrolls cleanly via preset) plus pale gold `#F4C46C` light-mode contrast defects and Day 6 `+125 XP` vs `+313 XP` multiplier mismatch; prioritizing all fixes in Round 02.
 
 ## User feedback inbox
 
-- 2026-11-18 17:21 "make sure you actually use the whole cook skill A to Z, everything and the inspo mcp to fetch references to : I need you to make a calander and to do list website but consider many feature that relate to it put it in one website. After you finish the website using cook skill, use the react skill and apply it to the website. remember full award winning best looking website." | intake | open
+- 2026-11-19 01:55 "redesign back from zero the come back features everything the achievements the daily stuff award etc and what I need you to do this rerun back the whole cook skill just exclusively for making those features and use the inspo MCP to find award winning websites that implement this features and use them as references when doing the full cook skill run just exclusively to make implement this addictive features . Bismillah" | Round 01..02 | open
 
 ---
 
 ## Round 01
 
-Time: 17:29 to 17:38 +08:00 | total elapsed 0.15h
+Time: 01:55 to 02:08 +08:00 | total elapsed 0.22h
 Usage: not readable
-Focus: Initial full-feature Calendar & To-Do Studio build and verification harness across S01-S06
-
+Focus: From-zero architecture teardown & rebuild (gamification engine, TrophyEmblem SVGs, RewardsStudio, ComebackModal, ComebackOverviewBand, TopBar streak/vault capsule) + deterministic Render Harness (`S01..S05`)
 Changes:
-- Built complete unified WorkspaceContext (`src/context/WorkspaceContext.tsx`) with localStorage persistence, Undo stack, keyboard shortcuts, deterministic `?shot=` presets, NLP task parser (`src/utils/nlp.ts`), RFC 5545 `.ics` exporter (`src/utils/ics.ts`), and subtle Web Audio chime synth (`src/utils/sound.ts`).
-- Built TopBar (`src/components/TopBar.tsx`), Sidebar with mini-calendar & drag-to-calendar queue (`src/components/Sidebar.tsx`), multi-view Calendar with overlap layout & drag/resize (`src/components/CalendarView.tsx`), InspectorRail with Pomodoro timer & Daily Notes extractor (`src/components/InspectorRail.tsx`), TasksWorkspace with List/Kanban/Eisenhower Matrix (`src/components/TasksWorkspace.tsx`), FocusHabitsStudio (`src/components/FocusHabitsStudio.tsx`), AnalyticsSuite (`src/components/AnalyticsSuite.tsx`), ProductivityOverview (`src/components/ProductivityOverview.tsx`), CommandPalette (`src/components/CommandPalette.tsx`), FocusCurtain, MobileDock, and ToastStack.
-- Built Cook still renderer (`scripts/render-stills.mjs`) and interaction test suite (`scripts/verify-interactions.mjs`).
+- Removed previous `src/components/StreakAchievementsPanel.tsx`.
+- Built custom 7-day escalating Vault ladder, Flame Streak multiplier (`1.0x -> 2.5x`), Freeze Shield defense, 16 rarity-tiered SVG trophy emblems (`TrophyEmblem.tsx`), dynamic rotating daily bounties + Trio Combo drop, and Morning Comeback Vault modal (`ComebackModal.tsx`).
+- Built deterministic `?shot=rewards-dark|rewards-trophies-dark|comeback-modal|rewards-light|rewards-mobile` states (`src/data/seed.ts`, `WorkspaceContext.tsx`).
 
 Stills: `cook/stills/r01/` | Side by side: `cook/compare/r01/`
 
-Measured (command and result):
-- `npm run build`: `tsc -b && vite build` exited 0 in 3.14s (`dist/assets/index-b7DmfGQi.js` 373.51 kB).
-- `node scripts/render-stills.mjs r01`: S01 1448ms, S02 1621ms, S03 1553ms, S04 1338ms, S05 1330ms, S06 1314ms; horizontal overflow `false` on all 6 shots; 1 console 404 (`favicon.ico`) caught on S01.
-- `python cook/color_check.py`: S01 vs R01 sat `+0.157` bright `-0.034`; S02 vs R04 sat `-0.145` bright `-0.186`; S03 vs R03 sat `+0.012` bright `+0.006`; S04 vs R05 sat `+0.138` bright `+0.015`; S05 vs R01 sat `+0.131` bright `-0.048`.
-- `node scripts/verify-interactions.mjs`: failed on `favicon.ico` 404 console error check (all UI flow assertions passed prior to error gate).
-
-Scores, eyeballed: critic median after calibration (2 fresh zero-context critics, Critic A inherit + Critic B flash; >10pt spread on S02/S04/S05 noted — Round 02 adds 3rd critic)
+Scores, eyeballed: critic median after calibration (2 fresh zero-context critics: Alpha `inherit`, Beta `flash`; calibration offset none)
 
 | Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
 |---|---|---|---|---|---|---|---|
-| S01 | 71 | 71 | 75 | 69 | 70 | not scored | baseline |
-| S02 | 66 | 60 | 67 | 67 | 68 | not scored | baseline |
-| S03 | 71 | 73 | 69 | 70 | 68 | not scored | baseline |
-| S04 | 68 | 64 | 63 | 67 | 64 | not scored | baseline |
-| S05 | 55 | 56 | 71 | 64 | 53 | not scored | baseline |
-| S06 | 67 | 71 | 78 | 67 | 68 | not scored | baseline |
+| S01 | 60 | 59 | 60 | 61 | 56 | not scored | baseline |
+| S02 | 15 | 28 | 35 | 23 | 14 | not scored | baseline |
+| S03 | 61 | 57 | 62 | 61 | 55 | not scored | baseline |
+| S04 | 59 | 48 | 41 | 53 | 49 | not scored | baseline |
+| S05 | 51 | 59 | 63 | 57 | 53 | not scored | baseline |
 
-Raw critic medians before calibration: identical (calibration offset none yet).
-Own score (logged, never decides): S01 72, S05 55.
+Raw critic medians before calibration: Alpha [S01 62/54/58/56/60, S02 12/20/25/15/08, S03 52/48/55/54/46, S04 60/42/34/48/50, S05 46/52/60/50/48]; Beta [S01 58/64/62/65/52, S02 18/35/45/30/20, S03 70/66/68/67/64, S04 58/54/48/58/48, S05 56/65/66/64/58].
+Own score (logged, never decides): S01 64, S02 15 (broken opacity-0 grid), S03 65, S04 52, S05 55.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-BLBICvTo.js` 1,917.74 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r01`: `S01..S05` zero errors (`overflow: false` all 5 shots; loads 1541-1663ms).
+- `color_check.py`: S01 vs R03 sat `-0.476` bright `-0.210`; S02 vs R02 sat `+0.226` bright `-0.060` (invalid due blank grid); S03 vs R04 sat `+0.073` bright `-0.115`; S04 vs R01 sat `-0.120` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.104` bright `-0.032`.
+
+Not checked this round:
+- Interactive loot drop transitions & audio chords under live clicks (deferred until Round 03 after visual polish).
 
 Top gaps from critics:
-1. S05 Overview hero: unanchored flat black background, orphan 3-line headline wrap, workspace toolbar collision, no framed live product showcase above fold.
-2. S04 & S02 dark mode flatness & rainbow KPIs/tags: dead black cards without top-edge light sheen, 4 neon KPI hues vs Linear restraint, 16-pill wrapping tag bar, compressed Eisenhower matrix from locked sidebars.
-3. S01, S03 & S06 truncation & overflow: locked 3-column layout truncating calendar titles, clipped right-rail Daily Notes, truncated `+ To-Do:` buttons on S03, `3-Day` wrap and overlapping `+08`/`22h` mobile gutter on S06.
+1. S02 (`comp 15, detail 14`): Entire 16-emblem Collectible Trophy Cabinet grid failed to render below header (`AnimatedContent` opacity-0 scroll lock); filter tabs lack clear pill borders.
+2. S01 & S04 contrast & clipping: `Next: Day 6 Vanguard Cache` illegible (`ShinyText` transparent fill-color), light mode pale gold `#F4C46C` illegible on `#FFFFFF`/`#ECFDF5`, faded `Complete 3 to Unlock` disabled button, truncated `Three-Day Ca...` badge, clipped TopBar quick-add placeholder, `7 Vaults.` clipped at 900px bottom, `21 d` gap vs `21d`.
+3. S03 & S05 data + layout: `Tomorrow Drop` in S03 showed `+125 XP` unmultiplied instead of `+313 XP` (`2.5x`), S05 mobile `Day 7` stranded as orphan row beside 50% blank hole, left-aligned CTA pill, sliced bottom card behind mobile tab bar, missing active tab state on `MobileDock`, crowded mobile header controls.
 
-Progress note sent: 2026-11-18 17:39 +08:00
+Progress note sent: 2026-11-19 02:08 +08:00
 Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 02)
-Next focus: Overhaul S05 Overview hero with Cron-inspired centered 2-line display + atmospheric glow + live framed showcase; unify S04/S02 tonal lighting, monochrome KPI craft, and full-width Tasks matrix; fix S01/S03/S06 wrapping, rail collapsibility, and mobile header.
+Next focus: Round 02 rebuilding S02 cabinet visibility + specular card depth, fixing ALL light & dark WCAG contrast ratios, custom Crate SVG artwork, multiplier parity across modal/studio, truncation fixes, and crisp S05 Day-7 span + mobile fold balance.
 
 ---
 
 ## Round 02
 
-Time: 17:40 to 17:48 +08:00 | total elapsed 0.32h
+Time: 02:08 to 02:15 +08:00 | total elapsed 0.33h
 Usage: not readable
-Focus: S05 Overview hero & showcase framing, S02/S04 dark surface lighting & full-width Matrix, S01/S03/S06 wrapping & mobile fixes
-
+Focus: Fixing S02 blank trophy cabinet visibility, WCAG dark & light contrast, custom Crate SVG illustrations, S03 Day 6 multiplier parity (`+313 XP`), S05 mobile Day 7 alignment
 Changes:
-- Added inline SVG favicon in `index.html` (resolved 404 console error).
-- Added `.studio-card` sheen/shadow elevation and `.studio-spotlight-dark` ambient radial lighting (`src/index.css`).
-- Hidden right inspector rail on `Tasks` tab (`src/App.tsx`), added single-popover tag filter in `TasksWorkspace.tsx`, and added clean editorial header mode for Overview (`src/components/TopBar.tsx`).
-- Tabbed `InspectorRail.tsx` into `Block Details | Daily Notes`, fixed `Daily Journal` action checklist layout and `Pomodoro Session` balance (`FocusHabitsStudio.tsx`), converted `AnalyticsSuite.tsx` KPIs to monochrome tabular numerals + added Y-axis gridlines & Backlog table, and rebuilt `ProductivityOverview.tsx` with centered Cron-inspired 2-line hero + live framed studio preview.
-- Fixed mobile `3-Day` line wrapping and gutter overlap (`CalendarView.tsx`).
+- Removed opacity-0 `AnimatedContent` lock from `#trophy-cabinet` in `RewardsStudio.tsx`, added `Equipped Header Emblem` spotlight pedestal and framed `RubberSegment` filter border.
+- Added theme-aware `getRarityTheme(rarity, isDark)` high-contrast ink tokens and sculpted isometric `VaultCrateSvg` artwork in `TrophyEmblem.tsx`.
+- Fixed `ComebackModal.tsx` `Tomorrow Drop` multiplier calculation (`+125 XP` -> `+313 XP`) and darkened background calendar scrim over Planner view.
+- Added mobile quick rank strip, `col-span-2` Day 7 span on `<sm`, shortened TopBar quick-add placeholder (`Quick add: 'Review 2pm !p1'`), and highlighted `MobileDock` Focus slot during Rewards view.
 
 Stills: `cook/stills/r02/` | Side by side: `cook/compare/r02/`
 
-Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Critic A inherit + Critic B flash + Critic C pro)
+Scores, eyeballed: critic median after calibration (2 fresh zero-context critics: Gamma `inherit`, Delta `flash`; max spread across S01..S05 <=7 pts)
 
 | Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
 |---|---|---|---|---|---|---|---|
-| S01 | 74 | 72 | 72 | 73 | 68 | not scored | +3 / +1 / -3 / +4 / -2 |
-| S02 | 77 | 65 | 71 | 69 | 71 | not scored | +11 / +5 / +4 / +2 / +3 |
-| S03 | 73 | 71 | 72 | 72 | 62 | not scored | +2 / -2 / +3 / +2 / -6 |
-| S04 | 78 | 69 | 71 | 72 | 68 | not scored | +10 / +5 / +8 / +5 / +4 |
-| S05 | 66 | 65 | 73 | 70 | 66 | not scored | +11 / +9 / +2 / +6 / +13 |
-| S06 | 75 | 68 | 71 | 70 | 64 | not scored | +8 / -3 / -7 / +3 / -4 |
+| S01 | 75 | 71 | 71 | 72 | 65 | not scored | +11/+12/+11/+11/+9 |
+| S02 | 63 | 70 | 71 | 71 | 66 | not scored | +48/+42/+36/+48/+52 |
+| S03 | 84 | 79 | 79 | 80 | 81 | not scored | +23/+22/+17/+19/+26 |
+| S04 | 74 | 72 | 65 | 71 | 64 | not scored | +15/+24/+24/+18/+15 |
+| S05 | 68 | 72 | 74 | 72 | 64 | not scored | +17/+13/+11/+15/+11 |
 
-Raw critic medians before calibration: identical (calibration offset none yet).
-Own score (logged, never decides): S01 76, S05 68.
+Raw critic medians before calibration: Gamma [S01 74/68/70/72/65, S02 64/66/67/70/66, S03 84/79/78/81/80, S04 74/75/64/74/65, S05 67/70/73/71/63]; Delta [S01 76/74/72/71/64, S02 62/73/74/72/66, S03 84/79/80/78/81, S04 74/68/65/67/63, S05 69/73/75/72/65].
+Own score (logged, never decides): S01 76, S02 64 (clipped top pedestal & bottom row), S03 83, S04 70, S05 68.
 
 Measured (command and result):
-- `npm run build`: exited 0 in 3.42s (`dist/assets/index-Di7Q7p5-.js` 390.58 kB).
-- `node scripts/render-stills.mjs r02`: all 6 shots rendered (1283-1454ms), horizontal overflow `false`, console errors `[]` (0 errors).
-- `python cook/color_check.py`: S01 vs R01 sat `+0.166` bright `-0.043`; S02 vs R04 sat `-0.111` bright `-0.184`; S03 vs R03 sat `+0.006` bright `-0.001`; S04 vs R05 sat `+0.156` bright `+0.026`; S05 vs R01 sat `+0.178` bright `-0.041`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `npm run build`: exited 0 (`dist/assets/index-54a1Cz9j.js` 1,922.59 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r02`: `S01..S05` zero errors (`overflow: false` all 5 shots; loads 1581-2521ms).
+- `color_check.py`: S01 vs R03 sat `-0.479` bright `-0.209`; S02 vs R02 sat `+0.201` bright `+0.003`; S03 vs R04 sat `+0.054` bright `-0.112`; S04 vs R01 sat `-0.121` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.113` bright `-0.028`.
+
+Not checked this round:
+- Interactive clicks on `Claim Day 5 Vault` / `Pin Emblem` / `Lock` (deferred to final E2E suite after Round 03 visual architecture alignment).
 
 Top gaps from critics:
-1. Detail regressions & duplication: verbatim 4-line journal echo + conflicting sprint totals in S03, duplicated Queue/Matrix tasks in S02, clipped `22 8 4 3` fold numbers in S05, `"1 blocks"` typo in S04, `line-through` text ghosting on S06 `Morning Writing & Priorities`.
-2. Surface lighting & hairline restraint: bright perimeter event outlines on S01/S06, invisible dark-gray weekly load bars & `8h`/`3.8h` label collision in S04, flat backdrop behind S05 preview frame.
-3. Mobile & column density: squeezed 50/50 split on `S06` noon blocks and bottom-edge clip behind MobileDock; duplicated timer task label in `InspectorRail`.
+1. S01 & S04 (`detail 65/64`): 4-of-7 crate titles truncate with ellipses (`Ignition Caps...`, etc.); top/bottom row gutters mismatch (`34/66` vs `56/44`) leaving a ~110px blank void in Anchor Bridge; completed green bounties overpower the actionable uncompleted bounty (`Open Day 5 Reward Vault`); amber XP on light/mint clashes in S04.
+2. S02 (`comp 63`): `Equipped Header Emblem` banner sliced at top under navbar and row 4 sliced at bottom; stray warm orange bleed above `Collectible Trophy Cabinet`; dotted wireframe locked circles; wide spaces around `/` in counters (`1  /  1 day`); multi-accent noise across unlocked cards.
+3. S03 (`comp 84`): Competing dual orange CTAs (`Open Day 5 Crate` vs `Start Sprint`), mismatched `Lock` vs studio, missing middle dot in header rank, `"Continue Studio"` phrasing, tight bottom space in `Tomorrow Drop`.
+4. S05 (`comp 68, detail 64`): Vault bottom edge (`Last drop:`) sliced off behind sticky bottom bar; `"Claim Day 5 Vault"` stopped ~72% width due inline-block `Magnet`; Days 3 & 5 wrapped `Shield` onto 3 lines breaking card height symmetry; stacked header pills cramped top fold.
 
-Progress note sent: 2026-11-18 17:46 +08:00
+Progress note sent: 2026-11-19 02:15 +08:00
 Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 03)
-Next focus: Eliminate all verbatim duplication (S02 sidebar, S03 journal lines, S01 timer title), fix S04 chart axis spacing & pluralization, fit S05 hero cleanly within 100vh without fold-sliced stats, soften event borders to hairline + left accent, and stagger S06 mobile overlaps.
+Next focus: Round 03 unifying desktop into aligned 4/8 vertical columns (zero voids, zero truncation on shortened 1-2 word crate names), reversing bounty focus hierarchy & light-mode restraint, fitting unclipped S02 Pedestal + all 16 etched trophies cleanly inside 900px, single primary CTA + calm polish in S03, and crisp full-width CTA + compact bar + unclipped Vault fit in S05 mobile.
+
 
 ---
 
-## Round 03
+## Round 03 (Intermediate Stills Check -> Fixed into Round 04)
 
-Time: 17:48 to 17:55 +08:00 | total elapsed 0.43h
-Usage: not readable
-Focus: Eliminate verbatim duplication, fix S04 axis spacing, fit S05 hero cleanly in 100vh, soften event hairlines
-
-Changes:
-- Removed `(Overlap)` suffix on `Partner Check-in` and disambiguated `FocusHistory` sprint entries with timestamps (`src/data/seed.ts`).
-- Removed Calendar/Queue sidebar on `Tasks` view (`src/App.tsx`), replaced Tasks top bar quick-add duplicate with Command search button, and swapped Overview navbar to editorial links (`src/components/TopBar.tsx`).
-- Added inline quick-add in Eisenhower quadrants and converted tags into clean popover filters (`src/components/TasksWorkspace.tsx`).
-- Eliminated duplicate Daily Journal line echo (`src/components/FocusHabitsStudio.tsx`), separated bar top values in `AnalyticsSuite.tsx` and fixed `"1 block"` pluralization, and sized `ProductivityOverview.tsx` cleanly to 100vh with metallic display gradient and multi-column showcase preview.
-
+Time: 02:15 to 02:18 +08:00
+Focus: Unified 4/8 vertical column split, concise 1-2 word Vault crate names, flipped actionable bounty hierarchy, crisp silver etched locked trophies, ComebackModal hierarchy & wording (`Enter Studio`).
 Stills: `cook/stills/r03/` | Side by side: `cook/compare/r03/`
+Not scored by external critics — self-inspection of `r03` stills caught 5 immediate structural/typography fixes before burning critic turns:
+1. Desktop Passport Card in S01/S04 collapsed to `0px` height inside flex column because `TiltedCard` received `containerHeight="100%"` / `imageHeight="100%"` inside an `auto`-height parent.
+2. Mobile `375x812` (S05) placed `Comeback Anchor Bridge` above `Daily Reward Vault` because `order-*` classes were placed inside the left column rather than on the outer `lg:col-span-4` and `lg:col-span-8` wrappers.
+3. S02 `rewards-trophies-dark` scroll used `target.offsetTop - 20` against document root (undershooting by TopBar height and clipping top 14px of Pedestal).
+4. Desktop 7-col Days 5 & 7 `+250 XP · Shield` / `+500 XP · Shield` touched right card edges at 1440px.
+5. `font-mono-num` monospace spaces stretched units (`+250  XP`, `1  /  1 day`, `Cross-Day  Lock`).
+Measured: `SLOP_SCAN_PASSED: 97 files clean`, `render-stills r03` exited `0`, `color_check.py` `S02 vs R02` brightness `+0.001`.
+Stop check: rolled fixes directly into **Round 04**.
 
-Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Critic A inherit + Critic B flash + Critic C pro)
-
-| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
-|---|---|---|---|---|---|---|---|
-| S01 | 76 | 74 | 81 | 74 | 74 | not scored | +2 / +2 / +9 / +1 / +6 |
-| S02 | 79 | 70 | 78 | 76 | 78 | not scored | +2 / +5 / +7 / +7 / +7 |
-| S03 | 81 | 78 | 72 | 75 | 79 | not scored | +8 / +7 / +0 / +3 / +17 |
-| S04 | 80 | 73 | 80 | 74 | 73 | not scored | +2 / +4 / +9 / +2 / +5 |
-| S05 | 79 | 76 | 85 | 77 | 75 | not scored | +13 / +11 / +12 / +7 / +9 |
-| S06 | 69 | 78 | 80 | 78 | 68 | not scored | -6 / +10 / +9 / +8 / +4 |
-
-Raw critic medians before calibration: identical (calibration offset none yet).
-Own score (logged, never decides): S01 79, S05 80.
-
-Measured (command and result):
-- `npm run build`: exited 0 in 2.69s (`dist/assets/index-CM75Mg57.js` 397.59 kB).
-- `node scripts/render-stills.mjs r03`: all 6 shots rendered (1232-1421ms), overflow `false`, errors `[]`.
-- `python cook/color_check.py`: S01 vs R01 sat `+0.193` bright `-0.040`; S02 vs R04 sat `-0.087` bright `-0.186`; S03 vs R03 sat `+0.006` bright `+0.005`; S04 vs R05 sat `+0.184` bright `+0.034`; S05 vs R01 sat `+0.185` bright `-0.037`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
-- `node scripts/slop-scan.mjs`: flagged 1 comment em-dash in `src/data/seed.ts`.
-
-Top gaps from critics:
-1. S06/S01 coordinate & overlap regressions: double `+12` top offset shifted events slightly below hour lines; `day` mode cascade overlap covered `12 PM` icons on `Design Systems Review`; `justify-between` left tall block empty middle gap.
-2. S04 data/chart precision: `7.8h` bar exceeded `8h` dashed line due to flexbox offset; `0%` progress bars rendered `6%` left dot artifact; `22 blocks` vs `20` timed blocks discrepancy.
-3. S02/S03/S05 polish: nested bordered task boxes and bottom-pinned add rows in S02; blue CTA clash in S03 light mode; truncated queue titles and uniform wireframe blocks in S05 preview.
-
-Progress note sent: 2026-11-18 17:53 +08:00
-Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 04)
-Next focus: Remove double `+12` event Y-offset and fix S06 50/50 split columns + compact mobile chrome; fix S04 exact Y-axis percentage lines and 0% track dot artifact; convert S02 to hairline-divided rows; unify S03 light-mode ember palette; upgrade S05 preview with true time-grid hairlines and non-truncating copy.
 
 ---
 
 ## Round 04
 
-Time: 17:55 to 18:06 +08:00 | total elapsed 0.62h
-Usage: not readable
-Focus: Fix double `+12` Y-offset & 50/50 split overlaps, tighten mobile chrome, clean Analytics zero tracks, unify S03 light ember palette, upgrade S05 preview & S02 hairlines
-
-Changes:
-- Removed em-dash comment in `src/data/seed.ts` (`SLOP_SCAN_PASSED`).
-- Fixed double `+12` Y-coordinate offset on event blocks, restored clean 50/50 side-by-side split overlaps in `day` mode, and removed tall-block `justify-between` middle void (`src/components/CalendarView.tsx`).
-- Tuned Daylight Paper warm paper shadow & contrast (`src/index.css`), narrowed desktop sidebars (`w-[224px]` / `w-[264px]`), converted S02 Matrix rows to hairline dividers (`TasksWorkspace.tsx`), unified S03 light mode to ember `#E74004` (`FocusHabitsStudio.tsx`), fixed S04 exact Y-axis percentage lines and removed `0%` dot artifact (`AnalyticsSuite.tsx`), and upgraded S05 preview with hour hairlines and bottom vignette (`ProductivityOverview.tsx`).
-
+Time: 02:18 to 02:25 +08:00
+Focus: Restoring `TiltedCard` Passport (`containerHeight="244px"`), fixing Mobile `order-1/order-2` Vault-first first fold, fixing S02 relative `#rewards-scroll` Pedestal alignment, un-crowding Day 5/7 Shield labels, and fixing monospace `font-mono-num` spacing gaps.
 Stills: `cook/stills/r04/` | Side by side: `cook/compare/r04/`
 
-Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Alpha inherit + Beta flash + Gamma pro; mapped `match / hierarchy / craft / discipline / taste`)
+Scores, eyeballed: critic average / median (2 fresh zero-context critics: Epsilon `inherit`, Zeta `flash`)
 
-| Shot | Match | Hierarchy | Craft | Discipline | Taste | Motion | vs last round |
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last scored round (R02) |
 |---|---|---|---|---|---|---|---|
-| S01 | 78 | 82 | 76 | 94 | 81 | not scored | +2 / +8 / -5 / +20 / +7 |
-| S02 | 86 | 88 | 85 | 93 | 87 | not scored | +7 / +18 / +7 / +17 / +9 |
-| S03 | 84 | 86 | 83 | 94 | 85 | not scored | +3 / +8 / +11 / +19 / +6 |
-| S04 | 84 | 87 | 81 | 94 | 85 | not scored | +4 / +14 / +1 / +20 / +10 |
-| S05 | 80 | 86 | 79 | 90 | 83 | not scored | +1 / +10 / -6 / +13 / +8 |
-| S06 | 89 | 91 | 88 | 95 | 90 | not scored | +20 / +13 / +8 / +17 / +22 |
+| S01 | 71 | 73 | 72 | 75 | 73 | not scored | -4/+2/+1/+3/+8 |
+| S02 | 78 | 71 | 65 | 72 | 72 | not scored | +15/+1/-6/+1/+6 |
+| S03 | 86 | 82 | 80 | 80 | 82 | not scored | +2/+3/+1/0/+1 |
+| S04 | 71 | 76 | 69 | 75 | 72 | not scored | -3/+4/+4/+4/+8 |
+| S05 | 71 | 73 | 73 | 74 | 70 | not scored | +3/+1/-1/+2/+6 |
 
-Raw critic medians before calibration: identical (calibration offset none).
+Raw critic scores:
+- Epsilon (`inherit`): S01 `[68,66,72,68,70]`, S02 `[78,65,62,64,72]`, S03 `[84,76,78,72,79]`, S04 `[68,73,69,70,70]`, S05 `[67,66,71,68,66]`.
+- Zeta (`flash`): S01 `[74,80,72,81,75]`, S02 `[78,76,68,79,71]`, S03 `[88,87,82,88,84]`, S04 `[73,78,69,80,74]`, S05 `[74,80,74,80,73]`.
 
 Measured (command and result):
-- `npm run build`: exited 0 in 2.96s (`dist/assets/index-DbjXO53w.js` 401.09 kB, `index-D9kO-Oyx.css` 41.22 kB).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 24 files clean`.
-- `node scripts/render-stills.mjs r04`: S01 1641ms, S02 3208ms, S03 1324ms, S04 1240ms, S05 1396ms, S06 1549ms; overflow `false`, errors `[]`.
-- `python cook/color_check.py`: S01 vs R01 sat `+0.193` bright `-0.041`; S02 vs R04 sat `-0.079` bright `-0.196`; S03 vs R03 sat `-0.004` bright `+0.008`; S04 vs R05 sat `+0.184` bright `+0.035`; S05 vs R01 sat `+0.208` bright `-0.035`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED` (after adding explicit `Pause timer` accessible text).
+- `npm run build`: exited 0 (`dist/assets/index-EjA6eBhn.js` 1,924.17 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r04`: `S01..S05` zero console/page errors, `overflow: false` all 5 shots (`1545-2436ms`).
+- `color_check.py`: S01 vs R03 sat `-0.487` bright `-0.225`; S02 vs R02 sat `+0.194` bright `+0.001`; S03 vs R04 sat `+0.053` bright `-0.125`; S04 vs R01 sat `-0.126` bright `+0.882`; S05 vs R04_mobile_fold sat `+0.102` bright `-0.030`.
 
-Top gaps from critics:
-1. S05 eyebrow pill (`● Cadence Studio · Unified Calendar & To-Do`) violates `BRIEF.md` Rule 19 (`NO eyebrow labels`); preview right column (`Deep Focus`) has dead gap above `Habit streaks`.
-2. S01 Week grid header `Wed [18]` right-aligned day badge, scrollbar-width misalignment vs body, `line-clamp-2` blocked by inner `<span className="truncate">`, `showSecondaryTz: true` (`UTC` vs `GMT+8`), and `November 2026` / `Queue` 4th-item clipping in `Sidebar.tsx`.
-3. S04 flex bar container shrank `7.8h` bar below `8h` dashed line; dark `Total scheduled` bars too dim against `#111318`; `25.5h` vs `25.6h` rounding delta; three `0%` rows in backlog table.
-4. S03 `Recent Focus Log` bottom void with only 3 entries; muted light-mode text contrast; S02 Matrix `+ Add directly to ...` unpinned mid-card + redundant `Overdue:` prefix + dev-meta copy (`#svg`, `#wcag`); S06 45m blocks omit start times (`height < 42`).
+Top remaining gaps caught by Round 04 harsh critics:
+1. Locked `Day 6 Vanguard` uses bright orange/red-pink styling matching an error/active state instead of calm locked slate (`S01/S03/S04/S05`).
+2. `S02` rainbow full-perimeter borders (`inset 0 2px 0`), dim locked icons, and `justify-between` baseline wobble across 1-line vs 2-line descriptions (`Iron Unbroken`).
+3. Missing active desktop TopNav highlight on `rewards`, duplicate `Get App` + `Install App (+100 XP)` CTAs, dual bright orange CTAs (`Claim Day 5` + `Claim Crate ->`), Day 1-7 chest wobble (`justify-between`), ~170px bottom-left void + sliced `Equipped Showcase` peeking at `y=865..900` in S01/S04, generic `<select>` + ambiguous `Active` button, and crammed mobile top header (`S05`).
 
-Stop check: bar [no] | floor [yes - 4 rounds completed] | stills approved [no] | final checked [no] -> next round (Round 05 Cook Polish before Phase 2 React Bits)
-Next focus: Delete S05 eyebrow pill & enrich S05 preview time gutter + Deep Focus panel; fix S01 header-body alignment, `line-clamp-2` wrapping, `Nov 2026` single-line sidebar + clean queue fit, default single TZ (`GMT+8`), and S06 45m start times + bottom padding; fix S04 absolute bar labels, brighter slate scheduled bars, exact `25.5h` sum & seeded backlog completions; expand S03 focus log to fill card height cleanly; pin S02 quadrant footers and clean seed copy.
+Stop check: launched **Round 05 (`r05`)** polish to fix every single item cleanly.
+
 
 ---
 
 ## Round 05
 
-Time: 18:06 to 18:14 +08:00 | total elapsed 0.75h
-Usage: not readable
-Focus: Eliminate S05 eyebrow pill, fix S01 header-body scrollbar alignment + line-clamp wrapping, fix S04 exact bar height & 25.5h math, reconcile S03 focus log height & We 18 highlight, and balance S02 quadrants
-
-Changes:
-- Removed S05 eyebrow pill (`BRIEF.md` Rule 19 strict compliance), tightened Hero `<h1>` sizing (`clamp(2.45rem, 4.35vw, 3.85rem)`), aligned `Command Bar (⌘K)` wording, and enriched preview time gutter + `Deep Focus` / `Habit streaks` panels (`src/components/ProductivityOverview.tsx`).
-- Aligned Week header `md:pr-[6px]` with scrollable grid body, centered `Wed [18]` pill + vertical dividers, removed inner `<span className="truncate">` blocking `line-clamp-2` on >=48px events, showed start times on 35m+ blocks (`src/components/CalendarView.tsx`), and added `150` min option to Inspector duration selector (`src/components/InspectorRail.tsx`).
-- Compacted sidebar header (`Nov 2026`) and queue count (`2` items) so `Queue` + `Calendars` fit cleanly at 900px (`src/components/Sidebar.tsx`).
-- Fixed S04 flexbox bar height compression by moving bar value labels (`bottom: 100%` `-top-5`) out of flex flow, brightened scheduled bars & category tracks (`src/components/AnalyticsSuite.tsx`), and balanced seed durations/tasks/sprints so `25.5h` reconciles cleanly to `0.1h` across all panels with 4 focus sprints totaling `150m` (`src/data/seed.ts`).
-- Highlighted `We 18` column and tightened focus log padding in `src/components/FocusHabitsStudio.tsx`, pinned Matrix quick-add footers in `src/components/TasksWorkspace.tsx`, and strengthened light-mode muted contrast (`src/index.css`).
-
+Time: 02:25 to 02:32 +08:00
+Focus: Desktop active TopNav tab, MobileDock unified labels + translucent depth feathering, deduplicated App CTA vs TopBar `Get App`, brushed pewter locked medals & desaturated locked chests, calm neutral claimed/locked Vault tiles, demoted Bounty Row 1 button, `28-Day` bottom-left dock eliminating S01 void & S01/S04 bottom-edge chop, S02 pixel baseline lock & removed `inset 0 2px 0` rainbow borders.
 Stills: `cook/stills/r05/` | Side by side: `cook/compare/r05/`
 
-Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Alpha inherit + Beta flash + Gamma pro; mapped `match / hierarchy / craft / discipline / taste`)
+Scores, eyeballed: critic average / median (2 fresh zero-context critics: Eta `inherit`, Theta `flash`)
 
-| Shot | Match | Hierarchy | Craft | Discipline | Taste | Motion | vs last round |
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 04 |
 |---|---|---|---|---|---|---|---|
-| S01 | 91 | 93 | 90 | 95 | 93 | not scored | +13 / +11 / +14 / +1 / +12 |
-| S02 | 88 | 92 | 92 | 96 | 92 | not scored | +2 / +4 / +7 / +3 / +5 |
-| S03 | 91 | 92 | 94 | 95 | 94 | not scored | +7 / +6 / +11 / +1 / +9 |
-| S04 | 90 | 92 | 90 | 94 | 92 | not scored | +6 / +5 / +9 / +0 / +7 |
-| S05 | 84 | 90 | 87 | 95 | 89 | not scored | +4 / +4 / +8 / +5 / +6 |
-| S06 | 91 | 95 | 91 | 96 | 94 | not scored | +2 / +4 / +3 / +1 / +4 |
+| S01 | 85 | 77 | 86 | 78 | 78 | not scored | +14/+4/+14/+3/+5 |
+| S02 | 81 | 75 | 81 | 75 | 82 | not scored | +3/+4/+16/+3/+10 |
+| S03 | 86 | 86 | 89 | 83 | 75 | not scored | 0/+4/+9/+3/-7 |
+| S04 | 84 | 82 | 84 | 79 | 74 | not scored | +13/+6/+15/+4/+2 |
+| S05 | 80 | 79 | 86 | 80 | 75 | not scored | +9/+6/+13/+6/+5 |
 
-Raw critic medians before calibration: identical (calibration offset none).
-
-Measured (command and result):
-- `npm run build`: exited 0 in 4.17s (`dist/assets/index-CLcmm-7T.js` 402.90 kB, `index-efVTJHR9.css` 42.40 kB).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 24 files clean`.
-- `node scripts/render-stills.mjs r05`: S01 1412ms, S02 1395ms, S03 1295ms, S04 1301ms, S05 1417ms, S06 1337ms; overflow `false`, errors `[]`.
-- `python cook/color_check.py`: S01 vs R01 sat `+0.189` bright `-0.040`; S02 vs R04 sat `-0.083` bright `-0.192`; S03 vs R03 sat `-0.004` bright `+0.007`; S04 vs R05 sat `+0.185` bright `+0.036`; S05 vs R01 sat `+0.206` bright `-0.041`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
-
-Top gaps from critics:
-1. S05 micro-details: `Today Queue` badge shows `4` beside 5 items (`4 open` clarifies); subtle optical kerning gap before `.` in `Finally in one studio.` (`ml-[-0.04em]`).
-2. S01/S06 current-time dot at `11:30 AM` (`nowMinutes=690`) sits flush against `Deep Work` bottom border & clips left edge (`-ml-0.5` inside `overflow-hidden`); `+ UTC` clearer than `1 TZ`; Inspector `Milestone` pill wraps alone onto row 2.
-3. S02 quadrant card stretch left dark void above pinned quick-add (`items-start` hugs content tighter); S03 duplicate `50m today` subtitle in `Pomodoro Session`; S04 `Other scheduled` legend wording clarity.
-
-Stop check: bar [almost; clean Phase 1 foundation ready for final micro-fix + Phase 2 React Bits Effects] | floor [yes - 5 Cook rounds completed] | stills approved [pending final review] | final checked [pending Phase 2 React Bits]
-Next focus: Apply quick micro-polish items (11:45 AM unclipped time needle, `studio.` kerning, `4 open`, `Other scheduled`, `Pomodoro` subtitle, `items-start` Matrix content fit, `+ UTC` label, `Milestone` wrap) AND layer the full suite of React Bits Effects (`@react-bits/*-JS-CSS`) across Overview, Cards, Typography, Micro controls, and Workspace views.
-
----
-
-## Round 06-rb (Phase 2: React Bits Integration & Micro-Polish)
-
-Time: 18:15 to 18:31 +08:00 | total elapsed 1.03h
-Usage: not readable
-Focus: Fold in Round 05 micro-fixes and apply `@react-bits/*-JS-CSS` animated layering across Cadence (`App`, `TopBar`, `ProductivityOverview`, `FocusHabitsStudio`, `AnalyticsSuite`, `TasksWorkspace`) with strict palette and reduced-motion discipline
-
-Changes:
-- Installed 23 official `@react-bits/*-JS-CSS` components via `npx shadcn@latest add`, created typed barrel `src/lib/reactbits.ts`, removed default purple/green fallback colors in `Aurora.jsx`, `BorderGlow.jsx`, `BorderGlow.css`, `GradientText.jsx`, `DotGrid.jsx`, `MagicBento.jsx`, `CardSwap.jsx`, removed external image strings from `CardSwap.jsx`, and expanded `scripts/slop-scan.mjs` across `.jsx`/`.js`/`.ts`/`.tsx`/`.css`.
-- Wrapped workspace shell in ember `<ClickSpark>` (`src/App.tsx`), logo in `<Magnet>` (`src/components/TopBar.tsx`), Matrix & Backlog cards in `<SpotlightCard>` and CTAs in `<GlareHover>` (`TasksWorkspace.tsx`, `AnalyticsSuite.tsx`), Focus engine & Analytics weekly chart in `<BorderGlow>` + customizable focus length `<ElasticSlider>` (`FocusHabitsStudio.tsx`), and KPI stats in `<CountUp>` (`AnalyticsSuite.tsx`).
-- Layered Overview (`src/components/ProductivityOverview.tsx`) with masked atmospheric `<Aurora>` + `<DotGrid>`, `<BlurText>` + `<GradientText>` hero headline, `<BorderGlow>` + `<TextType>` + `<ShinyText>` preview chrome, `<FadeContent>` + `<CountUp>` metrics, native-visual `<MagicBento>`, 3-up `<Folder>` packs + `<CardSwap>` workflow stack, interactive `<Dock>`, and `<DecryptedText>` keyboard shortcuts.
-- Fixed Round 05 micro-items: moved current-time needle to `11:45 AM` (`ml-1.5`), switched Matrix back to content-hugging `items-start` + bottom summary bar, updated legend to `Other scheduled`, changed Pomodoro subtitle, renamed `1 TZ` to `+ UTC`, and tightened Inspector pill wrapping.
-
-Stills: `cook/stills/r06-rb/` | Side by side: `cook/compare/r06-rb/` (plus scrolled Overview captures `overview_mid.png`, `overview_low.png`, `overview_dock.png`)
-
-Scores, eyeballed: critic audit (2 fresh zero-context critics on `r06-rb`: Alpha inherit + Pro pro; mapped `match / hierarchy / craft / discipline / taste`)
-
-| Shot | Alpha (`match/hier/craft/disc/taste`) | Pro (`match/hier/craft/disc/taste`) |
-|---|---|---|
-| S01 | 97 / 97 / 96 / 99 / 98 (Avg 97.4) | 96 / 96 / 95 / 98 / 97 |
-| S02 | 96 / 98 / 96 / 99 / 97 (Avg 97.2) | 94 / 97 / 97 / 98 / 96 |
-| S03 | 98 / 98 / 98 / 99 / 98 (Avg 98.2) | 97 / 96 / 95 / 98 / 97 |
-| S04 | 97 / 98 / 97 / 99 / 98 (Avg 97.8) | 96 / 97 / 97 / 98 / 97 |
-| S05 | 96 / 97 / 91 / 98 / 96 (Avg 95.6) | 96 / 97 / 92 / 98 / 95 |
-| S06 | 96 / 97 / 97 / 99 / 97 (Avg 97.2) | 93 / 96 / 96 / 98 / 96 |
+Raw critic scores:
+- Eta (`inherit`): S01 `[85,80,86,79,81]`, S02 `[82,78,80,78,81]`, S03 `[84,88,90,86,79]`, S04 `[84,81,84,78,75]`, S05 `[81,82,87,82,77]`.
+- Theta (`flash`): S01 `[84,74,85,76,74]`, S02 `[79,72,81,72,83]`, S03 `[87,84,87,80,71]`, S04 `[84,82,84,79,73]`, S05 `[79,75,84,77,72]`.
 
 Measured (command and result):
-- `npm run build`: exited 0 in 12.10s (`dist/assets/index-Uezz2h9M.js` 884.67 kB).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 64 files clean`.
-- `node scripts/render-stills.mjs r06-rb`: `S01`–`S06` overflow `false`, errors `[]`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `npm run build`: exited 0 (`dist/assets/index-b9Bx-A11.js` 1,927.22 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r05`: `S01..S05` zero console/page errors, `overflow: false` all 5 shots (`1574-2538ms`).
+- `color_check.py`: S01 vs R03 sat `-0.489` bright `-0.227`; S02 vs R02 sat `+0.197` bright `-0.003`; S03 vs R04 sat `+0.052` bright `-0.125`; S04 vs R01 sat `-0.126` bright `+0.882`; S05 vs R04_mobile_fold sat `+0.093` bright `-0.037`.
 
-Top gaps from `r06-rb` critics:
-1. S05 Hero H1 `Plus Jakarta Sans` weight-800 glyph sidebearing left visible gap before period (`"Finally in one studio ."`).
-2. S03 `buildHabitHistory` pattern helper checked `.includes(i % 7)` on a binary array instead of indexing `pattern[i % 7] === 1`, leaving `Th 12..Mo 16` unchecked; `BorderGlow.css` default shadow outweighed adjacent paper cards on light mode.
-3. S05 `Command Bar` secondary button needed clearer border pill framing + faster `TextType` chrome typing speed.
+Remaining items targeted in Round 06 (`r06`):
+1. `Day 5` `READY` + `❄ +1` header overflow on narrow `xl` tiles (`S01/S04`), fake `12%` bar sliver on `0/1` Bounty Row 1, nested inner borders + flat surface lighting + pure white/black today ring (`28-Day`).
+2. `S03` orphan numeral wraps (`Tomorrow Drop · Day\n6`, `22d.`) & hollow right card center.
+3. `S05` truncated `<h1>` (`Momentum Vault & Trophy S...`), mixed mono/sans summary pill font, dropped mobile `2/3 Complete`, bottom subtitle slice.
+4. `S02` 13 identical green bars, 2-line floating `Pin`/`Locked` clutter, missing top breadcrumb context, small trophy emblems (`32px` -> `36px` layered enamel), and orphan words in descriptions.
 
----
+Stop check: launched **Round 06 (`r06`)** final visual precision pass.
 
-## Round 07-final (Ship Micro-Fixes & Final Verification)
-
-Time: 18:32 to 18:36 +08:00 | total elapsed 1.12h
-Focus: Fix S05 Hero `"studio."` kerning, `Command Bar` keycap framing, `TextType` `typingSpeed={4}`, `BorderGlow.css` `--shadow-card` parity, and `buildHabitHistory` 7-day habit population, then add `README.md` + `docs/PROMPT.md`
-
-Changes:
-- Fixed `buildHabitHistory` (`pattern[i % 7] === 1`) in `src/data/seed.ts` so all 7 habit columns (`3d/4d/1d/5d`) populate realistically and Analytics KPI `7-day habit consistency` reads `71%` cleanly.
-- Updated `BorderGlow.css` card `box-shadow` to inherit `var(--shadow-card)` cleanly in light/dark themes.
-- Set Overview Hero `<h1>` font stack to `'Inter'` (`clamp(2.5rem, 4.4vw, 3.9rem)`, `-0.04em`), styled `Command Bar` with bordered `Ctrl+K` keycap chip, and tightened preview chrome `TextType` (`typingSpeed={4}`) (`src/components/ProductivityOverview.tsx`).
-- Added `README.md` and `docs/PROMPT.md`.
-
-Stills: `cook/stills/r07-final/` | Side by side: `cook/compare/r07-final/`
-
-Measured after final app code edit (`r07-final`):
-- `npm run build`: exited 0 in 11.52s (`tsc -b && vite build`, `8158` modules, `dist/assets/index-DUHgm0Yt.css` `105.80 kB`, `dist/assets/index-CvP-ymjp.js` `884.92 kB`).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 64 files clean`.
-- `node scripts/render-stills.mjs r07-final`: `S01` 1437ms, `S02` 1547ms, `S03` 1403ms, `S04` 1250ms, `S05` 1520ms, `S06` 1272ms; overflow `false`, errors `[]` across all 6 shots.
-- `python cook/color_check.py`: `S01 vs R01` sat `+0.189` bright `-0.040`; `S02 vs R04` sat `-0.087` bright `-0.190`; `S03 vs R03` sat `-0.003` bright `+0.007`; `S04 vs R05` sat `+0.181` bright `+0.037`; `S05 vs R01` sat `+0.247` bright `-0.028`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
-- Visual check on `r07-final/S05.png`, `r07-final/S03.png`, `r07-final/S04.png`, `r07-final/S01.png`, `r07-final/S06.png`: `"studio."` kerning resolved cleanly, `"25:00 Deep Focus · 4 open blocks"` complete, all 7 habit days populated, light/dark shadows matched, `0` em-dashes, `0` console errors.
-- Secret scan (`git grep`): `SECRET_SCAN_EXIT:1` (0 matches).
-
-Stop check: floor [yes - 7 iterations across Phase 1 & Phase 2] | final checks [yes - build, slop-scan, stills, interactions, secret grep all clean] | git push [skipped locally per instruction] -> ready to present to user.
 
 ---
 
-## Round 08-lively (Lively Motion, Tactile Controls & WebGL Shader Wave)
+## Round 06
 
-Time: 18:55 to 19:30 +08:00
-Focus: Expand `@react-bits/*-JS-CSS` kinetic micro-interactions, WebGL active state electricity, floating 3D perspective, rolling mechanical counters, velocity marquee, and staggered entrances across all views per user request ("make it a lot more livelier and more animated")
+Time: 02:32 to 02:39 +08:00
+Focus: Eliminating `Day 5 READY` collision (status top-right alone, shield chip cleanly beside chest), fixing `0/1` Bounty bar sliver, stripping nested inner borders + diffuse light shadows, adding ambient radial lighting & `36px` sculpted enamel medals (`TrophyEmblem`), fixing `S03` orphan wraps (`Tomorrow · Day 6`), un-truncating mobile H1 (`Momentum Vault`), restoring mobile `2/3 Complete`.
+Stills: `cook/stills/r06/` | Side by side: `cook/compare/r06/`
 
-Changes:
-- Installed 10 additional `@react-bits/*-JS-CSS` components via `npx shadcn@latest add`: `SpringCheck`, `RubberSegment`, `SquishSwitch`, `BellToggle`, `HoldButton`, `ElectricBorder`, `ScrollVelocity`, `LineWaves`, `ScrollReveal`, `RotatingText`; removed purple fallback defaults (`#5227FF`, `#a855f7`) in `HoldButton` and `RotatingText`; registered all 33 React Bits components in `src/lib/reactbits.ts`.
-- Upgraded global `ClickSpark` (`src/App.tsx`) to multi-hue ember/amber/sky/white sparks (`sparkSize={10}`, `sparkRadius={22}`, `sparkCount={9}`, `glow={0.45}`).
-- Upgraded `ProductivityOverview.tsx`: cranked `DotGrid` (`clickShock`, `swell={1.0}`, `glow={0.6}`) + `Aurora` (`amplitude={0.85}`, `speed={0.85}`), added inline `RotatingText` word-flip badge in subtitle, wrapped Hero Showcase in floating 3D `TiltedCard` (`floating`, `glare={0.28}`, `rotateAmplitude={4.5}`) over animated `BorderGlow`, rolling `Counter` timer in showcase chrome, added `ScrollVelocity` kinetic ticker marquee (`fadeEdges`, `pauseOnHover`, `outlineAlternate`), enabled `enableStars` + `enableTilt` on `MagicBento`, layered `LineWaves` WebGL backdrop behind `Folder` + `CardSwap`, and staggered section reveals with `AnimatedContent`.
-- Upgraded `CalendarView.tsx`: switched desktop view switcher (`Day`/`3-Day`/`Workweek`/`Week`/`Month`/`Agenda`) to bouncy `RubberSegment` (`border` framed) and replaced desktop `+ UTC` toggle with elastic `SquishSwitch`.
-- Upgraded `TasksWorkspace.tsx`: switched view modes to bordered `RubberSegment`, replaced task checkboxes in Smart List & Matrix with physics-based `SpringCheck`, and staggered Smart List, Kanban, and Matrix entrances with `AnimatedContent`.
-- Upgraded `FocusHabitsStudio.tsx` & `FocusCurtain.tsx`: swapped chime control to animated clapper `BellToggle`, duration selector (`25m`/`5m`/`15m`) to `RubberSegment`, timer numerals to rolling `Counter` digits, active focus border to WebGL `ElectricBorder` (`active={focusRunning}` so light-theme idle cards stay hairline-clean while active sessions spark), and fullscreen `FocusCurtain` with live `LineWaves` + `ElectricBorder` + `48px` rolling `Counter`.
-- Upgraded `AnalyticsSuite.tsx`: replaced `Reset` button with `HoldButton` (`holdTime={900}` ember fill + `Backup`/`Import`/`Export .ics` `h-9` alignment) and staggered KPI entrance with `AnimatedContent`.
-- Fixed Windows child-process `taskkill /T /F` cleanup in `scripts/render-stills.mjs` and `scripts/verify-interactions.mjs` + updated Playwright locators for `role="radio"` and `Distraction-free mode` Focus Curtain round-trip.
+Scores, eyeballed: critic average / median (2 fresh zero-context critics: Lambda `inherit`, Mu `flash`)
 
-Stills: `cook/stills/r08-lively/` | Side by side: `cook/compare/r08-lively/`
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 05 |
+|---|---|---|---|---|---|---|---|
+| S01 | 88 | 88 | 88 | 87 | 85 | not scored | +3/+11/+2/+9/+7 |
+| S02 | 88 | 86 | 89 | 86 | 86 | not scored | +7/+11/+8/+11/+4 |
+| S03 | 87 | 86 | 90 | 86 | 86 | not scored | +1/0/+1/+3/+11 |
+| S04 | 88 | 89 | 87 | 87 | 85 | not scored | +4/+7/+3/+8/+11 |
+| S05 | 89 | 87 | 88 | 87 | 85 | not scored | +9/+8/+2/+7/+10 |
 
-Measured (`r08-lively`):
-- `npm run build`: exited 0 (`✓ built in 9.58s`, `tsc -b && vite build`, `8178` modules, `dist/assets/index-CG58CE6e.css` `124.38 kB`, `dist/assets/index-QgwUOMz8.js` `991.26 kB`).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
-- `node scripts/render-stills.mjs r08-lively`: `S01` 2442ms, `S02` 2180ms, `S03` 1978ms, `S04` 1330ms, `S05` 1631ms, `S06` 1283ms; `overflow: false`, `errors: []` across all 6 captures.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+Raw critic scores:
+- Lambda (`inherit`): S01 `[88,88,85,87,86]`, S02 `[89,86,88,86,88]`, S03 `[86,82,89,85,84]`, S04 `[88,90,86,88,86]`, S05 `[87,87,85,86,84]`.
+- Mu (`flash`): S01 `[87,88,90,86,84]`, S02 `[86,86,89,85,84]`, S03 `[88,89,91,86,87]`, S04 `[87,88,87,85,84]`, S05 `[90,87,90,88,85]`.
 
----
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-wmuvMuKN.js` 1,930.82 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r06`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1582-2504ms`).
+- `color_check.py`: S01 vs R03 sat `-0.479` bright `-0.220`; S02 vs R02 sat `+0.192` bright `-0.004`; S03 vs R04 sat `+0.055` bright `-0.124`; S04 vs R01 sat `-0.124` bright `+0.882`; S05 vs R04_mobile_fold sat `+0.094` bright `-0.031`.
 
-## Round 09-planner (Planner Workspace Clarity, Visual Pop & Interactive Controls)
+Final micro-polish queued for **Round 07 (`r07`)**:
+1. Elevate `S03` outer modal chromatic glow (`BorderGlow` + depth shadow), replace orphan divider in `Vanguard` card with clean metadata bar, strip double border on anchor input, center `Yesterday's Priority Promise` compass icon.
+2. Lock fixed-width right column in `Rotating Daily Bounties` (`+50 / +88 / +113 XP` aligned cleanly), dim `Complete 3 to Unlock` as locked status (`<Lock />`), restore cyan semantic pill to `Day 5` `❄ +1` across `S01/S04/S05`, unify `Ready` to `rounded-full`, tactile bevel on primary CTAs, hairline divider in desktop `TopBar`, calm heatmap + shield legend (removing `13/16` duplicate).
+3. Unify `h-1` track thickness & brighten unlocked bars in `S02`, fix `Weekly Rhythm` / `Combo Sweeper` single-word widows, enrich `Equipped Showcase` middle metadata, balance `S05` mobile `Day 7` 2-line split + show live rank XP in summary pill.
 
-Time: 19:39 to 19:48 +08:00
-Focus: Address user screenshot feedback on Planner (`CalendarView`, `Sidebar`, `InspectorRail`, `themeTokens`) so the primary scheduling workspace scans immediately at a glance, reacts vibrantly to interactions, and showcases live animations
-
-Changes:
-- Enriched `EVENT_CATEGORY_STYLES` in `src/utils/themeTokens.ts` (`shortLabel`, `glowDark`, stronger saturated gradient washes and category-tinted borders so Deep Focus, Meeting, Personal, Health, and Milestone blocks separate cleanly on dark obsidian).
-- Upgraded `CalendarView.tsx`: added scannable top Category Spotlight filter strip (`All`, `Deep Focus`, `Meeting`, `Personal`, `Health`, `Milestone` pills with counts + dim/highlight isolation) and Today capacity telemetry bar (`7.5h booked` + `due` badge + clickable live `Focusing` timer beacon), per-day booked hour totals (`Mon 16 4h`..`Sun 22 1h`), subtle prime-hours shading + dashed 30m rules, hover `+ 10 AM` slot affordance, pulsing `11:45 AM` current-time marker (`motion-safe:animate-ping`), category tags on blocks + hover `Play` focus trigger, and `AnimatedContent` + `SpotlightCard` transitions across Month/Agenda modes.
-- Upgraded `InspectorRail.tsx`: added active WebGL `ElectricBorder` (`active={focusRunning}`) + pulsing Focus Active `ShinyText` header + rolling `Counter` numerals + full-width `RubberSegment` timer intervals, `GlareHover` CTA, `RubberSegment` `Block Details | Daily Notes` switcher, `SpotlightCard` block editor, and `SpringCheck` checkboxes.
-- Upgraded `Sidebar.tsx`: added active accent bars on Task Lists, interactive Queue `SpotlightCard`s with `SpringCheck` + 1-click `+ Block` buttons, and `GlareHover` quick-add CTA.
-
-Stills: `cook/stills/r09-planner/` | Side by side: `cook/compare/r09-planner/`
-
-Measured (`r09-planner`):
-- `npm run build`: exited 0 (`tsc -b && vite build`, `8178` modules, `dist/assets/index-BYiF10U0.css` `125.85 kB`, `dist/assets/index-D3wbd3jR.js` `1,000.79 kB`).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
-- `node scripts/render-stills.mjs r09-planner`: `S01` 3294ms, `S02` 1385ms, `S03` 1438ms, `S04` 1321ms, `S05` 1719ms, `S06` 1334ms; `overflow: false`, `errors: []`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
 
 ---
 
-## Round 10-mobile (Touch Drag/Resize, Mobile Inspector Sheet & Full 375px Responsiveness Audit)
+## Round 07
 
-Time: 19:58 to 20:15 +08:00
-Focus: Audit every view at `375x812` and fix every feature gap: touch-friendly calendar block drag & duration resize, un-crowded mobile calendar layout, `MobileInspectorSheet` on `< xl`, crisp zero-blur `Counter` numerals, unclipped `Tasks`/`Analytics`/`Overview` mobile layouts, and linked task/event state syncing
+Time: 02:39 to 02:45 +08:00
+Focus: Fixed-width right column in Bounties (`+50 / +88 / +113 XP` exact alignment), locked state styling on `Complete 3 to Unlock`, semantic cyan `❄ +1` restored to `Day 5` across S01/S04/S05, unified `rounded-full` `Ready` badge, tactile bevel on primary CTAs, `TopBar` utility hairline divider, enriched `Equipped Showcase` middle metadata + uniform `h-1` tracks & fixed widow wraps in `S02`, `S03` modal rim depth & clean `Tomorrow · Day 6` density, balanced `S05` mobile `Day 7` + live rank XP summary.
+Stills: `cook/stills/r07/` | Side by side: `cook/compare/r07/`
 
-Changes:
-- `WorkspaceContext.tsx`: initialized mobile viewport `< 640px` cleanly to `'day'` view (`calendarMode`), added `mobileInspectorOpen` state (plus `Escape` close), synced `events` completion in `moveTaskKanban` and unscheduled linked tasks in `deleteEvent` / `updateEvent`.
-- `CalendarView.tsx`: replaced mouse-only drag/resize with unified Pointer Events (`startDragBlock` across 15m slots & multi-day columns via touch grip handle `GripHorizontal` or 190ms press-hold or desktop mouse drag, and `startResize` touch bottom handle), de-crowded `< sm` header with `Share2` + collapsible `Filter` button, added horizontally scrollable `min-w-[630px]` grid on mobile `Week`/`5D`, compact Month view dots + Selected Day event sheet, and opened `MobileInspectorSheet` on tap.
-- `InspectorRail.tsx` & `App.tsx`: exported & mounted `MobileInspectorSheet` (`-30m`/`+30m` time nudge, date/start/duration/category pickers, Focus block launch, duplicate/delete, Kanban/Quadrant selectors, subtasks), fixed blurry `<Counter>` roll with `intro={false} fade={0} motionBlur={false} duration={0.28}` across `InspectorRail`, `FocusHabitsStudio`, `FocusCurtain`, and `ProductivityOverview`.
-- `Sidebar.tsx`, `TopBar.tsx`, `CommandPalette.tsx`: jumped to Tasks & closed mobile drawer on Smart List / Project / date click; made `TopBar` Bell upcoming events clickable + added Share Slots action in `CommandPalette`.
-- `TasksWorkspace.tsx`, `FocusHabitsStudio.tsx`, `AnalyticsSuite.tsx`, `ProductivityOverview.tsx`: added compact mobile `List | Kanban | Matrix` tabs + mobile Kanban column `<select>`, compact mobile Habit cells, responsive wrapped Analytics action bar + mobile backlog cards, single-zone hero showcase on mobile + `gap-20 pt-14` folder spacing + responsive `CardSwap` (`width={286}`) and `Dock` sizing.
-- Expanded `scripts/verify-interactions.mjs` with section `8`: mobile `375x812` touch grip drag test, `MobileInspectorSheet` open/close, and zero-overflow verification across all 5 mobile tabs.
+Scores, eyeballed: critic average across 2 fresh harsh zero-context critics (`Nu` `inherit`, `Xi` `flash`)
 
-Stills: `cook/stills/r10-mobile/` | Side by side: `cook/compare/r10-mobile/`
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 06 |
+|---|---|---|---|---|---|---|---|
+| S01 | 82 | 81 | 85 | 79 | 82 | not scored | -6/-7/-3/-8/-3 |
+| S02 | 79 | 81 | 82 | 78 | 79 | not scored | -9/-5/-7/-8/-7 |
+| S03 | 87 | 86 | 87 | 84 | 83 | not scored | 0/0/-3/-2/-3 |
+| S04 | 82 | 82 | 85 | 81 | 82 | not scored | -6/-7/-2/-7/-3 |
+| S05 | 83 | 81 | 84 | 80 | 80 | not scored | -6/-6/-4/-7/-5 |
 
-Measured (`r10-mobile`):
-- `npm run build`: exited 0 (`✓ built in 11.65s`, `tsc -b && vite build`, `8178` modules, `dist/assets/index-CcsEvKXR.css` `128.41 kB`, `dist/assets/index-mzbS95tz.js` `1,020.63 kB`).
-- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 84 files clean`.
-- `node scripts/render-stills.mjs r10-mobile`: `S01` 2708ms, `S02` 1347ms, `S03` 1414ms, `S04` 1317ms, `S05` 1702ms, `S06` 1574ms; `overflow: false`, `errors: []`.
-- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED` (`1440x900` desktop + `375x812` touch drag, inspector sheet, and all 5 views).
+Raw critic scores:
+- Nu (`inherit`): S01 `[80,76,83,75,82]`, S02 `[74,75,79,73,77]`, S03 `[86,83,85,81,81]`, S04 `[81,82,86,80,82]`, S05 `[82,77,84,76,79]`.
+- Xi (`flash`): S01 `[83,85,86,82,82]`, S02 `[84,86,84,83,81]`, S03 `[88,89,89,87,84]`, S04 `[83,82,83,82,81]`, S05 `[84,85,84,83,80]`.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-CDukw2Xf.js` 1,932.52 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r07`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1573-2470ms`).
+- `color_check.py`: S01 vs R03 sat `-0.478` bright `-0.221`; S02 vs R02 sat `+0.210` bright `+0.003`; S03 vs R04 sat `+0.056` bright `-0.123`; S04 vs R01 sat `-0.124` bright `+0.882`; S05 vs R04_mobile_fold sat `+0.097` bright `-0.033`.
+
+Root fixes executed in **Round 08 (`r08`)**:
+1. Eliminated nested wireframe boxes: borderless stepped tonal tiles on Days 1–4 / 6–7, borderless `divide-y` Linear rows in `Rotating Daily Bounties` (filling center corridor with aligned track + `1/1`), flat borderless `✓ Done` text (never button-like), borderless `TopBar` nav tabs & ghost `Get App`.
+2. Replaced flat 1-stroke crates with sculpted `<linearGradient>` 3D bevel `VaultCrateSvg` chests + jewel clasp (`TrophyEmblem.tsx`).
+3. Replaced `S02` redundant 1354px top banner & fake instructional pill with a clean 1-line `Pinned Emblem` showcase ribbon (`>=38px` bottom breathing margin below Row 4), flush-right top `[Rarity · +XP]` across ALL 16 cards, footer `Pin` button, gilded `Mythic` aura.
+4. Normalized `S05` mobile `Day 7` `+500 XP` cleanly under `Grand Vault`, added `2px` XP progress hairline to the mobile summary strip, tightened mobile vault cards so Bounty Row 1 sits cleanly inside first fold without 12px bottom chop; replaced `S03` button-lookalike bottom pill with clean editorial milestone rows & contained modal halo.
+
+
+---
+
+## Round 08
+
+Time: 02:45 to 02:51 +08:00
+Focus: Borderless Linear `divide-y` rows in `Rotating Daily Bounties` (filling center corridor cleanly with inline track + `1/1`, flat green `✓ Done`), borderless Days 1–4 & 6–7 stepped crate tiles + `<linearGradient>` 3D bevel `VaultCrateSvg` artwork, `TopBar` borderless nav links & ghost `Get App`, condensed 1-line `Pinned Emblem` showcase ribbon (`S02`) clearing bottom margin, flush-right top `[Rarity · +XP]` across all 16 cards with footer `Pin`, normalized `S05` mobile `Day 7` + embedded XP strip, contained `S03` modal rim + editorial `Vanguard` footer rows.
+Stills: `cook/stills/r08/` | Side by side: `cook/compare/r08/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`Omicron` `inherit`, `Pi` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 07 |
+|---|---|---|---|---|---|---|---|
+| S01 | 86 | 89 | 88 | 88 | 88 | not scored | +4/+8/+3/+9/+6 |
+| S02 | 89 | 90 | 88 | 89 | 90 | not scored | +10/+9/+6/+11/+11 |
+| S03 | 93 | 93 | 92 | 91 | 92 | not scored | +6/+7/+5/+7/+9 |
+| S04 | 86 | 90 | 89 | 88 | 88 | not scored | +4/+8/+4/+7/+6 |
+| S05 | 90 | 89 | 89 | 88 | 89 | not scored | +7/+8/+5/+8/+9 |
+
+Raw critic scores:
+- Omicron (`inherit`): S01 `[84,87,84,83,86]` (med 84), S02 `[85,86,83,84,87]` (med 85), S03 `[93,91,90,88,91]` (med 91, **PASS**), S04 `[84,89,86,85,86]` (med 86), S05 `[87,86,86,84,86]` (med 86).
+- Pi (`flash`): S01 `[88,91,92,92,90]` (90.6), S02 `[92,93,93,94,93]` (93.0), S03 `[93,94,93,93,92]` (93.0), S04 `[88,90,91,91,90]` (90.0), S05 `[92,91,92,91,91]` (91.4) — **Pi Verdict: PASSES Flagship Bar (`92` median / `88` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-BrwfoUlb.js` 1,932.29 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r08`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1580-2568ms`).
+- `color_check.py`: S01 vs R03 sat `-0.479` bright `-0.222`; S02 vs R02 sat `+0.202` bright `+0.000`; S03 vs R04 sat `+0.055` bright `-0.124`; S04 vs R01 sat `-0.125` bright `+0.883`; S05 vs R04_mobile_fold sat `+0.101` bright `-0.023`.
+
+Final precision fixes queued for **Round 09 (`r09`)**:
+1. Symmetrize `S01/S04` 4/8 bento heights cleanly (`515px` vs `538px`) and move `28-Day Streak Pulse` into a clean full-width 12-col bottom ribbon (eliminating lower-right corner void!).
+2. Move `❄ +1` Shield pill beside `VaultCrateSvg` in desktop `Day 3/5/7` (zero `+250 XP` crowding), brighten locked `TrophyEmblem` stroke contrast (`#94A3B8`), match `S02` unlocked progress tracks to each card's rarity color (`Rare` cyan, `Epic` ember, `Mythic` gold), and push `#momentum-mosaic` cleanly below `900px` in `S02`.
+3. Clean inner XP bar padding on `S05` mobile summary card (eliminating corner clip artifact), darken light-mode idle `Lock` / `Complete 3 to Unlock` text, and tighten `S03` `Vanguard` bottom metadata block cleanly.
+
+
+---
+
+## Round 09
+
+Time: 02:51 to 02:56 +08:00
+Focus: Balanced `4/8` bento heights (`515px` vs `538px`), promoted `28-Day Streak Pulse` into full-width 12-col bottom ribbon (zero corner void), separated `❄ +1` cleanly beside `VaultCrateSvg` on desktop Day 3/5/7, brighter `#94A3B8` brushed pewter locked medallions, rarity-matched `S02` progress tracks, `#momentum-mosaic` pushed cleanly below `900px`, clean contained `S05` mobile XP bar + `Vanguard` preview tier block.
+Stills: `cook/stills/r09/` | Side by side: `cook/compare/r09/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`Rho` `inherit`, `Sigma` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 08 |
+|---|---|---|---|---|---|---|---|
+| S01 | 87 | 88 | 90 | 85 | 84 | not scored | +1/-1/+2/-3/-4 |
+| S02 | 89 | 87 | 87 | 84 | 87 | not scored | 0/-3/-1/-5/-3 |
+| S03 | 90 | 88 | 90 | 87 | 88 | not scored | -3/-5/-2/-4/-4 |
+| S04 | 87 | 82 | 84 | 83 | 83 | not scored | +1/-8/-5/-5/-5 |
+| S05 | 88 | 88 | 89 | 85 | 85 | not scored | -2/-1/0/-3/-4 |
+
+Raw critic scores:
+- Rho (`inherit`): S01 `[82,83,86,78,79]` (82), S02 `[85,81,80,75,82]` (81), S03 `[86,82,87,80,84]` (84), S04 `[82,73,77,74,78]` (77), S05 `[81,83,84,78,77]` (81).
+- Sigma (`flash`): S01 `[92,92,93,92,88]` (med 92), S02 `[93,92,93,92,91]` (med 92), S03 `[94,94,93,93,91]` (med 93), S04 `[92,90,90,91,88]` (med 90), S05 `[94,92,93,92,92]` (med 92) — **Sigma Verdict: CLEARS SHIPPING FLAGSHIP BAR (`92` median / `88` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-D0JzxzJJ.js` 1,932.48 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r09`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1540-2475ms`).
+- `color_check.py`: S01 vs R03 sat `-0.480` bright `-0.220`; S02 vs R02 sat `+0.203` bright `-0.001`; S03 vs R04 sat `+0.055` bright `-0.123`; S04 vs R01 sat `-0.125` bright `+0.882`; S05 vs R04_mobile_fold sat `+0.105` bright `-0.025`.
+
+Final **Round 10 (`r10`)** flagship material & daylight polish:
+1. Removed faint light-mode corner gradient smudges (`html.light .studio-spotlight-dark { background-image: none }`) and sharpened `#EEF1F5` daylight stepped card surfaces.
+2. Replaced repetitive crates & outline medallions in `TrophyEmblem.tsx` with true 4-tier escalating Vault silhouettes (`Common` box -> `Rare` arched dome -> `Epic` winged jewel crest -> `Mythic` Crowned Citadel pediment) & dark obsidian enamel coins with cardinal notches on `Epic`/`Mythic`.
+3. Eliminated orphaned `<- Daily Vault` bottom edge peek in `S01/S04` (`mt-44`), aligned `Next:` cleanly with `Last drop:` receipt, desaturated locked `S02` cards & tracks cleanly against unlocked trophies, removed `Inbox Striker` `"Matrix."` widow, unified Day 7 mobile card stack & `'Open Day 5 Vault'` naming across Modal & Studio.
+
+
+---
+
+## Round 10
+
+Time: 02:56 to 03:03 +08:00
+Focus: Clean light-mode paper canvas (`background-image: none`), escalating 4-tier sculpted `VaultCrateSvg` silhouettes & obsidian enamel medallions (`TrophyEmblem`), crisp `S03` calendar blur scrim (`bg-black/68`) + separated secondary link hierarchy, `mt-44` pushing `<- Daily Vault` off `S01/S04` bottom edge, desaturated locked trophy badges & bars, fixed `Inbox Striker` widow, unified `Day 7` stacked card layout & `'Open Day 5 Vault'` naming.
+Stills: `cook/stills/r10/` | Side by side: `cook/compare/r10/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`Tau` `inherit`, `Upsilon` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 09 |
+|---|---|---|---|---|---|---|---|
+| S01 | 90 | 90 | 91 | 89 | 86 | not scored | +3/+2/+1/+4/+2 |
+| S02 | 89 | 90 | 88 | 90 | 88 | not scored | 0/+3/+1/+6/+1 |
+| S03 | 92 | 91 | 92 | 90 | 90 | not scored | +2/+3/+2/+3/+2 |
+| S04 | 90 | 90 | 91 | 89 | 86 | not scored | +3/+8/+7/+6/+3 |
+| S05 | 92 | 90 | 91 | 89 | 88 | not scored | +4/+2/+2/+4/+3 |
+
+Raw critic scores:
+- Tau (`inherit`): S01 `[88,90,91,89,84]` (88.4), S02 `[87,91,87,90,86]` (88.2), S03 `[91,92,92,89,90]` (90.8), S04 `[88,88,91,88,84]` (87.8), S05 `[91,89,91,89,86]` (89.2) — overall median **89**, floor **84** (`S01/S04 Detail`).
+- Upsilon (`flash`): S01 `[91,90,91,88,88]` (90), S02 `[90,88,89,89,90]` (89), S03 `[92,90,92,90,90]` (90), S04 `[91,92,91,89,88]` (91), S05 `[92,90,91,89,89]` (90) — **Upsilon Verdict: PASSES Flagship Bar (`90` median / `88` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-CCBhjq-p.js` 1,933.35 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r10`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1624-2539ms`).
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED` (full desktop & mobile 375x812 Playwright suite across Auth, Calendar, Tasks, Focus, Analytics, PWA, Claim Day 1 Vault, Tomorrow Lock, ComebackModal, Pin persistence across reload).
+- `color_check.py`: S01 vs R03 sat `-0.481` bright `-0.222`; S02 vs R02 sat `+0.198` bright `-0.002`; S03 vs R04 sat `+0.057` bright `-0.114`; S04 vs R01 sat `-0.122` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.104` bright `-0.024`.
+
+Surgical **Round 11 (`r11`)** close-out targets from `Tau` (`89/84 -> >=90/86+`):
+1. Added missing `<Flame>` icon symmetrically on `21d Active Streak` (`S01/S04` Passport).
+2. Centered `✓ Done` inside its fixed `w-[108px]` trailing badge container so `Claim Crate ->` & `Done` share identical footprint and eliminate optical column shift (`S01/S04`).
+3. Aligned `Day 7` mobile `❄ +1` inline in card body matching `Day 3`/`Day 5` (`S05`), added `<Lock />` leading icon before `Next:` aligned under `Last drop:` (`S05`), bumped `Rotating Daily Bounties` `mt-1.5 sm:mt-0` clearing 6px mobile bottom border sliver (`S05`), and added rarity indicator dots & sharper `#94A3B8`/`#475569` locked tracks + neutral action links (`S02`).
+
+
+---
+
+## Round 11
+
+Time: 03:03 to 03:08 +08:00
+Focus: Symmetric `<Flame>` on `21d Active Streak`, centered `✓ Done` inside fixed `w-[108px]` trailing badge container aligning Bounties columns identically, consistent `Day 7` mobile shield placement, paired `<Lock>` icon on `Next:` receipt, colored rarity dots & crisp `#94A3B8`/`#475569` locked progress tracks + neutral `text-[var(--ink-primary)]` action links in `S02`.
+Stills: `cook/stills/r11/` | Side by side: `cook/compare/r11/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`Phi` `inherit`, `Chi` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 10 |
+|---|---|---|---|---|---|---|---|
+| S01 | 89 | 89 | 89 | 88 | 88 | not scored | -1/-1/-2/-1/+2 |
+| S02 | 90 | 89 | 91 | 88 | 88 | not scored | +1/-1/+3/-2/0 |
+| S03 | 93 | 93 | 92 | 92 | 91 | not scored | +1/+2/0/+2/+1 |
+| S04 | 89 | 86 | 90 | 88 | 88 | not scored | -1/-4/-1/-1/+2 |
+| S05 | 90 | 90 | 90 | 89 | 88 | not scored | -2/0/-1/0/0 |
+
+Raw critic scores:
+- Phi (`inherit`): S01 `[87,88,89,85,86]`, S02 `[91,87,90,86,86]`, S03 `[93,93,92,91,91]`, S04 `[87,84,89,85,86]`, S05 `[88,89,90,87,86]` (set median 88, floor 84 on `S04 Light`).
+- Chi (`flash`): S01 `[91,90,89,91,90]` (med 90), S02 `[89,90,91,90,89]` (med 90), S03 `[92,93,91,92,90]` (med 92), S04 `[91,88,90,90,89]` (med 90), S05 `[91,90,89,90,89]` (med 90) — **Chi Verdict: CLEARS FOR SHIPPING (`90` median / `88` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-BOXwU4gr.js` 1,933.98 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r11`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1626-2620ms`).
+- `color_check.py`: S01 vs R03 sat `-0.481` bright `-0.222`; S02 vs R02 sat `+0.197` bright `-0.001`; S03 vs R04 sat `+0.057` bright `-0.114`; S04 vs R01 sat `-0.122` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.105` bright `-0.025`.
+
+Final **Round 12 (`r12`)** finish targeting `Phi` (`88/84 -> >=90/86+`):
+1. Restored crisp Light Mode surface contrast & subtle studio canvas gradient (`#fafbfc -> #f1f4f8` + deepened `#334155` secondary copy + subtle elevated `--shadow-card`), raising `S04 Light` cleanly above 88+.
+2. Unified all 3 sub-containers inside `Comeback Anchor Bridge` to clean borderless inset fills (`bg-[var(--bg-inset)] border-0`) + `items-stretch` equal-height columns, eliminating the 40px dead bottom void & Russian-doll border clutter cleanly.
+3. Added top-header **`Trophies (13/16)`** quick jump pill on Desktop & Mobile alongside `Briefing`, replaced duplicated `2.5x` text on Passport pill with `Mythic Flame Tier`, toned down `Day 1–4` emerald check circles to studio-sage translucent chips, and pushed Mobile `Rotating Daily Bounties` (`mt-3 sm:mt-0`) cleanly clear of the bottom dock clip.
+
+
+---
+
+## Round 12
+
+Time: 03:08 to 03:13 +08:00
+Focus: Unified all 3 sub-containers inside `Comeback Anchor Bridge` to borderless inset planes (`items-stretch`), daylight `#fafbfc -> #f1f4f8` studio paper gradient + deeper light secondary ink (`#334155`), promoted top-header **`Trophies (13/16)`** jump shortcut, removed duplicate `2.5x` Passport text, studio-sage translucent `Day 1–4` checkmarks, clean Mobile bottom dock clearance (`mt-3`).
+Stills: `cook/stills/r12/` | Side by side: `cook/compare/r12/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`Psi` `inherit`, `Omega` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 11 |
+|---|---|---|---|---|---|---|---|
+| S01 | 89 | 90 | 90 | 90 | 87 | not scored | 0/+1/+1/+2/-1 |
+| S02 | 90 | 90 | 90 | 90 | 89 | not scored | 0/+1/-1/+2/+1 |
+| S03 | 93 | 92 | 92 | 92 | 91 | not scored | 0/-1/0/0/0 |
+| S04 | 89 | 86 | 86 | 87 | 86 | not scored | 0/0/-4/-1/-2 |
+| S05 | 91 | 89 | 90 | 89 | 89 | not scored | +1/-1/0/0/+1 |
+
+Raw critic scores:
+- Psi (`inherit`): S01 `[86,89,88,90,83]`, S02 `[87,91,89,91,87]`, S03 `[93,92,92,93,91]`, S04 `[85,85,84,87,83]`, S05 `[90,88,88,89,88]` (median 88, floor 83 on `S01/S04 Detail`).
+- Omega (`flash`): S01 `[92,90,92,89,90]` (med 90), S02 `[92,89,91,88,90]` (med 90), S03 `[92,91,92,90,91]` (med 91), S04 `[92,87,88,86,89]` (med 88), S05 `[91,90,91,89,90]` (med 90) — **Omega Verdict: SHIPPABLE — PASSES BAR (`90` median / `86` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-4YhHKyxH.js` 1,934.69 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r12`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1550-2326ms`).
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `color_check.py`: S01 vs R03 sat `-0.481` bright `-0.222`; S02 vs R02 sat `+0.197` bright `-0.001`; S03 vs R04 sat `+0.057` bright `-0.114`; S04 vs R01 sat `-0.116` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.103` bright `-0.026`.
+
+Final precision fixes applied in **Round 13 (`r13`)** (`Psi` `88/83 -> >=90/86+`):
+1. Converted Bounties right-rail into a locked **CSS Grid (`sm:grid sm:grid-cols-[120px_60px_108px]`)** so `0/1`, `1/1`, `25/25` fractions align left-aligned along a razor-exact X axis across every row (`S01/S04`).
+2. Eliminated `Comeback Anchor Bridge`'s 45px vertical void by adding **`Streak Defense Reserve (2/3 Shields · Days 3, 5, 7)`** tile naturally in the card stack, and added clear `1px` editable input rim (`border-[var(--rule-strong)] bg-[var(--bg-surface)]`).
+3. Formatted `'1,405 XP'` with commas (`toLocaleString()`), deepened Days 1–4 Light Mode checkmarks & border definition, differentiated unlocked `Common` progress tracks (`emeraldInk`) from locked gray tracks (`S02`), trimmed `Three-Day Cadence` to a crisp single/2-line cap, and pushed Mobile Bounties `mt-4 sm:mt-0`.
+
+
+
+---
+
+## Round 13
+
+Time: 03:13 to 03:17 +08:00
+Focus: Locked CSS Grid column rail (`sm:grid-cols-[120px_60px_108px]`) in Bounties (`0/1`, `1/1`, `25/25`), eliminated `Comeback Anchor Bridge` 45px vertical void with `Streak Defense Reserve` (`2/3 Shields · Days 3, 5, 7`) + `1px` input rim, formatted `1,405 XP`, deepened Light Days 1–4 checks, differentiated unlocked `Common` (`emeraldInk`) vs locked bars (`S02`), pushed Mobile Bounties `mt-4 sm:mt-0`.
+Stills: `cook/stills/r13/` | Side by side: `cook/compare/r13/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`R13A` `inherit`, `R13B` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 12 |
+|---|---|---|---|---|---|---|---|
+| S01 | 93 | 93 | 93 | 93 | 90 | not scored | +4/+3/+3/+3/+3 |
+| S02 | 94 | 93 | 93 | 94 | 91 | not scored | +4/+3/+3/+4/+2 |
+| S03 | 94 | 94 | 93 | 94 | 93 | not scored | +1/+2/+1/+2/+2 |
+| S04 | 93 | 93 | 93 | 93 | 90 | not scored | +4/+7/+7/+6/+4 |
+| S05 | 94 | 93 | 93 | 93 | 92 | not scored | +3/+4/+3/+4/+3 |
+
+Raw critic scores:
+- `R13A` (`inherit`): S01 `[91,92,91,91,89]`, S02 `[92,92,91,92,88]`, S03 `[93,93,91,92,91]`, S04 `[91,92,92,92,89]`, S05 `[92,91,91,91,90]` — **PASS (`91` median / `88` floor)**.
+- `R13B` (`flash`): S01 `[94,93,95,94,90]`, S02 `[96,94,95,95,93]`, S03 `[95,95,95,95,94]`, S04 `[94,93,94,93,90]`, S05 `[95,94,95,94,93]` — **PASS (`94` median / `90` floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-cto1weNL.js` 1,934.98 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r13`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1566-2529ms`).
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `color_check.py`: S01 vs R03 sat `-0.480` bright `-0.222`; S02 vs R02 sat `+0.203` bright `-0.001`; S03 vs R04 sat `+0.057` bright `-0.114`; S04 vs R01 sat `-0.116` bright `+0.881`; S05 vs R04_mobile_fold sat `+0.103` bright `-0.027`.
+
+Micro-polish items executed in **Round 14 (`r14`)**:
+1. Expanded Bounties Col 3 rail (`108px -> 124px`) so `Claim Crate ->` & `✓ Done` sit on exact 0.0px vertical edges (`S01/S04`).
+2. Trimmed `Studio Native` copy (`Install Cadence Studio as a standalone web app.`) so all 16 Trophy Cabinet descriptions sit evenly on 1 line (`S02`), standardized uniform rarity dot syntax across all 16 pills, brightened locked progress fill, and added crisp bordered `[Pin]` micro-pills.
+3. Deepened Ember CTA specular gradient (`#ED4D10 -> #C83300`), added `xl:px-2` breathing room inside 7-col crate tiles, raised `Three-Day Cadence` Passport & `Vanguard` secondary contrast, and nudged Mobile Bounties (`mt-6 sm:mt-0`) cleanly below the fixed dock fold (`S05`).
+
+
+---
+
+## Round 14 (Final Stop)
+
+Time: 03:17 to 03:23 +08:00
+Focus: Zero-variance `124px` Bounty right-rail alignment, 1-line `Studio Native` parity across all 16 Trophy Cabinet cards, uniform rarity dot markers + `[Pin]` micro-pills, deepened Ember CTA specular gradient rim, `ComebackModal` `Vanguard` luminance lift, Mobile fold (`375x812`) clean bottom peek clearance.
+Stills: `cook/stills/r14/` | Side by side: `cook/compare/r14/`
+
+Scores, eyeballed: critic average across 2 fresh zero-context critics (`R14A` `inherit`, `R14B` `flash`)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs Round 13 |
+|---|---|---|---|---|---|---|---|
+| S01 | 93 | 90 | 92 | 90 | 92 | not scored | 0/-3/-1/-3/+2 |
+| S02 | 93 | 89 | 92 | 89 | 92 | not scored | -1/-4/-1/-5/+1 |
+| S03 | 93 | 93 | 93 | 92 | 93 | not scored | -1/-1/0/-2/0 |
+| S04 | 93 | 91 | 93 | 91 | 92 | not scored | 0/-2/0/-2/+2 |
+| S05 | 92 | 90 | 92 | 90 | 91 | not scored | -2/-3/-1/-3/-1 |
+
+Raw critic scores:
+- `R14A` (`inherit`): S01 `[91,88,90,88,91]`, S02 `[92,87,90,87,90]`, S03 `[93,92,94,92,93]`, S04 `[91,90,92,91,91]`, S05 `[91,88,91,89,91]` — **PASS (`91` overall median / `87` minimum floor)**.
+- `R14B` (`flash`): S01 `[94,92,93,92,93]`, S02 `[94,91,93,91,93]`, S03 `[93,93,92,92,92]`, S04 `[94,92,93,91,93]`, S05 `[92,91,92,91,90]` — **PASS (`92` overall median / `90` minimum floor)**.
+
+Measured (command and result):
+- `npm run build`: exited 0 (`dist/assets/index-BTA-Cln0.js` 1,935.15 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 97 files clean`.
+- `node scripts/render-stills.mjs r14`: `S01..S05` zero errors, `overflow: false` all 5 shots (`1552-2456ms`).
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `color_check.py`: S01 vs R03 sat `-0.480` bright `-0.223`; S02 vs R02 sat `+0.204` bright `+0.000`; S03 vs R04 sat `+0.057` bright `-0.115`; S04 vs R01 sat `-0.116` bright `+0.880`; S05 vs R04_mobile_fold sat `+0.103` bright `-0.029`.
+
+### Cook Final Stop Checklist
+- Both independent zero-context critics (`inherit` & `flash`) pass the shipping bar on `r14` (`R14A`: median **91**, floor **87**; `R14B`: median **92**, floor **90**; calibration gap **1 pt**).
+- `npm run build`, `node scripts/slop-scan.mjs` (`97 files clean`), `node scripts/render-stills.mjs r14` (`overflow: false`, zero errors across all 5 shots), and `node scripts/verify-interactions.mjs` (`ALL_INTERACTIONS_PASSED`) all pass cleanly against final workspace code.

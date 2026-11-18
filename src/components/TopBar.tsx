@@ -9,6 +9,7 @@ import {
   Compass,
   Download,
   Flame,
+  Gift,
   Menu,
   Moon,
   Plus,
@@ -18,6 +19,7 @@ import {
   Timer,
   User,
 } from 'lucide-react';
+import { TrophyEmblem } from './TrophyEmblem';
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { WorkspaceTab } from '../types/workspace';
 import { formatMinutes } from '../utils/date';
@@ -52,6 +54,7 @@ export const TopBar: React.FC = () => {
     currentUser,
     openAccountModal,
     progression,
+    setComebackModalOpen,
     pwaInstalled,
     triggerPwaInstall,
   } = useWorkspace();
@@ -121,8 +124,8 @@ export const TopBar: React.FC = () => {
             <button type="button" onClick={() => jumpTo('overview-features')} className="hover:text-[var(--ink-primary)] transition-colors">
               Features
             </button>
-            <button type="button" onClick={() => jumpTo('overview-shortcuts')} className="hover:text-[var(--ink-primary)] transition-colors">
-              Shortcuts
+            <button type="button" onClick={() => setActiveTab('rewards')} className="hover:text-[var(--ink-primary)] transition-colors">
+              Rewards & Trophies
             </button>
             <button type="button" onClick={() => setActiveTab('tasks')} className="hover:text-[var(--ink-primary)] transition-colors">
               Tasks & Matrix
@@ -133,6 +136,22 @@ export const TopBar: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setComebackModalOpen(true)}
+              aria-label={`Open Daily Vault (${progression.currentStreak}d streak)`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[12px] font-mono-num font-semibold transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--ink-primary)]"
+              style={{
+                borderColor: !progression.crateClaimedToday ? 'rgba(231, 64, 4, 0.48)' : 'var(--rule-hairline)',
+              }}
+            >
+              <Flame className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+              <span>{progression.currentStreak}d</span>
+              {!progression.crateClaimedToday && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+              )}
+            </button>
+
             {!pwaInstalled && (
               <button
                 type="button"
@@ -239,10 +258,10 @@ export const TopBar: React.FC = () => {
           </span>
         </button>
 
-        <nav className="hidden md:flex items-center gap-0.5 ml-2 p-0.5 rounded-lg border bg-[var(--bg-inset)]">
+        <nav className="hidden md:flex items-center gap-0.5 ml-2">
           {TABS.map((t) => {
             const Icon = t.icon;
-            const active = activeTab === t.id;
+            const active = activeTab === t.id || (activeTab === 'rewards' && t.id === 'focus');
             return (
               <button
                 key={t.id}
@@ -250,11 +269,10 @@ export const TopBar: React.FC = () => {
                 title={t.label}
                 aria-label={t.label}
                 onClick={() => setActiveTab(t.id)}
-                className="flex items-center gap-1.5 px-2 lg:px-2.5 py-1 rounded-md text-[12.5px] font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: active ? 'var(--bg-elevated)' : 'transparent',
                   color: active ? 'var(--ink-primary)' : 'var(--ink-secondary)',
-                  boxShadow: active ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
                 }}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -295,7 +313,7 @@ export const TopBar: React.FC = () => {
             type="text"
             value={quickDraft}
             onChange={(e) => setQuickDraft(e.target.value)}
-            placeholder="Quick add: 'Review 2pm 45m !p1 #work'"
+            placeholder="Quick add: 'Review 2pm !p1'"
             aria-label="Quick capture task or event"
             className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
           />
@@ -325,27 +343,25 @@ export const TopBar: React.FC = () => {
         </form>
       )}
 
-      {/* Right: Momentum streak, Install App, Availability share, Notifications, Theme toggle */}
+      {/* Right: Momentum Streak + Daily Vault, Install App, Availability share, Notifications, Theme toggle */}
       <div className="flex items-center gap-1.5 shrink-0 relative">
         <button
           type="button"
-          onClick={() => {
-            setActiveTab('focus');
-            window.setTimeout(() => {
-              document.getElementById('achievements-hub')?.scrollIntoView({ behavior: 'smooth' });
-            }, 80);
-          }}
-          aria-label={`Momentum streak ${progression.currentStreak} days and achievements`}
-          title={`Level ${progression.level} ${progression.rankTitle} · ${progression.unlockedCount}/${progression.achievements.length} badges`}
-          className="hidden sm:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[12px] font-mono-num font-semibold transition-colors hover:bg-[var(--bg-hover)]"
+          onClick={() => setActiveTab('rewards')}
+          aria-label={`Rewards Studio (${progression.currentStreak}d streak)`}
+          title={`Level ${progression.level} ${progression.rankTitle} · ${progression.unlockedCount}/${progression.achievements.length} emblems`}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-mono-num font-semibold transition-colors hover:bg-[var(--bg-hover)]"
           style={{
-            backgroundColor: progression.activeToday ? 'var(--accent-primary-soft)' : 'var(--bg-elevated)',
-            borderColor: progression.activeToday ? 'rgba(231, 64, 4, 0.35)' : 'var(--rule-hairline)',
-            color: progression.activeToday ? 'var(--accent-primary)' : 'var(--ink-secondary)',
+            backgroundColor: activeTab === 'rewards' ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+            borderColor: activeTab === 'rewards' ? 'var(--accent-primary)' : 'var(--rule-strong)',
+            color: 'var(--ink-primary)',
           }}
         >
           <Flame className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
           <span>{progression.currentStreak}d</span>
+          {!progression.crateClaimedToday && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+          )}
         </button>
 
         {!pwaInstalled && (
@@ -354,7 +370,7 @@ export const TopBar: React.FC = () => {
             onClick={() => void triggerPwaInstall()}
             aria-label="Install Web App"
             title="Download Cadence Studio as a standalone app"
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-medium bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--ink-primary)] transition-colors"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>Get App</span>
@@ -381,7 +397,9 @@ export const TopBar: React.FC = () => {
           <span>{availabilitySlots.length > 0 ? `Share (${availabilitySlots.length})` : 'Share times'}</span>
         </button>
 
-        <div className="relative">
+        <span className="hidden sm:block h-4 w-px bg-[var(--rule-hairline)] mx-0.5" aria-hidden="true" />
+
+        <div className="relative hidden sm:block">
           <button
             type="button"
             onClick={() => setNotifOpen((v) => !v)}

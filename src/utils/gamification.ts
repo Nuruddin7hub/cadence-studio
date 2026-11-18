@@ -1,30 +1,39 @@
-import type { WorkspaceProgression, WorkspaceSnapshot } from '../types/workspace';
+import type { DailyLootRecord, WorkspaceProgression, WorkspaceSnapshot, WorkspaceTab } from '../types/workspace';
 import { addDays } from './date';
 
-export type AchievementCategory = 'consistency' | 'focus' | 'planning' | 'mastery';
+export type TrophyCategory = 'consistency' | 'focus' | 'planning' | 'mastery';
+export type TrophyRarity = 'common' | 'rare' | 'epic' | 'mythic';
 
-export type AchievementIconKey =
-  | 'sparkles'
-  | 'check'
-  | 'calendar'
-  | 'timer'
-  | 'flame'
-  | 'trophy'
-  | 'zap'
-  | 'layers'
-  | 'shield'
-  | 'book'
-  | 'compass'
-  | 'smartphone';
+export type EmblemKind =
+  | 'ignition'
+  | 'escalator'
+  | 'vault'
+  | 'striker'
+  | 'engine'
+  | 'architect'
+  | 'sculptor'
+  | 'immersion'
+  | 'centurion'
+  | 'cadence3'
+  | 'rhythm7'
+  | 'unbroken14'
+  | 'combo'
+  | 'chain'
+  | 'anchor'
+  | 'native';
 
 export interface AchievementDefinition {
   id: string;
   title: string;
   description: string;
-  category: AchievementCategory;
+  category: TrophyCategory;
+  rarity: TrophyRarity;
   xpReward: number;
-  icon: AchievementIconKey;
+  emblem: EmblemKind;
+  actionLabel: string;
+  actionTab: WorkspaceTab;
   target: number;
+  unit: string;
   measure: (ctx: AchievementMetricsContext) => number;
 }
 
@@ -36,10 +45,26 @@ export interface AchievementStatus {
   unlockedAt?: string;
 }
 
-export interface DailyQuestItem {
-  id: 'checkin' | 'execute' | 'focus';
-  label: string;
+export interface DailyCrateSlot {
+  day: number; // 1..7
+  title: string;
+  rewardLabel: string;
+  baseXp: number;
+  freezeBonus: number;
+  tier: TrophyRarity;
+  status: 'claimed' | 'ready' | 'locked';
+}
+
+export interface DailyBountyItem {
+  id: string;
+  slot: 'ritual' | 'execute' | 'deep';
+  title: string;
+  detail: string;
   xp: number;
+  actionTab: WorkspaceTab;
+  actionLabel: string;
+  current: number;
+  target: number;
   done: boolean;
 }
 
@@ -56,8 +81,8 @@ export interface EvaluatedProgression {
   activeToday: boolean;
   protectedYesterdayByFreeze: boolean;
   streakFreezesRemaining: number;
-  earnedFreezeBonus: number;
-  daysUntilNextFreeze: number;
+  flameMultiplier: number;
+  flameTierLabel: string;
   totalXp: number;
   level: number;
   rankTitle: string;
@@ -67,16 +92,26 @@ export interface EvaluatedProgression {
   totalFocusMinutes: number;
   totalCompletedTasks: number;
   checkedInToday: boolean;
-  todayQuests: DailyQuestItem[];
-  todayQuestsCompletedCount: number;
+  crateClaimedToday: boolean;
+  todayCrateDayNumber: number; // 1..7
+  cycleNumber: number; // Week 1, Week 2...
+  crateLadder: DailyCrateSlot[];
+  lastLootDrop: DailyLootRecord | null;
+  todayBounties: DailyBountyItem[];
+  todayBountiesCompletedCount: number;
+  allBountiesDone: boolean;
+  comboClaimedToday: boolean;
+  comboBonusXp: number;
   yesterdayAnchor: string;
   todayAnchor: string;
   tomorrowAnchor: string;
   achievements: AchievementStatus[];
   unlockedCount: number;
   newlyUnlocked: AchievementDefinition[];
-  mosaicDays: MosaicDayCell[];
+  pinnedBadge: AchievementStatus | null;
+  mosaicDays: MosaicDayCell[]; // 112 days (16 weeks x 7 rows)
   activityByDate: Record<string, number>;
+  hasPriorHistory: boolean;
 }
 
 interface AchievementMetricsContext {
@@ -87,9 +122,9 @@ interface AchievementMetricsContext {
   bestStreak: number;
   totalFocusMinutes: number;
   totalCompletedTasks: number;
+  deepBlocksCount: number;
   maxHabitStreak: number;
-  todayAllQuestsDone: boolean;
-  extractedNotesCount: number;
+  allBountiesDoneToday: boolean;
   plannedAnchorCount: number;
   pwaInstalled: boolean;
 }
@@ -99,149 +134,274 @@ const RANK_TITLES = [
   'Time Keeper',
   'Flow Builder',
   'Sprint Tactician',
-  'Deep Architect',
+  'Cadence Architect',
   'Momentum Sage',
-  'Focus Master',
+  'Focus Virtuoso',
   'Studio Legend',
+];
+
+export const DAILY_CRATE_SCHEDULE: Omit<DailyCrateSlot, 'status'>[] = [
+  { day: 1, title: 'Ignition', rewardLabel: '+25 XP', baseXp: 25, freezeBonus: 0, tier: 'common' },
+  { day: 2, title: 'Booster', rewardLabel: '+40 XP', baseXp: 40, freezeBonus: 0, tier: 'common' },
+  { day: 3, title: 'Shield', rewardLabel: '+55 XP · Shield', baseXp: 55, freezeBonus: 1, tier: 'rare' },
+  { day: 4, title: 'Overdrive', rewardLabel: '+75 XP', baseXp: 75, freezeBonus: 0, tier: 'rare' },
+  { day: 5, title: 'Architect', rewardLabel: '+100 XP · Shield', baseXp: 100, freezeBonus: 1, tier: 'epic' },
+  { day: 6, title: 'Vanguard', rewardLabel: '+125 XP', baseXp: 125, freezeBonus: 0, tier: 'epic' },
+  { day: 7, title: 'Grand Vault', rewardLabel: '+200 XP · Shield', baseXp: 200, freezeBonus: 1, tier: 'mythic' },
 ];
 
 export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: 'first-check-in',
-    title: 'First Spark',
-    description: 'Claim your first Daily Check-In to ignite your streak.',
+    title: 'First Ignition',
+    description: 'Open your Daily Vault and claim your first day reward.',
     category: 'consistency',
+    rarity: 'common',
     xpReward: 25,
-    icon: 'sparkles',
+    emblem: 'ignition',
+    actionLabel: 'Claim Vault',
+    actionTab: 'rewards',
     target: 1,
-    measure: (ctx) => ctx.prog.checkInDates.length,
+    unit: 'day',
+    measure: (ctx) => ctx.prog.claimedCrateDates.length + ctx.prog.checkInDates.length,
+  },
+  {
+    id: 'crate-streak-3',
+    title: 'Three-Day Escalator',
+    description: 'Open 3 Daily Reward Crates on an active streak.',
+    category: 'consistency',
+    rarity: 'rare',
+    xpReward: 60,
+    emblem: 'escalator',
+    actionLabel: 'Open Vault',
+    actionTab: 'rewards',
+    target: 3,
+    unit: 'crates',
+    measure: (ctx) => ctx.prog.claimedCrateDates.length,
+  },
+  {
+    id: 'crate-vault-7',
+    title: 'Grand Vault Breaker',
+    description: 'Reach Day 7 to crack the Grand Mythic Vault.',
+    category: 'mastery',
+    rarity: 'epic',
+    xpReward: 150,
+    emblem: 'vault',
+    actionLabel: 'View Ladder',
+    actionTab: 'rewards',
+    target: 7,
+    unit: 'crates',
+    measure: (ctx) => ctx.prog.claimedCrateDates.length,
   },
   {
     id: 'first-task',
-    title: 'Task Finisher',
-    description: 'Complete your very first task in Smart List, Kanban, or Matrix.',
+    title: 'Inbox Striker',
+    description: 'Finish your first task on any Studio board.',
     category: 'planning',
+    rarity: 'common',
     xpReward: 30,
-    icon: 'check',
+    emblem: 'striker',
+    actionLabel: 'Open Tasks',
+    actionTab: 'tasks',
     target: 1,
+    unit: 'task',
+    measure: (ctx) => ctx.totalCompletedTasks,
+  },
+  {
+    id: 'task-ten',
+    title: 'Execution Engine',
+    description: 'Ship 10 completed tasks across your studio boards.',
+    category: 'planning',
+    rarity: 'rare',
+    xpReward: 85,
+    emblem: 'engine',
+    actionLabel: 'Go to Tasks',
+    actionTab: 'tasks',
+    target: 10,
+    unit: 'tasks',
     measure: (ctx) => ctx.totalCompletedTasks,
   },
   {
     id: 'first-block',
-    title: 'Time Architect',
-    description: 'Schedule a dedicated time-block onto the calendar timeline.',
+    title: 'Grid Architect',
+    description: 'Schedule your first deep-work block on the grid.',
     category: 'planning',
+    rarity: 'common',
     xpReward: 30,
-    icon: 'calendar',
+    emblem: 'architect',
+    actionLabel: 'Open Planner',
+    actionTab: 'planner',
     target: 1,
+    unit: 'block',
     measure: (ctx) => ctx.snapshot.events.length,
   },
   {
+    id: 'deep-blocks-5',
+    title: 'Time Sculptor',
+    description: 'Protect 5 focused deep-work blocks on your timeline.',
+    category: 'planning',
+    rarity: 'rare',
+    xpReward: 90,
+    emblem: 'sculptor',
+    actionLabel: 'Block Time',
+    actionTab: 'planner',
+    target: 5,
+    unit: 'blocks',
+    measure: (ctx) => ctx.deepBlocksCount,
+  },
+  {
     id: 'first-focus',
-    title: 'Deep Diver',
-    description: 'Complete your first uninterrupted Pomodoro focus sprint.',
+    title: 'First Immersion',
+    description: 'Finish your first uninterrupted Pomodoro focus sprint.',
     category: 'focus',
+    rarity: 'common',
     xpReward: 40,
-    icon: 'timer',
+    emblem: 'immersion',
+    actionLabel: 'Start Sprint',
+    actionTab: 'focus',
     target: 1,
+    unit: 'sprint',
     measure: (ctx) => ctx.snapshot.focusHistory.length,
   },
   {
+    id: 'focus-100m',
+    title: 'Centurion Flow',
+    description: 'Log 100 cumulative minutes in Focus sprints.',
+    category: 'focus',
+    rarity: 'epic',
+    xpReward: 120,
+    emblem: 'centurion',
+    actionLabel: 'Focus Studio',
+    actionTab: 'focus',
+    target: 100,
+    unit: 'mins',
+    measure: (ctx) => ctx.totalFocusMinutes,
+  },
+  {
     id: 'streak-3',
-    title: '3-Day Cadence',
-    description: 'Keep daily momentum alive for 3 consecutive active days.',
+    title: 'Three-Day Cadence',
+    description: 'Hold a 3-day unbroken streak at active momentum.',
     category: 'consistency',
-    xpReward: 60,
-    icon: 'flame',
+    rarity: 'rare',
+    xpReward: 65,
+    emblem: 'cadence3',
+    actionLabel: 'Daily Loop',
+    actionTab: 'rewards',
     target: 3,
+    unit: 'days',
     measure: (ctx) => Math.max(ctx.currentStreak, ctx.bestStreak),
   },
   {
     id: 'streak-7',
     title: 'Weekly Rhythm',
-    description: 'Maintain a 7-day active streak without breaking the chain.',
+    description: 'Maintain an unbroken 7-day streak at full flame.',
     category: 'consistency',
-    xpReward: 120,
-    icon: 'trophy',
+    rarity: 'epic',
+    xpReward: 140,
+    emblem: 'rhythm7',
+    actionLabel: 'View Streak',
+    actionTab: 'rewards',
     target: 7,
+    unit: 'days',
     measure: (ctx) => Math.max(ctx.currentStreak, ctx.bestStreak),
   },
   {
-    id: 'focus-100m',
-    title: 'Focus Centurion',
-    description: 'Accumulate 100 minutes of logged Pomodoro deep work.',
-    category: 'focus',
-    xpReward: 100,
-    icon: 'zap',
-    target: 100,
-    measure: (ctx) => ctx.totalFocusMinutes,
+    id: 'streak-14',
+    title: 'Iron Unbroken',
+    description: 'Lock in a 14-day legendary return streak.',
+    category: 'mastery',
+    rarity: 'mythic',
+    xpReward: 250,
+    emblem: 'unbroken14',
+    actionLabel: 'View Streak',
+    actionTab: 'rewards',
+    target: 14,
+    unit: 'days',
+    measure: (ctx) => Math.max(ctx.currentStreak, ctx.bestStreak),
   },
   {
-    id: 'daily-trio',
-    title: 'Momentum Closer',
-    description: 'Complete all 3 Daily Quests on the same day.',
+    id: 'bounty-trio',
+    title: 'Combo Sweeper',
+    description: 'Sweep all 3 Daily Bounties in a day for bonus XP.',
     category: 'mastery',
-    xpReward: 80,
-    icon: 'layers',
+    rarity: 'rare',
+    xpReward: 95,
+    emblem: 'combo',
+    actionLabel: 'Check Bounties',
+    actionTab: 'rewards',
     target: 1,
-    measure: (ctx) => (ctx.todayAllQuestsDone ? 1 : 0),
+    unit: 'combo',
+    measure: (ctx) => (ctx.allBountiesDoneToday || ctx.prog.claimedComboDates.length > 0 ? 1 : 0),
   },
   {
     id: 'habit-stack',
-    title: 'Habit Builder',
-    description: 'Build at least a 5-day streak on any tracked habit.',
+    title: 'Habit Chain',
+    description: 'Build at least a 5-day active streak on any daily habit.',
     category: 'consistency',
+    rarity: 'rare',
     xpReward: 90,
-    icon: 'shield',
+    emblem: 'chain',
+    actionLabel: 'Open Habits',
+    actionTab: 'focus',
     target: 5,
+    unit: 'days',
     measure: (ctx) => ctx.maxHabitStreak,
   },
   {
-    id: 'journal-action',
-    title: 'Reflective Builder',
-    description: 'Write a journal note and send an action line straight to To-Do.',
-    category: 'planning',
-    xpReward: 50,
-    icon: 'book',
-    target: 1,
-    measure: (ctx) => ctx.extractedNotesCount,
-  },
-  {
     id: 'plan-ahead',
-    title: 'Evening Shutdown',
-    description: 'Lock a #1 Priority Anchor so tomorrow opens with clarity.',
+    title: 'Tomorrow Lock',
+    description: 'Lock tomorrow’s #1 Priority Anchor ahead of close.',
     category: 'mastery',
+    rarity: 'common',
     xpReward: 50,
-    icon: 'compass',
+    emblem: 'anchor',
+    actionLabel: 'Lock Priority',
+    actionTab: 'rewards',
     target: 1,
+    unit: 'anchor',
     measure: (ctx) => ctx.plannedAnchorCount,
   },
   {
     id: 'pwa-installed',
     title: 'Studio Native',
-    description: 'Download & launch Cadence Studio as an installed Web App.',
+    description: 'Install Cadence Studio as a standalone web app.',
     category: 'mastery',
-    xpReward: 75,
-    icon: 'smartphone',
+    rarity: 'epic',
+    xpReward: 100,
+    emblem: 'native',
+    actionLabel: 'Install App',
+    actionTab: 'rewards',
     target: 1,
+    unit: 'app',
     measure: (ctx) => (ctx.pwaInstalled ? 1 : 0),
   },
 ];
 
 export function normalizeProgression(prog?: WorkspaceProgression): WorkspaceProgression {
   return {
-    xp: typeof prog?.xp === 'number' ? prog.xp : 0,
-    streakFreezes: typeof prog?.streakFreezes === 'number' ? Math.max(0, prog.streakFreezes) : 1,
+    xp: typeof prog?.xp === 'number' ? Math.max(0, prog.xp) : 0,
+    streakFreezes: typeof prog?.streakFreezes === 'number' ? Math.max(0, Math.min(3, prog.streakFreezes)) : 1,
     streakFreezeDates: Array.isArray(prog?.streakFreezeDates) ? prog!.streakFreezeDates : [],
     checkInDates: Array.isArray(prog?.checkInDates) ? prog!.checkInDates : [],
+    claimedCrateDates: Array.isArray(prog?.claimedCrateDates) ? prog!.claimedCrateDates : [],
+    claimedComboDates: Array.isArray(prog?.claimedComboDates) ? prog!.claimedComboDates : [],
     unlockedAchievements:
       prog?.unlockedAchievements && typeof prog.unlockedAchievements === 'object' ? prog.unlockedAchievements : {},
     dailyAnchors: prog?.dailyAnchors && typeof prog.dailyAnchors === 'object' ? prog.dailyAnchors : {},
+    pinnedBadgeId: typeof prog?.pinnedBadgeId === 'string' ? prog.pinnedBadgeId : undefined,
+    lastLootDrop: prog?.lastLootDrop && typeof prog.lastLootDrop === 'object' ? prog.lastLootDrop : null,
     reminderEnabled: Boolean(prog?.reminderEnabled),
     reminderHour: typeof prog?.reminderHour === 'number' ? prog.reminderHour : 9,
     lastRemindedDate: prog?.lastRemindedDate,
     pwaInstalled: Boolean(prog?.pwaInstalled),
   };
+}
+
+export function getFlameMultiplier(streak: number): { mult: number; label: string } {
+  if (streak >= 14) return { mult: 2.5, label: 'Mythic Flame' };
+  if (streak >= 7) return { mult: 2.0, label: 'Unbroken Rhythm' };
+  if (streak >= 3) return { mult: 1.5, label: 'Cadence Warmth' };
+  return { mult: 1.0, label: 'Spark Multiplier' };
 }
 
 export function buildActivityByDate(snapshot: WorkspaceSnapshot): Record<string, number> {
@@ -267,8 +427,10 @@ export function buildActivityByDate(snapshot: WorkspaceSnapshot): Record<string,
   for (const [dayKey, note] of Object.entries(snapshot.notes)) {
     if (note.content.trim().length > 0) bump(dayKey);
   }
+
   const prog = normalizeProgression(snapshot.progression);
   for (const d of prog.checkInDates) bump(d);
+  for (const d of prog.claimedCrateDates) bump(d);
 
   return counts;
 }
@@ -289,6 +451,14 @@ export function computeMaxHabitStreak(snapshot: WorkspaceSnapshot, todayKey: str
   return best;
 }
 
+function hashDaySeed(dateKey: string): number {
+  let acc = 0;
+  for (let i = 0; i < dateKey.length; i++) {
+    acc = (acc * 31 + dateKey.charCodeAt(i)) % 100000;
+  }
+  return acc;
+}
+
 export function evaluateProgression(
   snapshot: WorkspaceSnapshot,
   todayKey: string,
@@ -299,10 +469,10 @@ export function evaluateProgression(
   const freezeSet = new Set(prog.streakFreezeDates);
 
   const yesterdayKey = addDays(todayKey, -1);
+  const tomorrowKey = addDays(todayKey, 1);
   const activeToday = (activityByDate[todayKey] ?? 0) > 0;
   const protectedYesterdayByFreeze = freezeSet.has(yesterdayKey) && (activityByDate[yesterdayKey] ?? 0) === 0;
 
-  // Calculate active consecutive streak walking backwards from today (or yesterday if today still in progress)
   let currentStreak = 0;
   const startOffset = activeToday ? 0 : 1;
   for (let i = startOffset; i < 365; i++) {
@@ -314,7 +484,6 @@ export function evaluateProgression(
     }
   }
 
-  // Compute historical best streak across known active dates
   const allDates = Object.keys(activityByDate).sort();
   let bestStreak = currentStreak;
   if (allDates.length > 0) {
@@ -332,28 +501,128 @@ export function evaluateProgression(
     }
   }
 
+  const { mult: flameMultiplier, label: flameTierLabel } = getFlameMultiplier(currentStreak);
+
+  // Escalating 7-Day Reward Crate Ladder
+  const crateClaimedToday = prog.claimedCrateDates.includes(todayKey);
+  const totalCratesClaimed = prog.claimedCrateDates.length;
+  // Determine position inside current 7-day cycle
+  const completedBeforeToday = crateClaimedToday ? Math.max(0, totalCratesClaimed - 1) : totalCratesClaimed;
+  const cycleNumber = Math.floor(completedBeforeToday / 7) + 1;
+  const claimedInCycle = totalCratesClaimed === 0 ? 0 : ((totalCratesClaimed - 1) % 7) + 1;
+  const todayCrateDayNumber = crateClaimedToday ? claimedInCycle : (totalCratesClaimed % 7) + 1;
+
+  const crateLadder: DailyCrateSlot[] = DAILY_CRATE_SCHEDULE.map((slot) => {
+    const isClaimed = crateClaimedToday ? slot.day <= todayCrateDayNumber : slot.day < todayCrateDayNumber;
+    const isReady = !crateClaimedToday && slot.day === todayCrateDayNumber;
+    return {
+      ...slot,
+      status: isClaimed ? 'claimed' : isReady ? 'ready' : 'locked',
+    };
+  });
+
+  // Deterministic Rotating Daily Bounties (3 varied challenges per day)
+  const seed = hashDaySeed(todayKey);
+  const completedTodayCount = snapshot.tasks.filter(
+    (t) => t.completed && (t.completedAt ?? t.createdAt).startsWith(todayKey)
+  ).length;
+  const habitsCheckedToday = snapshot.habits.filter((h) => Boolean(h.history[todayKey])).length;
+  const focusMinsToday = snapshot.focusHistory
+    .filter((s) => s.completedAt.startsWith(todayKey) || s.date.startsWith(todayKey))
+    .reduce((s, x) => s + x.durationMinutes, 0);
+  const blocksTodayCount = snapshot.events.filter((e) => e.date === todayKey).length;
+  const hasTomorrowAnchor = Boolean(prog.dailyAnchors[tomorrowKey]?.trim());
+
+  const executeVariants = [
+    {
+      title: 'Clear a queued task today',
+      detail: 'Complete 1 task in Smart List or Kanban',
+      current: Math.min(1, completedTodayCount),
+      target: 1,
+      actionTab: 'tasks' as WorkspaceTab,
+      actionLabel: 'Open Tasks',
+    },
+    {
+      title: 'Stack a daily habit check',
+      detail: 'Mark 1 habit done in Focus Studio',
+      current: Math.min(1, habitsCheckedToday + completedTodayCount),
+      target: 1,
+      actionTab: 'focus' as WorkspaceTab,
+      actionLabel: 'Check Habits',
+    },
+  ];
+
+  const deepVariants = [
+    {
+      title: 'Run a 25m Deep Focus sprint',
+      detail: 'Log at least 25 focus minutes today',
+      current: Math.min(25, focusMinsToday),
+      target: 25,
+      actionTab: 'focus' as WorkspaceTab,
+      actionLabel: 'Start Sprint',
+    },
+    {
+      title: 'Time-block today on your grid',
+      detail: 'Schedule 1 block or log a focus sprint',
+      current: Math.min(1, blocksTodayCount + (focusMinsToday > 0 ? 1 : 0)),
+      target: 1,
+      actionTab: 'planner' as WorkspaceTab,
+      actionLabel: 'Open Planner',
+    },
+  ];
+
+  const exPick = executeVariants[seed % executeVariants.length];
+  const dpPick = deepVariants[(seed + 1) % deepVariants.length];
+
+  const checkedInToday = prog.checkInDates.includes(todayKey) || crateClaimedToday;
+  const todayBounties: DailyBountyItem[] = [
+    {
+      id: 'bounty-vault',
+      slot: 'ritual',
+      title: `Open Day ${todayCrateDayNumber} Reward Vault`,
+      detail: 'Claim your daily escalation crate & check in',
+      xp: 20,
+      actionTab: 'rewards',
+      actionLabel: crateClaimedToday ? 'Claimed' : 'Claim Crate',
+      current: crateClaimedToday ? 1 : 0,
+      target: 1,
+      done: crateClaimedToday,
+    },
+    {
+      id: 'bounty-exec',
+      slot: 'execute',
+      title: exPick.title,
+      detail: exPick.detail,
+      xp: 35,
+      actionTab: exPick.actionTab,
+      actionLabel: exPick.actionLabel,
+      current: exPick.current,
+      target: exPick.target,
+      done: exPick.current >= exPick.target,
+    },
+    {
+      id: 'bounty-deep',
+      slot: 'deep',
+      title: hasTomorrowAnchor && blocksTodayCount === 0 ? 'Tomorrow Priority Locked' : dpPick.title,
+      detail: dpPick.detail,
+      xp: 45,
+      actionTab: dpPick.actionTab,
+      actionLabel: dpPick.actionLabel,
+      current: dpPick.current,
+      target: dpPick.target,
+      done: dpPick.current >= dpPick.target,
+    },
+  ];
+
+  const todayBountiesCompletedCount = todayBounties.filter((b) => b.done).length;
+  const allBountiesDone = todayBountiesCompletedCount === todayBounties.length;
+  const comboClaimedToday = prog.claimedComboDates.includes(todayKey);
+  const comboBonusXp = Math.round(60 * flameMultiplier);
+
   const totalFocusMinutes = snapshot.focusHistory.reduce((s, f) => s + f.durationMinutes, 0);
   const totalCompletedTasks = snapshot.tasks.filter((t) => t.completed).length;
-  const checkedInToday = prog.checkInDates.includes(todayKey);
-
-  const taskOrHabitDoneToday =
-    snapshot.tasks.some((t) => t.completed && (t.completedAt ?? t.createdAt).startsWith(todayKey)) ||
-    snapshot.habits.some((h) => Boolean(h.history[todayKey]));
-
-  const focusOrBlockToday =
-    snapshot.focusHistory.some((s) => s.completedAt.startsWith(todayKey) || s.date.startsWith(todayKey)) ||
-    snapshot.events.some((e) => e.date === todayKey);
-
-  const todayQuests: DailyQuestItem[] = [
-    { id: 'checkin', label: 'Daily check-in & priority scan', xp: 15, done: checkedInToday },
-    { id: 'execute', label: 'Complete a task or daily habit', xp: 25, done: taskOrHabitDoneToday },
-    { id: 'focus', label: 'Log a focus sprint or time-block', xp: 30, done: focusOrBlockToday },
-  ];
-  const todayQuestsCompletedCount = todayQuests.filter((q) => q.done).length;
-  const todayAllQuestsDone = todayQuestsCompletedCount === todayQuests.length;
-
+  const deepBlocksCount = snapshot.events.filter((e) => e.category === 'deep').length;
   const maxHabitStreak = computeMaxHabitStreak(snapshot, todayKey);
-  const extractedNotesCount = Object.values(snapshot.notes).reduce((sum, n) => sum + (n.extractedLines?.length ?? 0), 0);
   const plannedAnchorCount = Object.values(prog.dailyAnchors).filter((v) => v.trim().length > 0).length;
   const effectivePwa = Boolean(prog.pwaInstalled || pwaInstalledNow);
 
@@ -365,9 +634,9 @@ export function evaluateProgression(
     bestStreak,
     totalFocusMinutes,
     totalCompletedTasks,
+    deepBlocksCount,
     maxHabitStreak,
-    todayAllQuestsDone,
-    extractedNotesCount,
+    allBountiesDoneToday: allBountiesDone,
     plannedAnchorCount,
     pwaInstalled: effectivePwa,
   };
@@ -390,31 +659,34 @@ export function evaluateProgression(
     };
   });
 
-  // Base activity XP + achievement rewards (monotonically rewards real actions cleanly)
-  const activityXp =
+  const baseXpFloor =
     totalCompletedTasks * 20 +
     snapshot.focusHistory.length * 25 +
-    snapshot.habits.reduce((acc, h) => acc + Object.values(h.history).filter(Boolean).length * 10, 0) +
-    prog.checkInDates.length * 15;
-  const badgeXp = achievements.reduce((sum, a) => sum + (a.unlocked ? a.def.xpReward : 0), 0);
-  const totalXp = Math.max(prog.xp, activityXp + badgeXp);
+    prog.claimedCrateDates.length * 25 +
+    prog.claimedComboDates.length * 60 +
+    achievements.reduce((s, a) => s + (a.unlocked ? a.def.xpReward : 0), 0);
+  const totalXp = Math.max(prog.xp, baseXpFloor);
 
-  // Level progression (120 XP per level early -> scales gently by +40 each level)
   let level = 1;
   let remaining = totalXp;
   let threshold = 120;
-  while (remaining >= threshold && level < 25) {
+  while (remaining >= threshold && level < 30) {
     remaining -= threshold;
     level++;
-    threshold += 45;
+    threshold += 50;
   }
 
   const rankTitle = RANK_TITLES[Math.min(RANK_TITLES.length - 1, Math.floor((level - 1) / 2))];
   const levelProgressPct = Math.min(100, Math.round((remaining / threshold) * 100));
 
-  // Build 12-week (84 days) contribution mosaic ending on todayKey
+  const pinnedBadge =
+    achievements.find((a) => a.def.id === prog.pinnedBadgeId && a.unlocked) ??
+    achievements.find((a) => a.unlocked) ??
+    null;
+
+  // 16 weeks (112 days) contribution mosaic ending on todayKey
   const mosaicDays: MosaicDayCell[] = [];
-  for (let i = 83; i >= 0; i--) {
+  for (let i = 111; i >= 0; i--) {
     const key = addDays(todayKey, -i);
     mosaicDays.push({
       date: key,
@@ -424,8 +696,7 @@ export function evaluateProgression(
     });
   }
 
-  const mod5 = currentStreak > 0 ? currentStreak % 5 : 0;
-  const daysUntilNextFreeze = currentStreak === 0 ? 5 : mod5 === 0 ? 5 : 5 - mod5;
+  const hasPriorHistory = Object.keys(activityByDate).some((d) => d < todayKey);
 
   return {
     currentStreak,
@@ -433,8 +704,8 @@ export function evaluateProgression(
     activeToday,
     protectedYesterdayByFreeze,
     streakFreezesRemaining: prog.streakFreezes,
-    earnedFreezeBonus: Math.floor(bestStreak / 5),
-    daysUntilNextFreeze,
+    flameMultiplier,
+    flameTierLabel,
     totalXp,
     level,
     rankTitle,
@@ -444,15 +715,25 @@ export function evaluateProgression(
     totalFocusMinutes,
     totalCompletedTasks,
     checkedInToday,
-    todayQuests,
-    todayQuestsCompletedCount,
+    crateClaimedToday,
+    todayCrateDayNumber,
+    cycleNumber,
+    crateLadder,
+    lastLootDrop: prog.lastLootDrop ?? null,
+    todayBounties,
+    todayBountiesCompletedCount,
+    allBountiesDone,
+    comboClaimedToday,
+    comboBonusXp,
     yesterdayAnchor: prog.dailyAnchors[yesterdayKey] ?? '',
     todayAnchor: prog.dailyAnchors[todayKey] ?? '',
-    tomorrowAnchor: prog.dailyAnchors[addDays(todayKey, 1)] ?? '',
+    tomorrowAnchor: prog.dailyAnchors[tomorrowKey] ?? '',
     achievements,
     unlockedCount: achievements.filter((a) => a.unlocked).length,
     newlyUnlocked,
+    pinnedBadge,
     mosaicDays,
     activityByDate,
+    hasPriorHistory,
   };
 }

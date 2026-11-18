@@ -8,6 +8,8 @@ import { TasksWorkspace } from './components/TasksWorkspace';
 import { FocusHabitsStudio } from './components/FocusHabitsStudio';
 import { AnalyticsSuite } from './components/AnalyticsSuite';
 import { ProductivityOverview } from './components/ProductivityOverview';
+import { RewardsStudio } from './components/RewardsStudio';
+import { ComebackModal } from './components/ComebackModal';
 import { CommandPalette } from './components/CommandPalette';
 import { AccountModal } from './components/AccountModal';
 import { InstallAppModal } from './components/InstallAppModal';
@@ -48,6 +50,8 @@ const WorkspaceShell: React.FC = () => {
 
           {activeTab === 'analytics' && <AnalyticsSuite />}
 
+          {activeTab === 'rewards' && <RewardsStudio />}
+
           {activeTab === 'overview' && <ProductivityOverview />}
         </main>
 
@@ -55,6 +59,7 @@ const WorkspaceShell: React.FC = () => {
         <MobileInspectorSheet />
         <CommandPalette />
         <AccountModal />
+        <ComebackModal />
         <InstallAppModal />
         <FocusCurtain />
         <ToastStack />

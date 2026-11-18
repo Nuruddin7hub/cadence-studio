@@ -9,6 +9,7 @@ import {
   Search,
   Sun,
   Timer,
+  Trophy,
   Undo2,
   User,
   X,
@@ -35,6 +36,7 @@ export const CommandPalette: React.FC = () => {
     undoLast,
     openAccountModal,
     exportAccountBundle,
+    setComebackModalOpen,
   } = useWorkspace();
 
   const [query, setQuery] = useState('');
@@ -57,6 +59,20 @@ export const CommandPalette: React.FC = () => {
           setActiveTab('tasks');
           setTaskViewMode('matrix');
         },
+      },
+      {
+        id: 'act-rewards',
+        label: 'Open Momentum Vault & Trophy Studio',
+        hint: 'Rewards',
+        icon: Trophy,
+        run: () => setActiveTab('rewards'),
+      },
+      {
+        id: 'act-comeback',
+        label: 'Open Daily Comeback Crate Briefing',
+        hint: 'Daily Vault',
+        icon: Trophy,
+        run: () => setComebackModalOpen(true),
       },
       {
         id: 'act-focus',

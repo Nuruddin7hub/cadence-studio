@@ -274,6 +274,8 @@ export function normalizeSnapshot(
       ...(candProg && typeof candProg === 'object' ? candProg : {}),
       streakFreezeDates: Array.isArray(candProg?.streakFreezeDates) ? candProg.streakFreezeDates : [],
       checkInDates: Array.isArray(candProg?.checkInDates) ? candProg.checkInDates : [],
+      claimedCrateDates: Array.isArray(candProg?.claimedCrateDates) ? candProg.claimedCrateDates : [],
+      claimedComboDates: Array.isArray(candProg?.claimedComboDates) ? candProg.claimedComboDates : [],
       unlockedAchievements:
         candProg?.unlockedAchievements && typeof candProg.unlockedAchievements === 'object'
           ? candProg.unlockedAchievements
@@ -282,6 +284,8 @@ export function normalizeSnapshot(
         candProg?.dailyAnchors && typeof candProg.dailyAnchors === 'object'
           ? candProg.dailyAnchors
           : {},
+      pinnedBadgeId: typeof candProg?.pinnedBadgeId === 'string' ? candProg.pinnedBadgeId : undefined,
+      lastLootDrop: candProg?.lastLootDrop && typeof candProg.lastLootDrop === 'object' ? candProg.lastLootDrop : null,
     },
   };
 }

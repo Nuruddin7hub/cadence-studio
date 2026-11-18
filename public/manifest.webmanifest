@@ -47,6 +47,13 @@
       "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
+      "name": "Daily Rewards & Trophies",
+      "short_name": "Rewards",
+      "description": "Open your daily comeback vault, streak shields, and trophy emblems",
+      "url": "./?tab=rewards",
+      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
       "name": "Focus & Streaks",
       "short_name": "Focus",
       "description": "Start a Pomodoro sprint and claim today's check-in",

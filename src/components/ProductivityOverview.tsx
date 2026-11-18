@@ -16,11 +16,12 @@ import {
   Smartphone,
   Sparkles,
   Timer,
+  Trophy,
   UserPlus,
   WifiOff,
   X,
 } from 'lucide-react';
-import { StreakAchievementsPanel } from './StreakAchievementsPanel';
+import { ComebackOverviewBand } from './ComebackOverviewBand';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
   addDays,
@@ -384,6 +385,12 @@ export const ProductivityOverview: React.FC = () => {
         label: 'Time Analytics',
         icon: <BarChart3 className="w-5 h-5" />,
         onClick: () => setActiveTab('analytics'),
+      },
+      {
+        id: 'rewards',
+        label: 'Rewards & Trophies',
+        icon: <Trophy className="w-5 h-5" />,
+        onClick: () => setActiveTab('rewards'),
       },
       {
         id: 'command',
@@ -863,8 +870,8 @@ export const ProductivityOverview: React.FC = () => {
         </div>
       </section>
 
-      {/* Research-Backed Daily Momentum, Streak Freeze & Cross-Day Return Loop */}
-      <StreakAchievementsPanel variant="strip" />
+      {/* Research-Backed Daily Comeback Vault, Escalator & Bounty Return Loop */}
+      <ComebackOverviewBand />
 
       {/* 4-Stat Live Telemetry Strip with React Bits CountUp & FadeContent */}
       <section className="max-w-6xl mx-auto px-6 sm:px-10 py-14 border-y">

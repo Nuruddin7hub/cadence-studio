@@ -77,6 +77,7 @@ import {
 } from '../utils/googleAuth';
 import { triggerFileDownload } from '../utils/ics';
 import {
+  DAILY_CRATE_SCHEDULE,
   type EvaluatedProgression,
   evaluateProgression,
   normalizeProgression,
@@ -217,7 +218,12 @@ interface WorkspaceContextValue {
 
   // Progression, streaks & achievements
   progression: EvaluatedProgression;
+  comebackModalOpen: boolean;
+  setComebackModalOpen: (open: boolean) => void;
+  claimDailyCrate: () => void;
   claimDailyCheckIn: () => void;
+  claimComboBonus: () => void;
+  pinShowcaseBadge: (badgeId: string) => void;
   setTomorrowAnchor: (title: string) => void;
   promoteTodayAnchorToTask: () => void;
   toggleDailyReminder: (enabled: boolean, hour?: number) => Promise<void>;
@@ -262,7 +268,7 @@ function loadInitialVaultState(shot: string | null): {
 } {
   if (shot) {
     const base = createSeedWorkspace();
-    if (shot === 'focus-light' || shot === 'studio-light') {
+    if (shot === 'focus-light' || shot === 'studio-light' || shot === 'rewards-light') {
       base.preferences.theme = 'light';
     }
     return {
@@ -342,14 +348,36 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const carryGuestForNextCloudRef = useRef<boolean>(false);
 
   const initialTab: WorkspaceTab = useMemo(() => {
-    if (shotPreset === 'planner-dark' || shotPreset === 'studio-light' || shotPreset === 'mobile-dark') return 'planner';
+    if (
+      shotPreset === 'planner-dark' ||
+      shotPreset === 'studio-light' ||
+      shotPreset === 'mobile-dark' ||
+      shotPreset === 'comeback-modal'
+    ) {
+      return 'planner';
+    }
     if (shotPreset === 'tasks-dark') return 'tasks';
     if (shotPreset === 'focus-light') return 'focus';
     if (shotPreset === 'analytics-dark') return 'analytics';
+    if (
+      shotPreset === 'rewards-dark' ||
+      shotPreset === 'rewards-trophies-dark' ||
+      shotPreset === 'rewards-light' ||
+      shotPreset === 'rewards-mobile'
+    ) {
+      return 'rewards';
+    }
     if (shotPreset === 'overview-dark') return 'overview';
     if (typeof window !== 'undefined') {
       const tabParam = new URLSearchParams(window.location.search).get('tab');
-      if (tabParam === 'planner' || tabParam === 'tasks' || tabParam === 'focus' || tabParam === 'analytics' || tabParam === 'overview') {
+      if (
+        tabParam === 'planner' ||
+        tabParam === 'tasks' ||
+        tabParam === 'focus' ||
+        tabParam === 'analytics' ||
+        tabParam === 'rewards' ||
+        tabParam === 'overview'
+      ) {
         return tabParam;
       }
     }
@@ -455,6 +483,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [pwaCanPrompt, setPwaCanPrompt] = useState<boolean>(false);
   const [pwaPlatform] = useState<PwaPlatform>(() => detectPwaPlatform());
   const [installModalOpen, setInstallModalOpen] = useState<boolean>(false);
+  const [comebackModalOpen, setComebackModalOpen] = useState<boolean>(shotPreset === 'comeback-modal');
+  const comebackAutoPromptedRef = useRef<boolean>(false);
   const [installBannerDismissed, setInstallBannerDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -1005,7 +1035,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const prog = normalizeProgression(snapshot.progression);
     if (!prog.reminderEnabled) return;
     if (prog.lastRemindedDate === todayKey) return;
-    if (progression.todayQuestsCompletedCount === progression.todayQuests.length) return;
+    if (progression.todayBountiesCompletedCount === progression.todayBounties.length) return;
     const currentHour = Math.floor(nowMinutes / 60);
     if (currentHour < prog.reminderHour) return;
 
@@ -1034,8 +1064,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     nowMinutes,
     progression.currentStreak,
     progression.todayAnchor,
-    progression.todayQuests.length,
-    progression.todayQuestsCompletedCount,
+    progression.todayBounties.length,
+    progression.todayBountiesCompletedCount,
     shotPreset,
     snapshot.progression,
     todayKey,
@@ -1070,22 +1100,115 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setInstallModalOpen(true);
   }, [pushToast]);
 
-  const claimDailyCheckIn = useCallback(() => {
+  const claimDailyCrate = useCallback(() => {
+    if (progression.crateClaimedToday) return;
+    const slot = DAILY_CRATE_SCHEDULE[Math.max(0, Math.min(6, progression.todayCrateDayNumber - 1))];
+    const awardedXp = Math.round(slot.baseXp * progression.flameMultiplier);
+    const freezeAwarded = slot.freezeBonus;
+
     commit((prev) => {
       const prog = normalizeProgression(prev.progression);
-      if (prog.checkInDates.includes(todayKey)) return prev;
+      if (prog.claimedCrateDates.includes(todayKey)) return prev;
+      const nextCheckIns = prog.checkInDates.includes(todayKey) ? prog.checkInDates : [...prog.checkInDates, todayKey];
       return {
         ...prev,
         progression: {
           ...prog,
-          xp: prog.xp + 15,
-          checkInDates: [...prog.checkInDates, todayKey],
+          xp: Math.max(prog.xp, progression.totalXp) + awardedXp,
+          streakFreezes: Math.min(3, prog.streakFreezes + freezeAwarded),
+          checkInDates: nextCheckIns,
+          claimedCrateDates: [...prog.claimedCrateDates, todayKey],
+          lastLootDrop: {
+            date: todayKey,
+            dayNumber: slot.day,
+            title: slot.title,
+            xpAwarded: awardedXp,
+            freezeAwarded,
+            multiplierUsed: progression.flameMultiplier,
+          },
         },
       };
     });
-    playSubtleChime('complete', snapshot.preferences.soundEnabled);
-    pushToast('Daily check-in claimed (+15 XP)', 'Your streak stays locked for today', false, 'success');
-  }, [commit, pushToast, snapshot.preferences.soundEnabled, todayKey]);
+    playSubtleChime('reward', snapshot.preferences.soundEnabled);
+    pushToast(
+      `Day ${slot.day} Vault Opened: ${slot.title}`,
+      `+${awardedXp} XP${freezeAwarded > 0 ? ` · +${freezeAwarded} Freeze Shield` : ''} (${progression.flameMultiplier}x flame)`,
+      false,
+      'success'
+    );
+  }, [
+    commit,
+    progression.crateClaimedToday,
+    progression.flameMultiplier,
+    progression.todayCrateDayNumber,
+    progression.totalXp,
+    pushToast,
+    snapshot.preferences.soundEnabled,
+    todayKey,
+  ]);
+
+  const claimDailyCheckIn = claimDailyCrate;
+
+  const claimComboBonus = useCallback(() => {
+    if (!progression.allBountiesDone || progression.comboClaimedToday) return;
+    const bonus = progression.comboBonusXp;
+    commit((prev) => {
+      const prog = normalizeProgression(prev.progression);
+      if (prog.claimedComboDates.includes(todayKey)) return prev;
+      return {
+        ...prev,
+        progression: {
+          ...prog,
+          xp: Math.max(prog.xp, progression.totalXp) + bonus,
+          claimedComboDates: [...prog.claimedComboDates, todayKey],
+        },
+      };
+    });
+    playSubtleChime('level_up', snapshot.preferences.soundEnabled);
+    pushToast('Daily Trio Combo Claimed', `+${bonus} Bonus XP awarded for sweeping all 3 quests`, false, 'success');
+  }, [
+    commit,
+    progression.allBountiesDone,
+    progression.comboBonusXp,
+    progression.comboClaimedToday,
+    progression.totalXp,
+    pushToast,
+    snapshot.preferences.soundEnabled,
+    todayKey,
+  ]);
+
+  const pinShowcaseBadge = useCallback(
+    (badgeId: string) => {
+      const target = progression.achievements.find((a) => a.def.id === badgeId && a.unlocked);
+      if (!target) return;
+      commit((prev) => ({
+        ...prev,
+        progression: {
+          ...normalizeProgression(prev.progression),
+          pinnedBadgeId: badgeId,
+        },
+      }));
+      pushToast(`Pinned badge: ${target.def.title}`, 'Shown on your studio header and passport', false, 'success');
+    },
+    [commit, progression.achievements, pushToast]
+  );
+
+  // Auto-open Comeback Vault modal once per new returning day when user has history from earlier days
+  useEffect(() => {
+    if (shotPreset || typeof window === 'undefined') return;
+    if (comebackAutoPromptedRef.current) return;
+    if (!progression.hasPriorHistory || progression.crateClaimedToday) return;
+    const seenKey = `cadence_comeback_seen_${todayKey}`;
+    try {
+      if (window.localStorage.getItem(seenKey) === '1') return;
+      window.localStorage.setItem(seenKey, '1');
+    } catch {
+      // ignore storage errors
+    }
+    comebackAutoPromptedRef.current = true;
+    const t = window.setTimeout(() => setComebackModalOpen(true), 650);
+    return () => window.clearTimeout(t);
+  }, [progression.crateClaimedToday, progression.hasPriorHistory, shotPreset, todayKey]);
 
   const setTomorrowAnchor = useCallback(
     (title: string) => {
@@ -2086,7 +2209,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     activeFocusTaskId,
     setActiveFocusTaskId,
     progression,
+    comebackModalOpen,
+    setComebackModalOpen,
+    claimDailyCrate,
     claimDailyCheckIn,
+    claimComboBonus,
+    pinShowcaseBadge,
     setTomorrowAnchor,
     promoteTodayAnchorToTask,
     toggleDailyReminder,

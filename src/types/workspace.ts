@@ -5,6 +5,7 @@ export type WorkspaceTab =
   | 'tasks'
   | 'focus'
   | 'analytics'
+  | 'rewards'
   | 'overview';
 
 export type CalendarMode = 'day' | 'three_day' | 'workweek' | 'week' | 'month' | 'agenda';
@@ -126,13 +127,26 @@ export interface WorkspacePreferences {
   workingHourEnd: number;
 }
 
+export interface DailyLootRecord {
+  date: string;
+  dayNumber: number;
+  title: string;
+  xpAwarded: number;
+  freezeAwarded: number;
+  multiplierUsed: number;
+}
+
 export interface WorkspaceProgression {
   xp: number;
   streakFreezes: number;
   streakFreezeDates: string[];
   checkInDates: string[];
+  claimedCrateDates: string[];
+  claimedComboDates: string[];
   unlockedAchievements: Record<string, string>;
   dailyAnchors: Record<string, string>;
+  pinnedBadgeId?: string;
+  lastLootDrop?: DailyLootRecord | null;
   reminderEnabled: boolean;
   reminderHour: number;
   lastRemindedDate?: string;

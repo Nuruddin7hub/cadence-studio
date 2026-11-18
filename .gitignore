@@ -6,4 +6,6 @@ dist
 cook/stills
 cook/compare
 cook/refs
+cook-archive
+tsconfig.tsbuildinfo
 tmp

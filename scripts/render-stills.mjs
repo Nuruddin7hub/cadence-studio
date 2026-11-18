@@ -11,12 +11,11 @@ fs.mkdirSync(stillsDir, { recursive: true });
 fs.mkdirSync(compareDir, { recursive: true });
 
 const SHOTS = [
-  { id: 'S01', ref: 'cook/refs/R01.png', query: '?shot=studio-dark', width: 1440, height: 900 },
-  { id: 'S02', ref: 'cook/refs/R04.png', query: '?shot=tasks-dark', width: 1440, height: 900 },
-  { id: 'S03', ref: 'cook/refs/R03.png', query: '?shot=focus-light', width: 1440, height: 900 },
-  { id: 'S04', ref: 'cook/refs/R05.png', query: '?shot=analytics-dark', width: 1440, height: 900 },
-  { id: 'S05', ref: 'cook/refs/R01.png', query: '?shot=overview-dark', width: 1440, height: 900 },
-  { id: 'S06', ref: 'cook/refs/R03_mobile.png', query: '?shot=mobile-dark', width: 375, height: 812 },
+  { id: 'S01', ref: 'cook/refs/R03.png', query: '?shot=rewards-dark', width: 1440, height: 900 },
+  { id: 'S02', ref: 'cook/refs/R02.png', query: '?shot=rewards-trophies-dark', width: 1440, height: 900 },
+  { id: 'S03', ref: 'cook/refs/R04.png', query: '?shot=comeback-modal', width: 1440, height: 900 },
+  { id: 'S04', ref: 'cook/refs/R01.png', query: '?shot=rewards-light', width: 1440, height: 900 },
+  { id: 'S05', ref: 'cook/refs/R04_mobile_fold.png', query: '?shot=rewards-mobile', width: 375, height: 812 },
 ];
 
 const viteCli = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
@@ -62,7 +61,7 @@ try {
     const t0 = performance.now();
     await page.goto(`http://localhost:4173/${shot.query}`, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(550);
     const loadMs = Math.round(performance.now() - t0);
 
     const overflow = await page.evaluate(() => {
@@ -77,9 +76,8 @@ try {
 
   console.log('RENDER_METRICS:', JSON.stringify(metrics, null, 2));
 
-  // Build desktop side-by-side comparison using Cook's side-by-side.mjs
   const sbsScript = path.join(rootDir, '.agents', 'skills', 'cook', 'scripts', 'side-by-side.mjs');
-  const desktopPairs = SHOTS.slice(0, 5).flatMap((s) => [
+  const desktopPairs = SHOTS.slice(0, 4).flatMap((s) => [
     path.join(rootDir, s.ref),
     path.join(stillsDir, `${s.id}.png`),
   ]);
@@ -90,7 +88,6 @@ try {
   );
   console.log(sbsDesktop.stdout || sbsDesktop.stderr);
 
-  // Mobile side-by-side
   const sbsMobile = spawnSync(
     'node',
     [
@@ -101,15 +98,14 @@ try {
       '640',
       '--aspect',
       '375:812',
-      path.join(rootDir, 'cook/refs/R03_mobile.png'),
-      path.join(stillsDir, 'S06.png'),
+      path.join(rootDir, 'cook/refs/R04_mobile_fold.png'),
+      path.join(stillsDir, 'S05.png'),
     ],
     { encoding: 'utf8' }
   );
   console.log(sbsMobile.stdout || sbsMobile.stderr);
 
-  // Color checks
-  for (const s of SHOTS.slice(0, 5)) {
+  for (const s of SHOTS) {
     const cc = spawnSync('python', [path.join(rootDir, 'cook/color_check.py'), path.join(rootDir, s.ref), path.join(stillsDir, `${s.id}.png`)], {
       encoding: 'utf8',
     });

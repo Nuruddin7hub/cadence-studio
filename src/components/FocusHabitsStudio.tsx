@@ -13,7 +13,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { HabitItem } from '../types/workspace';
 import { addDays, formatReadableDate, WEEKDAY_TWO } from '../utils/date';
-import { StreakAchievementsPanel } from './StreakAchievementsPanel';
+import { TrophyEmblem } from './TrophyEmblem';
 import {
   AnimatedContent,
   BellToggle,
@@ -47,6 +47,9 @@ export const FocusHabitsStudio: React.FC = () => {
     deleteHabit,
     updateDailyNote,
     extractLineToTask,
+    progression,
+    setActiveTab,
+    setComebackModalOpen,
   } = useWorkspace();
 
   const [habitName, setHabitName] = useState('');
@@ -631,7 +634,60 @@ export const FocusHabitsStudio: React.FC = () => {
           </SpotlightCard>
         </AnimatedContent>
 
-        <StreakAchievementsPanel variant="hub" />
+        {/* Clean Bridge to Dedicated Momentum Vault & Trophy Studio */}
+        <SpotlightCard
+          theme={isDark ? 'dark' : 'light'}
+          spotlightColor={isDark ? 'rgba(231, 64, 4, 0.12)' : 'rgba(231, 64, 4, 0.06)'}
+          className="studio-card rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            {progression.pinnedBadge ? (
+              <TrophyEmblem
+                emblem={progression.pinnedBadge.def.emblem}
+                rarity={progression.pinnedBadge.def.rarity}
+                unlocked
+                size="sm"
+                isDark={isDark}
+              />
+            ) : (
+              <span className="w-9 h-9 rounded-xl bg-[var(--accent-primary-soft)] text-[var(--accent-primary)] flex items-center justify-center shrink-0">
+                <Flame className="w-4 h-4" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <div className="text-[14px] font-bold text-[var(--ink-primary)] truncate">
+                Level {progression.level} {progression.rankTitle} · {progression.currentStreak}d Streak ({progression.flameMultiplier}x XP)
+              </div>
+              <div className="text-[12px] text-[var(--ink-secondary)] truncate">
+                {progression.unlockedCount}/{progression.achievements.length} emblems unlocked ·{' '}
+                {progression.crateClaimedToday
+                  ? `Day ${progression.todayCrateDayNumber} vault claimed`
+                  : `Day ${progression.todayCrateDayNumber} reward crate ready`}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {!progression.crateClaimedToday && (
+              <button
+                type="button"
+                onClick={() => setComebackModalOpen(true)}
+                className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                Open Day {progression.todayCrateDayNumber} Vault
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setActiveTab('rewards')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[12px] font-semibold text-[var(--ink-primary)] transition-colors"
+            >
+              <span>Rewards & Trophy Cabinet</span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            </button>
+          </div>
+        </SpotlightCard>
       </div>
     </div>
   );

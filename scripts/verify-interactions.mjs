@@ -240,7 +240,7 @@ try {
     throw new Error('Found banned em-dash character in rendered UI');
   }
 
-  // 8b. PWA Installability (manifest + icons + SW), Install Promotion Modal, Daily Check-In, Tomorrow Anchor & Achievements
+  // 8b. PWA Installability (manifest + icons + SW), Install Promotion Modal, Rewards Studio (7-Day Vault, Bounties, Tomorrow Lock, 16-Trophy Pin Persistence, Comeback Modal, 16w Mosaic)
   const manifestInfo = await page.evaluate(async () => {
     const res = await fetch('./manifest.webmanifest');
     const json = await res.json();
@@ -257,28 +257,86 @@ try {
     throw new Error(`PWA manifest or icons invalid: ${JSON.stringify(manifestInfo)}`);
   }
 
-  await page.getByRole('button', { name: /Install Web App/i }).first().click();
+  await page.getByRole('button', { name: 'Download Cadence Web App' }).click();
   await page.waitForTimeout(180);
   if (!(await page.getByRole('dialog', { name: 'Install Cadence Web App' }).isVisible())) {
     throw new Error('Install Web App promotion dialog did not open');
   }
   await page.getByRole('button', { name: 'Android' }).click();
   await page.getByLabel('Close install guide').click();
+  await page.waitForTimeout(120);
 
-  await page.getByRole('button', { name: /Claim Daily Check-In/i }).click();
+  // Navigate to redesigned Momentum Vault & Trophy Studio
+  await page.getByRole('button', { name: /Open Daily Vault|Rewards Studio/i }).first().click();
   await page.waitForTimeout(200);
-  await page.getByLabel('Tomorrow priority anchor').fill('Review Q4 design doc');
+  if (await page.getByRole('dialog', { name: 'Daily Comeback Vault Briefing' }).isVisible()) {
+    await page.getByRole('button', { name: 'Explore Trophy Cabinet & 16 Emblems' }).click();
+    await page.waitForTimeout(200);
+  }
+
+  await page.getByRole('button', { name: /Rewards Studio/i }).first().click();
+  await page.waitForTimeout(220);
+
+  // Claim Day 1 Vault Crate & verify XP + Claimed state
+  await page.getByRole('button', { name: /Claim Day 1 Vault/i }).click();
+  await page.waitForTimeout(220);
+  if (!(await page.locator('#rewards-scroll').innerText()).includes('Day 1 Claimed')) {
+    throw new Error('Claim Day 1 Vault did not transition to Day 1 Claimed');
+  }
+
+  // Lock Tomorrow's #1 Priority & verify persistence + Comeback Modal briefing
+  await page.getByLabel('Tomorrow priority anchor').fill('Ship release checklist before 3 PM');
   await page.getByRole('button', { name: 'Lock', exact: true }).click();
   await page.waitForTimeout(200);
 
-  await page.getByRole('button', { name: /Achievements & Mosaic/i }).click();
-  await page.waitForTimeout(250);
-  const hubText = await page.locator('#achievements-hub').innerText();
-  if (!hubText.includes('First Spark') || !hubText.includes('Unlocked') || !hubText.includes('12-Week Momentum Mosaic')) {
-    throw new Error('Achievements Hub or 12-week mosaic missing');
+  await page.getByRole('button', { name: /Comeback Briefing/i }).click();
+  await page.waitForTimeout(200);
+  if (!(await page.getByRole('dialog', { name: 'Daily Comeback Vault Briefing' }).isVisible())) {
+    throw new Error('Comeback Briefing modal did not open');
+  }
+  await page.getByRole('button', { name: 'Enter Studio' }).click();
+  await page.waitForTimeout(160);
+
+  // Check #trophy-cabinet, filter tabs, 16-week mosaic, and swap Pinned Emblem across reload
+  const cabinetText = await page.locator('#trophy-cabinet').innerText();
+  if (!cabinetText.includes('Collectible Trophy Cabinet') || !cabinetText.includes('First Ignition') || !cabinetText.includes('Tomorrow Lock')) {
+    throw new Error('Trophy Cabinet missing core collectibles');
+  }
+  const mosaicText = await page.locator('#momentum-mosaic').innerText();
+  if (!mosaicText.includes('16-Week Consistency Mosaic')) {
+    throw new Error('16-Week Consistency Mosaic missing from Rewards Studio');
   }
 
-  // 9. Mobile 375x812 responsive check: opens Overview cleanly, starter checklist, touch drag & zero overflow
+  await page.getByRole('button', { name: 'Pin Tomorrow Lock' }).click();
+  await page.waitForTimeout(180);
+  if (!(await page.locator('#trophy-cabinet').innerText()).includes('Pinned Emblem:')) {
+    throw new Error('Pinning Tomorrow Lock emblem did not update Showcase ribbon');
+  }
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(280);
+  await page.getByRole('button', { name: /Open Daily Vault|Rewards Studio/i }).first().click();
+  await page.waitForTimeout(180);
+  if (await page.getByRole('dialog', { name: 'Daily Comeback Vault Briefing' }).isVisible()) {
+    await page.getByRole('button', { name: 'Enter Studio' }).click();
+    await page.waitForTimeout(150);
+  }
+  await page.getByRole('button', { name: /Rewards Studio/i }).first().click();
+  await page.waitForTimeout(220);
+  const reloadedRewards = await page.locator('#rewards-scroll').innerText();
+  if (!reloadedRewards.includes('Day 1 Claimed') || !reloadedRewards.includes('Tomorrow Lock pinned') && !reloadedRewards.includes('Pinned Emblem:')) {
+    // Also verify exact pinned title persisted cleanly inside #trophy-cabinet text
+    const reloadedCabinet = await page.locator('#trophy-cabinet').innerText();
+    if (!reloadedCabinet.includes('Tomorrow Lock')) {
+      throw new Error('Pinned emblem or claimed crate state did not persist across reload');
+    }
+  }
+  const reloadedPinnedLine = await page.locator('#trophy-cabinet').innerText();
+  if (!reloadedPinnedLine.includes('Pinned Emblem:') || !reloadedPinnedLine.includes('Tomorrow Lock')) {
+    throw new Error('Tomorrow Lock emblem selection lost after reload');
+  }
+
+  // 9. Mobile 375x812 responsive check: opens Overview cleanly, starter checklist, touch drag, Rewards Studio & zero overflow
   const mobileCtx = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true });
   const mPage = await mobileCtx.newPage();
   mPage.on('pageerror', (e) => pageErrors.push(e.message));
@@ -291,21 +349,21 @@ try {
   await mPage.getByRole('button', { name: 'Import starter checklist' }).click();
   await mPage.waitForTimeout(200);
 
-  await mPage.getByRole('button', { name: 'Calendar', exact: true }).click();
+  await mPage.getByRole('button', { name: 'Planner', exact: true }).click();
   await mPage.waitForTimeout(250);
 
   const grip = mPage.locator('[title="Drag to move"]').first();
   await grip.scrollIntoViewIfNeeded();
   await mPage.waitForTimeout(100);
   const gripBox = await grip.boundingBox();
-  if (!gripBox) throw new Error('Mobile touch drag grip missing on Calendar block');
+  if (!gripBox) throw new Error('Mobile touch drag grip missing on Planner block');
   await mPage.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
   await mPage.mouse.down();
   await mPage.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2 - 56, { steps: 6 });
   await mPage.mouse.up();
   await mPage.waitForTimeout(200);
   if (!(await mPage.locator('body').innerText()).includes('Block rescheduled')) {
-    throw new Error('Touch/pointer drag on Calendar block did not reschedule');
+    throw new Error('Touch/pointer drag on Planner block did not reschedule');
   }
 
   await mPage.locator('text=Plan top 3 priorities').first().click();
@@ -321,7 +379,13 @@ try {
   if (modalOverflow) throw new Error('Account modal overflowed at 375px mobile width');
   await mPage.getByLabel('Close account dialog').click();
 
-  for (const mobileTab of ['Calendar', 'Tasks', 'Focus', 'Stats', 'Suite']) {
+  // Verify Rewards Studio zero horizontal overflow at 375px mobile width
+  await mPage.getByRole('button', { name: /Rewards Studio/i }).first().click();
+  await mPage.waitForTimeout(220);
+  const rewardsOverflow = await mPage.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  if (rewardsOverflow) throw new Error('Horizontal overflow detected at 375px on Rewards Studio');
+
+  for (const mobileTab of ['Planner', 'Tasks', 'Focus', 'Analytics', 'Overview']) {
     await mPage.getByRole('button', { name: mobileTab, exact: true }).click();
     await mPage.waitForTimeout(220);
     const overflows = await mPage.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
