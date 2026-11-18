@@ -116,7 +116,7 @@ export function createSeedWorkspace(): WorkspaceSnapshot {
         location: 'Studio North',
         recurrence: 'weekly',
       },
-      // Today (Wednesday Nov 18) — layered & realistic overlapping blocks
+      // Today (Wednesday Nov 18): layered realistic overlapping blocks
       {
         id: 'ev-7',
         title: 'Morning Writing & Priorities',

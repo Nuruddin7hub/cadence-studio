@@ -11,6 +11,14 @@ const SHORTCUTS = [
   { keys: 'Left / Right', desc: 'Step previous or next day or week' },
 ];
 
+const SHOWCASE_TASKS = [
+  { title: 'Timeline drag & 15m snap', done: false },
+  { title: 'NLP quick task parser', done: true },
+  { title: 'Weekly time analytics', done: false },
+  { title: 'Cmd+K command flows', done: false },
+  { title: 'Board metrics snapshot', done: false },
+];
+
 export const ProductivityOverview: React.FC = () => {
   const { snapshot, setActiveTab, setCommandOpen } = useWorkspace();
 
@@ -27,13 +35,12 @@ export const ProductivityOverview: React.FC = () => {
     ];
   }, [snapshot.events.length, snapshot.focusHistory.length, snapshot.habits.length, snapshot.tasks]);
 
-  const previewTasks = snapshot.tasks.slice(0, 5);
   const isDark = snapshot.preferences.theme === 'dark';
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-[var(--bg-canvas)] studio-spotlight-dark">
-      {/* Centered Cron + Linear Inspired Hero Sized Cleanly Within 844px (100vh - 56px) */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-9 pb-12 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
+      {/* Centered Cron + Linear Inspired Hero Framed Cleanly Within 844px */}
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-8 pb-8 min-h-[calc(100vh-56px)] flex flex-col items-center justify-between text-center">
         <div className="flex flex-col items-center">
           <button
             type="button"
@@ -49,7 +56,7 @@ export const ProductivityOverview: React.FC = () => {
           <h1
             className="font-display font-extrabold tracking-tight leading-[1.0] max-w-4xl"
             style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4.3rem)',
+              fontSize: 'clamp(2.6rem, 5.2vw, 4.45rem)',
               letterSpacing: '-0.035em',
               background: isDark
                 ? 'linear-gradient(180deg, #FFFFFF 45%, #A6AEBC 100%)'
@@ -63,9 +70,8 @@ export const ProductivityOverview: React.FC = () => {
             Finally in one studio.
           </h1>
 
-          <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--ink-secondary)] max-w-xl">
-            Time-blocking calendar, natural-language task lists, Kanban and Eisenhower prioritization,
-            Pomodoro deep work, and habit streaks in one keyboard-first workspace.
+          <p className="mt-3.5 text-[15.5px] leading-relaxed text-[var(--ink-secondary)] max-w-2xl">
+            Time-blocking calendar, natural-language task lists, Kanban, Pomodoro sprints, and habits in one workspace.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
@@ -81,14 +87,14 @@ export const ProductivityOverview: React.FC = () => {
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="studio-card inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13.5px] font-medium hover:bg-[var(--bg-hover)]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13.5px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-surface)]/70 transition-colors"
             >
               <span>Command Bar (Ctrl+K)</span>
             </button>
           </div>
         </div>
 
-        {/* Richly Populated Framed Studio + Mobile Companion Showcase (Cron R01 inspiration) */}
+        {/* Richly Illuminated Framed Studio Showcase with Authentic Time-Axis & Bottom Vignette */}
         <div
           onClick={() => setActiveTab('planner')}
           role="button"
@@ -100,12 +106,12 @@ export const ProductivityOverview: React.FC = () => {
           style={{
             borderColor: 'var(--rule-strong)',
             boxShadow: isDark
-              ? '0 28px 72px rgba(0, 0, 0, 0.7), 0 0 80px -20px rgba(231, 64, 4, 0.22), inset 0 1px 0 rgba(255,255,255,0.1)'
+              ? '0 32px 80px rgba(0, 0, 0, 0.75), 0 0 90px -18px rgba(231, 64, 4, 0.28), inset 0 1px 0 rgba(255,255,255,0.12)'
               : 'var(--shadow-panel)',
           }}
         >
           {/* Window Chrome */}
-          <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/70">
+          <div className="px-4 py-2.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/75">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--rule-strong)]" />
@@ -115,32 +121,32 @@ export const ProductivityOverview: React.FC = () => {
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-mono-num text-[var(--ink-muted)]">
-              <span className="hidden sm:inline">25:00 Focus active</span>
-              <span className="text-[var(--accent-primary)] font-medium">Enter live studio →</span>
+              <span className="text-[var(--ink-secondary)]">25:00 Deep Focus</span>
+              <span className="text-[var(--ink-primary)] font-medium">Live workspace →</span>
             </div>
           </div>
 
           {/* 3-Zone Product Showcase */}
-          <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x h-[285px]">
-            {/* Left Task Queue */}
+          <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x h-[335px] relative">
+            {/* Left Task Queue (Clean untruncated copy) */}
             <div className="md:col-span-3 p-3.5 space-y-2.5 bg-[var(--bg-surface)]">
               <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--ink-secondary)]">
                 <span>Today Queue</span>
                 <span className="font-mono-num text-[var(--accent-primary)]">4</span>
               </div>
               <div className="space-y-1.5">
-                {previewTasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg-elevated)]/65 text-[11.5px]">
+                {SHOWCASE_TASKS.map((t) => (
+                  <div key={t.title} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[var(--bg-elevated)]/65 text-[11.5px]">
                     <span
                       className="w-3 h-3 rounded border flex items-center justify-center shrink-0"
                       style={{
-                        borderColor: t.completed ? 'var(--accent-emerald)' : 'var(--accent-primary)',
-                        backgroundColor: t.completed ? 'var(--accent-emerald)' : 'transparent',
+                        borderColor: t.done ? 'var(--accent-emerald)' : 'var(--accent-primary)',
+                        backgroundColor: t.done ? 'var(--accent-emerald)' : 'transparent',
                       }}
                     >
-                      {t.completed && <Check className="w-2 h-2 text-white stroke-[3]" />}
+                      {t.done && <Check className="w-2 h-2 text-white stroke-[3]" />}
                     </span>
-                    <span className={`truncate ${t.completed ? 'opacity-50' : 'text-[var(--ink-primary)]'}`}>
+                    <span className={`truncate ${t.done ? 'opacity-50' : 'text-[var(--ink-primary)]'}`}>
                       {t.title}
                     </span>
                   </div>
@@ -148,58 +154,78 @@ export const ProductivityOverview: React.FC = () => {
               </div>
             </div>
 
-            {/* Center Time-Blocked Timeline */}
-            <div className="md:col-span-6 p-3.5 grid grid-cols-3 gap-2.5 bg-[var(--bg-canvas)]/75 relative">
-              {[
-                {
-                  day: 'Tue 17',
-                  blocks: [
-                    { time: '9:30 AM', title: 'Q4 Roadmap Alignment', color: '#14A4FC', h: 'h-16' },
-                    { time: '1:30 PM', title: 'Ship NLP Quick Parser', color: '#E74004', h: 'h-20' },
-                    { time: '6:00 PM', title: 'Strength Conditioning', color: '#2CCC74', h: 'h-12' },
-                  ],
-                },
-                {
-                  day: 'Wed 18 · Today',
-                  today: true,
-                  blocks: [
-                    { time: '9:00 AM', title: 'Deep Work: Unified Timeline', color: '#E74004', h: 'h-20' },
-                    { time: '12:00 PM', title: 'Design Systems Review', color: '#14A4FC', h: 'h-14' },
-                    { time: '2:30 PM', title: 'Focus Block: Analytics', color: '#E74004', h: 'h-16' },
-                  ],
-                },
-                {
-                  day: 'Thu 19',
-                  blocks: [
-                    { time: '10:00 AM', title: 'Architecture Walkthrough', color: '#14A4FC', h: 'h-16' },
-                    { time: '1:00 PM', title: 'Deep Focus: Cmd+K Flows', color: '#E74004', h: 'h-20' },
-                    { time: '7:00 PM', title: 'Dinner with Sam', color: '#F4C46C', h: 'h-12' },
-                  ],
-                },
-              ].map((col) => (
-                <div key={col.day} className="space-y-1.5">
+            {/* Center Time-Blocked Timeline with Authentic Hour Gridlines & Proportional Blocks */}
+            <div className="md:col-span-6 p-3.5 bg-[var(--bg-canvas)]/80 relative flex flex-col">
+              <div className="grid grid-cols-3 gap-2.5 pb-2 border-b text-[11px] font-semibold">
+                <div className="text-[var(--ink-secondary)] pl-7">Tue 17</div>
+                <div className="text-[var(--accent-primary)]">Wed 18 · Today</div>
+                <div className="text-[var(--ink-secondary)]">Thu 19</div>
+              </div>
+
+              <div className="relative flex-1 mt-1 pl-7">
+                {/* Faint hour lines */}
+                {[
+                  { label: '9 AM', top: '4%' },
+                  { label: '11 AM', top: '28%' },
+                  { label: '1 PM', top: '52%' },
+                  { label: '3 PM', top: '76%' },
+                ].map((line) => (
                   <div
-                    className="text-[11px] font-semibold pb-1 border-b"
-                    style={{ color: col.today ? 'var(--accent-primary)' : 'var(--ink-secondary)' }}
+                    key={line.label}
+                    className="absolute left-0 right-0 flex items-center pointer-events-none"
+                    style={{ top: line.top }}
                   >
-                    {col.day}
+                    <span className="w-7 text-[9px] font-mono-num text-[var(--ink-muted)]">{line.label}</span>
+                    <div className="flex-1 border-t border-[var(--rule-hairline)]" />
                   </div>
-                  <div className="space-y-1.5">
-                    {col.blocks.map((b) => (
-                      <div
-                        key={b.title}
-                        className={`p-2 rounded-md border-l-2 bg-[var(--bg-surface)] text-left ${b.h}`}
-                        style={{ borderLeftColor: b.color }}
-                      >
-                        <div className="font-mono-num text-[9.5px] text-[var(--ink-muted)]">{b.time}</div>
-                        <div className="text-[11px] font-medium text-[var(--ink-primary)] line-clamp-2 leading-tight mt-0.5">
-                          {b.title}
-                        </div>
-                      </div>
-                    ))}
+                ))}
+
+                {/* Current time indicator */}
+                <div className="absolute left-7 right-0 top-[34%] flex items-center z-20 pointer-events-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] -ml-0.5" />
+                  <div className="flex-1 h-[1.5px] bg-[var(--accent-primary)]" />
+                </div>
+
+                {/* 3 Day Columns */}
+                <div className="grid grid-cols-3 gap-2.5 h-full relative z-10">
+                  <div className="relative h-full">
+                    <div className="absolute inset-x-0 top-[8%] h-[28%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">9:30 AM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Q4 Roadmap Sync</div>
+                    </div>
+                    <div className="absolute inset-x-0 top-[56%] h-[32%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">1:30 PM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Ship NLP Parser</div>
+                    </div>
+                  </div>
+
+                  <div className="relative h-full">
+                    <div className="absolute inset-x-0 top-[4%] h-[36%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.12)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">9:00 AM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Unified Timeline UI</div>
+                    </div>
+                    <div className="absolute inset-x-0 top-[44%] h-[22%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">12:00 PM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Design Review</div>
+                    </div>
+                    <div className="absolute inset-x-0 top-[70%] h-[26%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">2:30 PM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Analytics Curves</div>
+                    </div>
+                  </div>
+
+                  <div className="relative h-full">
+                    <div className="absolute inset-x-0 top-[14%] h-[24%] p-1.5 rounded-md border-l-2 bg-[rgba(20,164,252,0.1)]" style={{ borderLeftColor: '#14A4FC' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">10:00 AM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Arch Walkthrough</div>
+                    </div>
+                    <div className="absolute inset-x-0 top-[52%] h-[34%] p-1.5 rounded-md border-l-2 bg-[rgba(231,64,4,0.11)]" style={{ borderLeftColor: '#E74004' }}>
+                      <div className="font-mono-num text-[9px] text-[var(--ink-muted)]">1:00 PM</div>
+                      <div className="text-[11px] font-medium text-[var(--ink-primary)] leading-tight">Cmd+K Shortcuts</div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
 
             {/* Right Focus & Habits Mini-Panel */}
@@ -211,7 +237,7 @@ export const ProductivityOverview: React.FC = () => {
                 </div>
                 <div className="p-2.5 rounded-lg bg-[var(--bg-elevated)] space-y-1.5">
                   <div className="text-[11px] font-medium text-[var(--ink-primary)]">
-                    Finalize unified timeline grid
+                    Timeline drag & 15m snap
                   </div>
                   <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
                     <div className="h-full w-2/3 rounded-full bg-[var(--accent-primary)]" />
@@ -231,6 +257,12 @@ export const ProductivityOverview: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Smooth Bottom Vignette Fade */}
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-14 z-30"
+              style={{ background: 'linear-gradient(to top, var(--bg-surface), transparent)' }}
+            />
           </div>
         </div>
       </section>

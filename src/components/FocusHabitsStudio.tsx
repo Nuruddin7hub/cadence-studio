@@ -94,7 +94,7 @@ export const FocusHabitsStudio: React.FC = () => {
     const accentMap: Record<HabitItem['category'], string> = {
       focus: '#E74004',
       health: '#149E56',
-      craft: '#0B8CE0',
+      craft: '#C95A02',
       mindset: '#B87B06',
     };
     addHabit(habitName, habitCat, accentMap[habitCat]);
@@ -109,8 +109,6 @@ export const FocusHabitsStudio: React.FC = () => {
     updateDailyNote(selectedDate, { content: nextContent });
     setNoteDraft('');
   };
-
-  const isLight = snapshot.preferences.theme === 'light';
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto p-5 sm:p-6 space-y-5 bg-[var(--bg-canvas)] studio-spotlight-dark">
@@ -141,20 +139,16 @@ export const FocusHabitsStudio: React.FC = () => {
             <button
               type="button"
               onClick={() => setFocusCurtainOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors"
-              style={{
-                backgroundColor: isLight ? '#0B8CE0' : 'var(--ink-primary)',
-                color: isLight ? '#FFFFFF' : 'var(--bg-canvas)',
-              }}
+              className="studio-card inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
             >
-              <Maximize2 className="w-3.5 h-3.5" />
+              <Maximize2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>Distraction-free mode</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Balanced Pomodoro Focus Engine */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* Balanced Pomodoro Focus Engine (Cohesive Ember Brand Accent!) */}
           <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -175,8 +169,9 @@ export const FocusHabitsStudio: React.FC = () => {
                     onClick={() => setFocusMode(mode)}
                     className="px-2.5 py-1 rounded-md text-[11.5px] font-mono-num font-medium transition-colors"
                     style={{
-                      backgroundColor: focusMode === mode ? 'var(--bg-elevated)' : 'transparent',
+                      backgroundColor: focusMode === mode ? 'var(--bg-surface)' : 'transparent',
                       color: focusMode === mode ? 'var(--ink-primary)' : 'var(--ink-muted)',
+                      boxShadow: focusMode === mode ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                     }}
                   >
                     {label}
@@ -185,36 +180,34 @@ export const FocusHabitsStudio: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center py-1">
-              <div className="sm:col-span-5 flex justify-center">
-                <div className="relative w-36 h-36 flex items-center justify-center">
-                  <svg className="w-36 h-36 -rotate-90" viewBox="0 0 160 160">
-                    <circle cx="80" cy="80" r="66" fill="none" stroke="var(--rule-strong)" strokeWidth="6" />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="66"
-                      fill="none"
-                      stroke={isLight ? '#0B8CE0' : 'var(--accent-primary)'}
-                      strokeWidth="6"
-                      strokeLinecap="round"
-                      strokeDasharray={2 * Math.PI * 66}
-                      strokeDashoffset={2 * Math.PI * 66 * (1 - pct)}
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <div className="font-mono-num text-[28px] font-bold tracking-tight">
-                      {formatClock(focusSecondsLeft)}
-                    </div>
-                    <div className="text-[11px] text-[var(--ink-muted)]">
-                      {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
-                    </div>
+            <div className="flex flex-col sm:flex-row items-center gap-5 py-2">
+              <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
+                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 160 160">
+                  <circle cx="80" cy="80" r="66" fill="none" stroke="var(--rule-strong)" strokeWidth="6.5" />
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="66"
+                    fill="none"
+                    stroke="var(--accent-primary)"
+                    strokeWidth="6.5"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 66}
+                    strokeDashoffset={2 * Math.PI * 66 * (1 - pct)}
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <div className="font-mono-num text-[26px] font-bold tracking-tight">
+                    {formatClock(focusSecondsLeft)}
+                  </div>
+                  <div className="text-[10.5px] text-[var(--ink-muted)]">
+                    {focusMode === 'focus' ? 'Deep work' : 'Recovery'}
                   </div>
                 </div>
               </div>
 
-              <div className="sm:col-span-7 space-y-2.5">
-                <div className="p-3 rounded-xl border bg-[var(--bg-inset)] space-y-1">
+              <div className="flex-1 w-full min-w-0 space-y-2.5">
+                <div className="px-3 py-2 rounded-xl bg-[var(--bg-inset)] space-y-0.5">
                   <span className="text-[11px] text-[var(--ink-muted)]">Active target</span>
                   <select
                     value={activeFocusTaskId ?? ''}
@@ -234,11 +227,11 @@ export const FocusHabitsStudio: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="p-2.5 rounded-xl border bg-[var(--bg-inset)]">
+                  <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
                     <div className="font-mono-num font-bold text-[15px]">{todayFocusMins}m</div>
                     <div className="text-[10.5px] text-[var(--ink-muted)]">Today logged</div>
                   </div>
-                  <div className="p-2.5 rounded-xl border bg-[var(--bg-inset)]">
+                  <div className="p-2 rounded-xl bg-[var(--bg-inset)]">
                     <div className="font-mono-num font-bold text-[15px]">{snapshot.focusHistory.length}</div>
                     <div className="text-[10.5px] text-[var(--ink-muted)]">Sprints done</div>
                   </div>
@@ -246,35 +239,38 @@ export const FocusHabitsStudio: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setFocusRunning(!focusRunning)}
-                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-colors"
-                style={{ backgroundColor: isLight ? '#0B8CE0' : 'var(--accent-primary)' }}
-              >
-                {focusRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                <span>{focusRunning ? 'Pause timer' : 'Start session'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => resetFocusTimer()}
-                className="p-2.5 rounded-xl border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
-                aria-label="Reset timer"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFocusRunning(!focusRunning)}
+                  aria-label={focusRunning ? 'Pause timer' : 'Start session'}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors"
+                  style={{ backgroundColor: 'var(--accent-primary)' }}
+                >
+                  {focusRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  <span>{focusRunning ? 'Pause timer' : 'Start session'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => resetFocusTimer()}
+                  className="p-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)]"
+                  aria-label="Reset timer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={completeFocusNow}
-                className="px-3.5 py-2.5 rounded-xl border hover:bg-[var(--bg-hover)] text-[12px] font-medium"
+                className="px-3.5 py-2 rounded-xl border hover:bg-[var(--bg-hover)] text-[12px] font-medium"
               >
                 Log sprint
               </button>
             </div>
           </section>
 
-          {/* Habit Streak Matrix */}
+          {/* Habit Streak Matrix (Harmonized Ember/Sage Pills) */}
           <section className="lg:col-span-7 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -303,7 +299,7 @@ export const FocusHabitsStudio: React.FC = () => {
                   <button
                     type="submit"
                     className="p-1.5 rounded-lg text-white"
-                    style={{ backgroundColor: isLight ? '#0B8CE0' : 'var(--accent-primary)' }}
+                    style={{ backgroundColor: 'var(--accent-primary)' }}
                     aria-label="Add habit"
                   >
                     <Plus className="w-4 h-4" />
@@ -338,12 +334,13 @@ export const FocusHabitsStudio: React.FC = () => {
                         if (h.history[addDays(todayKey, -i)]) streak++;
                         else if (i > 0) break;
                       }
+                      const pillColor = h.category === 'health' ? '#149E56' : 'var(--accent-primary)';
 
                       return (
                         <tr key={h.id} className="group hover:bg-[var(--bg-hover)]/35">
                           <td className="py-3 pr-3">
                             <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.accent }} />
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: pillColor }} />
                               <span className="text-[13px] font-medium text-[var(--ink-primary)]">{h.name}</span>
                             </div>
                           </td>
@@ -355,13 +352,17 @@ export const FocusHabitsStudio: React.FC = () => {
                                   type="button"
                                   onClick={() => toggleHabitDate(h.id, dKey)}
                                   aria-label={`${h.name} on ${dKey}`}
-                                  className="w-7 h-7 mx-auto rounded-lg border flex items-center justify-center transition-colors"
+                                  className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center transition-colors"
                                   style={{
-                                    backgroundColor: checked ? `color-mix(in srgb, ${h.accent} 18%, transparent)` : 'var(--bg-inset)',
-                                    borderColor: checked ? h.accent : 'var(--rule-strong)',
+                                    backgroundColor: checked
+                                      ? `color-mix(in srgb, ${pillColor} 16%, transparent)`
+                                      : 'var(--bg-inset)',
+                                    boxShadow: checked
+                                      ? `inset 0 0 0 1px color-mix(in srgb, ${pillColor} 45%, transparent)`
+                                      : 'inset 0 0 0 1px var(--rule-hairline)',
                                   }}
                                 >
-                                  {checked && <Check className="w-3.5 h-3.5 stroke-[2.8]" style={{ color: h.accent }} />}
+                                  {checked && <Check className="w-3.5 h-3.5 stroke-[2.6]" style={{ color: pillColor }} />}
                                 </button>
                               </td>
                             );
@@ -376,7 +377,7 @@ export const FocusHabitsStudio: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => deleteHabit(h.id)}
-                              className="p-1 opacity-35 group-hover:opacity-100 text-[var(--ink-muted)] hover:text-[var(--accent-coral)] transition-opacity"
+                              className="p-1 opacity-30 group-hover:opacity-100 text-[var(--ink-muted)] hover:text-[var(--accent-coral)] transition-opacity"
                               aria-label={`Delete ${h.name}`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -392,7 +393,7 @@ export const FocusHabitsStudio: React.FC = () => {
           </section>
         </div>
 
-        {/* Unified Interactive Daily Journal (Zero verbatim duplication!) & Focus Log */}
+        {/* Clean Hairline-Divided Daily Journal & Rebalanced Recent Focus Log */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -401,7 +402,7 @@ export const FocusHabitsStudio: React.FC = () => {
                   Daily Journal: {formatReadableDate(selectedDate)}
                 </h2>
                 <p className="text-[12px] text-[var(--ink-muted)]">
-                  Capture notes below and send any line straight to your To-Do queue in one click.
+                  Capture notes below and turn any line into an actionable task.
                 </p>
               </div>
               <label className="flex items-center gap-1.5 text-[12px]">
@@ -436,13 +437,13 @@ export const FocusHabitsStudio: React.FC = () => {
               </button>
             </form>
 
-            <div className="rounded-xl border divide-y bg-[var(--bg-inset)]/50">
+            <div className="divide-y">
               {noteLines.map((line, i) => {
                 const done = note.extractedLines.includes(line);
                 return (
                   <div
                     key={`${i}-${line.slice(0, 8)}`}
-                    className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[12.5px] hover:bg-[var(--bg-hover)]/45 transition-colors"
+                    className="group flex items-center justify-between gap-3 py-2.5 text-[12.5px]"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
@@ -455,8 +456,8 @@ export const FocusHabitsStudio: React.FC = () => {
                       type="button"
                       disabled={done}
                       onClick={() => extractLineToTask(selectedDate, line)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11.5px] font-medium shrink-0 transition-colors hover:bg-[var(--bg-surface)] disabled:opacity-50"
-                      style={{ color: done ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11.5px] font-medium shrink-0 opacity-75 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-inset)] disabled:opacity-45"
+                      style={{ color: done ? 'var(--accent-emerald)' : 'var(--accent-primary)' }}
                     >
                       <span>{done ? 'In To-Do' : 'Send to To-Do'}</span>
                       {!done && <ArrowUpRight className="w-3.5 h-3.5" />}
@@ -467,40 +468,43 @@ export const FocusHabitsStudio: React.FC = () => {
             </div>
           </section>
 
-          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <section className="lg:col-span-5 studio-card rounded-2xl p-5 flex flex-col justify-between space-y-3">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-[15px]">Recent Focus Log</h2>
-                <span className="font-mono-num text-[11.5px] text-[var(--ink-muted)]">
-                  {totalFocusMins}m across {snapshot.focusHistory.length} sprints
+                <div>
+                  <h2 className="font-display font-bold text-[15px]">Recent Focus Log</h2>
+                  <p className="text-[11.5px] text-[var(--ink-muted)] font-mono-num">
+                    Goal progress: {todayFocusMins} / 120 min today
+                  </p>
+                </div>
+                <span className="font-mono-num text-[11.5px] text-[var(--ink-secondary)]">
+                  {totalFocusMins}m total
                 </span>
               </div>
-              <ul className="divide-y">
+
+              <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, Math.round((todayFocusMins / 120) * 100))}%`,
+                    backgroundColor: 'var(--accent-primary)',
+                  }}
+                />
+              </div>
+
+              <ul className="divide-y pt-1">
                 {snapshot.focusHistory.slice(0, 5).map((s) => (
                   <li key={s.id} className="py-3 flex items-center justify-between gap-3 text-[12.5px]">
                     <div className="min-w-0">
                       <p className="font-medium text-[var(--ink-primary)] leading-snug">{s.taskTitle}</p>
                       <p className="text-[11px] font-mono-num text-[var(--ink-muted)] mt-0.5">{s.date}</p>
                     </div>
-                    <span
-                      className="px-2 py-0.5 rounded font-mono-num text-[11.5px] shrink-0"
-                      style={{
-                        backgroundColor: isLight ? 'var(--accent-sky-soft)' : 'var(--accent-primary-soft)',
-                        color: isLight ? 'var(--accent-sky)' : 'var(--accent-primary)',
-                      }}
-                    >
+                    <span className="px-2 py-0.5 rounded font-mono-num text-[11.5px] shrink-0 bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]">
                       {s.durationMinutes}m
                     </span>
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="pt-3 border-t flex items-center justify-between text-[12px] text-[var(--ink-secondary)]">
-              <span>Daily focus goal</span>
-              <span className="font-mono-num font-semibold text-[var(--ink-primary)]">
-                {todayFocusMins} / 120 min
-              </span>
             </div>
           </section>
         </div>

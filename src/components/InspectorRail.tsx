@@ -107,11 +107,11 @@ export const InspectorRail: React.FC = () => {
 
   return (
     <aside
-      className="hidden xl:flex w-[280px] shrink-0 border-l bg-[var(--bg-surface)] flex-col overflow-hidden"
+      className="hidden xl:flex w-[264px] shrink-0 border-l bg-[var(--bg-surface)] flex-col overflow-hidden"
       style={{ borderColor: 'var(--rule-hairline)' }}
     >
-      {/* Compact Docked Focus Mini-Engine (No duplicate title select beneath it!) */}
-      <section className="p-3.5 border-b shrink-0">
+      {/* Compact Docked Focus Mini-Engine */}
+      <section className="p-3 border-b shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
@@ -237,14 +237,15 @@ export const InspectorRail: React.FC = () => {
       </section>
 
       {/* Inspector vs Daily Notes Switcher */}
-      <div className="px-3.5 pt-2 pb-2 border-b flex items-center gap-1 shrink-0">
+      <div className="px-3 pt-2 pb-1.5 border-b flex items-center gap-1 shrink-0 bg-[var(--bg-inset)]/40">
         <button
           type="button"
           onClick={() => setRailTab('inspect')}
-          className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-colors"
+          className="flex-1 py-1 rounded-md text-[11.5px] font-medium transition-colors"
           style={{
             backgroundColor: railTab === 'inspect' ? 'var(--bg-elevated)' : 'transparent',
             color: railTab === 'inspect' ? 'var(--ink-primary)' : 'var(--ink-muted)',
+            boxShadow: railTab === 'inspect' ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
           }}
         >
           {selectedEvent ? 'Block Details' : 'Task Details'}
@@ -252,10 +253,11 @@ export const InspectorRail: React.FC = () => {
         <button
           type="button"
           onClick={() => setRailTab('notes')}
-          className="flex-1 py-1.5 rounded-lg text-[12px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
+          className="flex-1 py-1 rounded-md text-[11.5px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
           style={{
             backgroundColor: railTab === 'notes' ? 'var(--bg-elevated)' : 'transparent',
             color: railTab === 'notes' ? 'var(--ink-primary)' : 'var(--ink-muted)',
+            boxShadow: railTab === 'notes' ? 'inset 0 0 0 1px var(--rule-hairline)' : 'none',
           }}
         >
           <Sparkles className="w-3 h-3 text-[var(--accent-amber)]" />
@@ -264,7 +266,7 @@ export const InspectorRail: React.FC = () => {
       </div>
 
       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto p-3.5 pb-6">
+      <div className="flex-1 overflow-y-auto p-3 pb-8">
         {railTab === 'inspect' ? (
           <div className="space-y-2.5 text-[12.5px]">
             {selectedEvent && (

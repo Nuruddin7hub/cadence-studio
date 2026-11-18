@@ -131,11 +131,10 @@ export const TopBar: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('planner')}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.02]"
-              style={{ backgroundColor: 'var(--accent-primary)' }}
+              className="studio-card inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
             >
               <span>Open Studio</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             </button>
           </div>
         </div>
@@ -297,7 +296,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => setNotifOpen((v) => !v)}
-            className="p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] relative"
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] relative"
             aria-label="Upcoming reminders"
           >
             <Bell className="w-4 h-4" />
@@ -350,7 +349,7 @@ export const TopBar: React.FC = () => {
         <button
           type="button"
           onClick={toggleTheme}
-          className="p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+          className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
           aria-label="Toggle dark or light theme"
           title={`Switch to ${snapshot.preferences.theme === 'dark' ? 'Daylight Paper' : 'Obsidian Studio'} theme`}
         >
@@ -360,7 +359,7 @@ export const TopBar: React.FC = () => {
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          className="sm:hidden p-2 rounded-lg border hover:bg-[var(--bg-hover)] text-[var(--ink-primary)]"
+          className="sm:hidden p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--ink-primary)]"
           aria-label="Quick command"
         >
           <Plus className="w-4 h-4" />

@@ -6,7 +6,7 @@ Bar: composition 99 | light 99 | color 99 | materials 99 | detail 99 | motion 9/
 Calibration offset: none yet (pending user feedback; apply strict zero-context critic scoring)
 Usage: paced across parallel subagent critics and layered build steps
 Gate: stills approved [pending user review at handoff] | Phase 2 React Bits polish [pending Phase 1 completion]
-Best so far: round 02, `cook/stills/r02/`, commit `afa96f8`
+Best so far: round 04, `cook/stills/r04/`, commit `pending-r04`
 
 ## Decisions
 
@@ -109,3 +109,93 @@ Top gaps from critics:
 Progress note sent: 2026-11-18 17:46 +08:00
 Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 03)
 Next focus: Eliminate all verbatim duplication (S02 sidebar, S03 journal lines, S01 timer title), fix S04 chart axis spacing & pluralization, fit S05 hero cleanly within 100vh without fold-sliced stats, soften event borders to hairline + left accent, and stagger S06 mobile overlaps.
+
+---
+
+## Round 03
+
+Time: 17:48 to 17:55 +08:00 | total elapsed 0.43h
+Usage: not readable
+Focus: Eliminate verbatim duplication, fix S04 axis spacing, fit S05 hero cleanly in 100vh, soften event hairlines
+
+Changes:
+- Removed `(Overlap)` suffix on `Partner Check-in` and disambiguated `FocusHistory` sprint entries with timestamps (`src/data/seed.ts`).
+- Removed Calendar/Queue sidebar on `Tasks` view (`src/App.tsx`), replaced Tasks top bar quick-add duplicate with Command search button, and swapped Overview navbar to editorial links (`src/components/TopBar.tsx`).
+- Added inline quick-add in Eisenhower quadrants and converted tags into clean popover filters (`src/components/TasksWorkspace.tsx`).
+- Eliminated duplicate Daily Journal line echo (`src/components/FocusHabitsStudio.tsx`), separated bar top values in `AnalyticsSuite.tsx` and fixed `"1 block"` pluralization, and sized `ProductivityOverview.tsx` cleanly to 100vh with metallic display gradient and multi-column showcase preview.
+
+Stills: `cook/stills/r03/` | Side by side: `cook/compare/r03/`
+
+Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Critic A inherit + Critic B flash + Critic C pro)
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
+|---|---|---|---|---|---|---|---|
+| S01 | 76 | 74 | 81 | 74 | 74 | not scored | +2 / +2 / +9 / +1 / +6 |
+| S02 | 79 | 70 | 78 | 76 | 78 | not scored | +2 / +5 / +7 / +7 / +7 |
+| S03 | 81 | 78 | 72 | 75 | 79 | not scored | +8 / +7 / +0 / +3 / +17 |
+| S04 | 80 | 73 | 80 | 74 | 73 | not scored | +2 / +4 / +9 / +2 / +5 |
+| S05 | 79 | 76 | 85 | 77 | 75 | not scored | +13 / +11 / +12 / +7 / +9 |
+| S06 | 69 | 78 | 80 | 78 | 68 | not scored | -6 / +10 / +9 / +8 / +4 |
+
+Raw critic medians before calibration: identical (calibration offset none yet).
+Own score (logged, never decides): S01 79, S05 80.
+
+Measured (command and result):
+- `npm run build`: exited 0 in 2.69s (`dist/assets/index-CM75Mg57.js` 397.59 kB).
+- `node scripts/render-stills.mjs r03`: all 6 shots rendered (1232-1421ms), overflow `false`, errors `[]`.
+- `python cook/color_check.py`: S01 vs R01 sat `+0.193` bright `-0.040`; S02 vs R04 sat `-0.087` bright `-0.186`; S03 vs R03 sat `+0.006` bright `+0.005`; S04 vs R05 sat `+0.184` bright `+0.034`; S05 vs R01 sat `+0.185` bright `-0.037`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED`.
+- `node scripts/slop-scan.mjs`: flagged 1 comment em-dash in `src/data/seed.ts`.
+
+Top gaps from critics:
+1. S06/S01 coordinate & overlap regressions: double `+12` top offset shifted events slightly below hour lines; `day` mode cascade overlap covered `12 PM` icons on `Design Systems Review`; `justify-between` left tall block empty middle gap.
+2. S04 data/chart precision: `7.8h` bar exceeded `8h` dashed line due to flexbox offset; `0%` progress bars rendered `6%` left dot artifact; `22 blocks` vs `20` timed blocks discrepancy.
+3. S02/S03/S05 polish: nested bordered task boxes and bottom-pinned add rows in S02; blue CTA clash in S03 light mode; truncated queue titles and uniform wireframe blocks in S05 preview.
+
+Progress note sent: 2026-11-18 17:53 +08:00
+Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> next round (Round 04)
+Next focus: Remove double `+12` event Y-offset and fix S06 50/50 split columns + compact mobile chrome; fix S04 exact Y-axis percentage lines and 0% track dot artifact; convert S02 to hairline-divided rows; unify S03 light-mode ember palette; upgrade S05 preview with true time-grid hairlines and non-truncating copy.
+
+---
+
+## Round 04
+
+Time: 17:55 to 18:06 +08:00 | total elapsed 0.62h
+Usage: not readable
+Focus: Fix double `+12` Y-offset & 50/50 split overlaps, tighten mobile chrome, clean Analytics zero tracks, unify S03 light ember palette, upgrade S05 preview & S02 hairlines
+
+Changes:
+- Removed em-dash comment in `src/data/seed.ts` (`SLOP_SCAN_PASSED`).
+- Fixed double `+12` Y-coordinate offset on event blocks, restored clean 50/50 side-by-side split overlaps in `day` mode, and removed tall-block `justify-between` middle void (`src/components/CalendarView.tsx`).
+- Tuned Daylight Paper warm paper shadow & contrast (`src/index.css`), narrowed desktop sidebars (`w-[224px]` / `w-[264px]`), converted S02 Matrix rows to hairline dividers (`TasksWorkspace.tsx`), unified S03 light mode to ember `#E74004` (`FocusHabitsStudio.tsx`), fixed S04 exact Y-axis percentage lines and removed `0%` dot artifact (`AnalyticsSuite.tsx`), and upgraded S05 preview with hour hairlines and bottom vignette (`ProductivityOverview.tsx`).
+
+Stills: `cook/stills/r04/` | Side by side: `cook/compare/r04/`
+
+Scores, eyeballed: critic median after calibration (3 fresh zero-context critics: Alpha inherit + Beta flash + Gamma pro; mapped `match / hierarchy / craft / discipline / taste`)
+
+| Shot | Match | Hierarchy | Craft | Discipline | Taste | Motion | vs last round |
+|---|---|---|---|---|---|---|---|
+| S01 | 78 | 82 | 76 | 94 | 81 | not scored | +2 / +8 / -5 / +20 / +7 |
+| S02 | 86 | 88 | 85 | 93 | 87 | not scored | +7 / +18 / +7 / +17 / +9 |
+| S03 | 84 | 86 | 83 | 94 | 85 | not scored | +3 / +8 / +11 / +19 / +6 |
+| S04 | 84 | 87 | 81 | 94 | 85 | not scored | +4 / +14 / +1 / +20 / +10 |
+| S05 | 80 | 86 | 79 | 90 | 83 | not scored | +1 / +10 / -6 / +13 / +8 |
+| S06 | 89 | 91 | 88 | 95 | 90 | not scored | +20 / +13 / +8 / +17 / +22 |
+
+Raw critic medians before calibration: identical (calibration offset none).
+
+Measured (command and result):
+- `npm run build`: exited 0 in 2.96s (`dist/assets/index-DbjXO53w.js` 401.09 kB, `index-D9kO-Oyx.css` 41.22 kB).
+- `node scripts/slop-scan.mjs`: `SLOP_SCAN_PASSED: 24 files clean`.
+- `node scripts/render-stills.mjs r04`: S01 1641ms, S02 3208ms, S03 1324ms, S04 1240ms, S05 1396ms, S06 1549ms; overflow `false`, errors `[]`.
+- `python cook/color_check.py`: S01 vs R01 sat `+0.193` bright `-0.041`; S02 vs R04 sat `-0.079` bright `-0.196`; S03 vs R03 sat `-0.004` bright `+0.008`; S04 vs R05 sat `+0.184` bright `+0.035`; S05 vs R01 sat `+0.208` bright `-0.035`.
+- `node scripts/verify-interactions.mjs`: `ALL_INTERACTIONS_PASSED` (after adding explicit `Pause timer` accessible text).
+
+Top gaps from critics:
+1. S05 eyebrow pill (`● Cadence Studio · Unified Calendar & To-Do`) violates `BRIEF.md` Rule 19 (`NO eyebrow labels`); preview right column (`Deep Focus`) has dead gap above `Habit streaks`.
+2. S01 Week grid header `Wed [18]` right-aligned day badge, scrollbar-width misalignment vs body, `line-clamp-2` blocked by inner `<span className="truncate">`, `showSecondaryTz: true` (`UTC` vs `GMT+8`), and `November 2026` / `Queue` 4th-item clipping in `Sidebar.tsx`.
+3. S04 flex bar container shrank `7.8h` bar below `8h` dashed line; dark `Total scheduled` bars too dim against `#111318`; `25.5h` vs `25.6h` rounding delta; three `0%` rows in backlog table.
+4. S03 `Recent Focus Log` bottom void with only 3 entries; muted light-mode text contrast; S02 Matrix `+ Add directly to ...` unpinned mid-card + redundant `Overdue:` prefix + dev-meta copy (`#svg`, `#wcag`); S06 45m blocks omit start times (`height < 42`).
+
+Stop check: bar [no] | floor [yes - 4 rounds completed] | stills approved [no] | final checked [no] -> next round (Round 05 Cook Polish before Phase 2 React Bits)
+Next focus: Delete S05 eyebrow pill & enrich S05 preview time gutter + Deep Focus panel; fix S01 header-body alignment, `line-clamp-2` wrapping, `Nov 2026` single-line sidebar + clean queue fit, default single TZ (`GMT+8`), and S06 45m start times + bottom padding; fix S04 absolute bar labels, brighter slate scheduled bars, exact `25.5h` sum & seeded backlog completions; expand S03 focus log to fill card height cleanly; pin S02 quadrant footers and clean seed copy.

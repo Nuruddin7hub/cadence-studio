@@ -122,7 +122,7 @@ export const Sidebar: React.FC = () => {
       : WEEKDAY_TWO;
 
   const content = (
-    <div className="h-full flex flex-col overflow-y-auto px-3 py-3 space-y-4 text-[12.5px]">
+    <div className="h-full flex flex-col overflow-y-auto px-2.5 py-2.5 pb-6 space-y-3 text-[12px]">
       {/* Mini Calendar (Cron style) */}
       <section aria-label="Mini calendar">
         <div className="flex items-center justify-between px-1 mb-2">
@@ -437,7 +437,7 @@ export const Sidebar: React.FC = () => {
         </aside>
       ) : (
         <aside
-          className="hidden lg:block w-[238px] shrink-0 border-r bg-[var(--bg-surface)]"
+          className="hidden lg:block w-[224px] shrink-0 border-r bg-[var(--bg-surface)]"
           style={{ borderColor: 'var(--rule-hairline)' }}
         >
           {content}

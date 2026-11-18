@@ -522,9 +522,9 @@ export const TasksWorkspace: React.FC = () => {
           </div>
         )}
 
-        {/* MODE 3: EISENHOWER PRIORITY MATRIX (Full-width clean tonal cards + quick inline capture) */}
+        {/* MODE 3: EISENHOWER PRIORITY MATRIX (Content-hugging borderless hairline rows + overdue semantic color) */}
         {taskViewMode === 'matrix' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             {MATRIX_QUADS.map((q) => {
               const items = filteredTasks.filter((t) => !t.completed && t.quadrant === q.id);
               return (
@@ -535,97 +535,103 @@ export const TasksWorkspace: React.FC = () => {
                     const id = e.dataTransfer.getData('text/cadence-matrix-task');
                     if (id) moveTaskQuadrant(id, q.id);
                   }}
-                  className="studio-card rounded-2xl p-4 flex flex-col justify-between gap-3"
+                  className="studio-card rounded-2xl overflow-hidden flex flex-col"
                 >
-                  <div>
-                    <div className="flex items-center justify-between pb-3 mb-3 border-b">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: q.accent }} />
-                        <div>
-                          <h3 className="font-display font-bold text-[15px] leading-tight">{q.title}</h3>
-                          <p className="text-[12px] text-[var(--ink-secondary)]">{q.subtitle}</p>
-                        </div>
+                  <div className="px-4 py-3.5 border-b flex items-center justify-between bg-[var(--bg-elevated)]/40">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: q.accent }} />
+                      <div>
+                        <h3 className="font-display font-bold text-[15px] leading-tight">{q.title}</h3>
+                        <p className="text-[12px] text-[var(--ink-secondary)]">{q.subtitle}</p>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11.5px] text-[var(--ink-primary)]">
-                        {items.length}
-                      </span>
                     </div>
-
-                    <div className="space-y-2">
-                      {items.map((task) => {
-                        const doneSubs = task.subtasks.filter((s) => s.done).length;
-                        return (
-                          <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(e) => e.dataTransfer.setData('text/cadence-matrix-task', task.id)}
-                            className="group flex items-center justify-between gap-3 p-3 rounded-xl border bg-[var(--bg-elevated)]/75 hover:border-[var(--rule-strong)] cursor-grab active:cursor-grabbing transition-colors"
-                            style={{ boxShadow: 'var(--surface-sheen)' }}
-                          >
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => toggleTaskComplete(task.id)}
-                                className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
-                                style={{ borderColor: q.accent }}
-                                aria-label={`Complete ${task.title}`}
-                              />
-                              <div className="min-w-0">
-                                <p className="text-[13.5px] font-medium text-[var(--ink-primary)] leading-snug">
-                                  {task.title}
-                                </p>
-                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-mono-num text-[var(--ink-secondary)]">
-                                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--ink-secondary)]">
-                                    {task.estimatedMinutes}m
-                                  </span>
-                                  {task.dueDate && (
-                                    <span className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--ink-secondary)]">
-                                      Due {task.dueDate.slice(5)}
-                                    </span>
-                                  )}
-                                  {task.subtasks.length > 0 && (
-                                    <span className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--ink-secondary)]">
-                                      {doneSubs}/{task.subtasks.length} subtasks
-                                    </span>
-                                  )}
-                                  {task.tags.slice(0, 2).map((tg) => (
-                                    <span
-                                      key={tg}
-                                      className="px-1.5 py-0.5 rounded bg-[var(--bg-inset)] text-[var(--ink-muted)]"
-                                    >
-                                      #{tg}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {!task.scheduledDate && (
-                                <button
-                                  type="button"
-                                  onClick={() => scheduleTaskToCalendar(task.id, todayKey, 15 * 60)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--ink-muted)] group-hover:text-[var(--ink-primary)] group-hover:bg-[var(--bg-surface)] transition-colors"
-                                  title="Block onto today's calendar"
-                                >
-                                  <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">Block</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11.5px] text-[var(--ink-primary)]">
+                      {items.length}
+                    </span>
                   </div>
 
-                  {/* Quick Quadrant Add Row */}
-                  <form onSubmit={(e) => handleQuadAdd(q.id, e)} className="pt-1 flex items-center gap-2">
+                  <div className="divide-y">
+                    {items.map((task) => {
+                      const doneSubs = task.subtasks.filter((s) => s.done).length;
+                      const isOverdue = Boolean(task.dueDate && task.dueDate < todayKey);
+                      return (
+                        <div
+                          key={task.id}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('text/cadence-matrix-task', task.id)}
+                          className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--bg-hover)]/45 cursor-grab active:cursor-grabbing transition-colors"
+                        >
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => toggleTaskComplete(task.id)}
+                              className="mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+                              style={{ borderColor: q.accent }}
+                              aria-label={`Complete ${task.title}`}
+                            />
+                            <div className="min-w-0">
+                              <p
+                                className="text-[13.5px] font-medium leading-snug"
+                                style={{ color: isOverdue ? 'var(--accent-coral)' : 'var(--ink-primary)' }}
+                              >
+                                {task.title}
+                              </p>
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-mono-num">
+                                <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--ink-secondary)]">
+                                  {task.estimatedMinutes}m
+                                </span>
+                                {task.dueDate && (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded"
+                                    style={{
+                                      backgroundColor: isOverdue ? 'var(--accent-coral-soft)' : 'var(--bg-elevated)',
+                                      color: isOverdue ? 'var(--accent-coral)' : 'var(--ink-secondary)',
+                                    }}
+                                  >
+                                    {isOverdue ? `Overdue ${task.dueDate.slice(5)}` : `Due ${task.dueDate.slice(5)}`}
+                                  </span>
+                                )}
+                                {task.subtasks.length > 0 && (
+                                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--ink-secondary)]">
+                                    {doneSubs}/{task.subtasks.length} subtasks
+                                  </span>
+                                )}
+                                {task.tags.slice(0, 2).map((tg) => (
+                                  <span
+                                    key={tg}
+                                    className="px-1.5 py-0.5 rounded bg-[var(--bg-inset)] text-[var(--ink-secondary)]"
+                                  >
+                                    #{tg}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {!task.scheduledDate && (
+                              <button
+                                type="button"
+                                onClick={() => scheduleTaskToCalendar(task.id, todayKey, 15 * 60)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--ink-muted)] group-hover:text-[var(--ink-primary)] group-hover:bg-[var(--bg-elevated)] transition-colors"
+                                title="Block onto today's calendar"
+                              >
+                                <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">Block</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <form onSubmit={(e) => handleQuadAdd(q.id, e)} className="px-4 py-2.5 border-t bg-[var(--bg-inset)]/45">
                     <input
                       type="text"
                       value={quadDrafts[q.id] ?? ''}
                       onChange={(e) => setQuadDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
                       placeholder={`+ Add directly to ${q.title}...`}
-                      className="flex-1 px-3 py-1.5 rounded-lg border bg-[var(--bg-inset)] text-[12px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+                      className="w-full bg-transparent text-[12px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none"
                     />
                   </form>
                 </div>

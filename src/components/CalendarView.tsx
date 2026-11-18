@@ -162,7 +162,8 @@ export const CalendarView: React.FC = () => {
 
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
   const showTimeGrid = calendarMode !== 'month' && calendarMode !== 'agenda';
-  const nowTopPx = ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT + 12;
+  // Pixel-exact coordinate aligned cleanly with hour rows (no double pt offset!)
+  const nowTopPx = ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
 
   return (
     <div className="flex-1 min-w-0 flex flex-col bg-[var(--bg-canvas)] overflow-hidden relative">
@@ -268,10 +269,9 @@ export const CalendarView: React.FC = () => {
           <button
             type="button"
             onClick={() => setQuickSlot({ date: selectedDate, startMinutes: 10 * 60 })}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-colors"
-            style={{ backgroundColor: 'var(--accent-primary)' }}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg studio-card text-[12px] font-medium text-[var(--ink-primary)] hover:bg-[var(--bg-hover)] transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>New block</span>
           </button>
         </div>
@@ -282,9 +282,9 @@ export const CalendarView: React.FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Opaque Sticky Day Headers */}
           <div
-            className="grid border-b bg-[var(--bg-surface)] shrink-0 z-20"
+            className="grid border-b bg-[var(--bg-surface)] shrink-0 z-30"
             style={{
-              gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '74px' : '54px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
+              gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
               borderColor: 'var(--rule-hairline)',
             }}
           >
@@ -359,12 +359,12 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Scrollable Hourly Grid */}
-          <div className="flex-1 overflow-y-auto relative pb-16 sm:pb-6">
+          <div className="flex-1 overflow-y-auto relative pt-3 pb-16 sm:pb-6">
             <div
-              className="grid relative pt-3"
+              className="grid relative"
               style={{
-                gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '74px' : '54px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
-                height: `${hours.length * HOUR_HEIGHT + 16}px`,
+                gridTemplateColumns: `${snapshot.preferences.showSecondaryTz ? '72px' : '52px'} repeat(${visibleDates.length}, minmax(0, 1fr))`,
+                height: `${hours.length * HOUR_HEIGHT}px`,
               }}
             >
               {/* Time Gutter */}
@@ -460,9 +460,9 @@ export const CalendarView: React.FC = () => {
                     })}
 
                     {/* Current Time Indicator */}
-                    {isToday && nowTopPx >= 0 && nowTopPx <= hours.length * HOUR_HEIGHT + 12 && (
+                    {isToday && nowTopPx >= 0 && nowTopPx <= hours.length * HOUR_HEIGHT && (
                       <div
-                        className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                        className="absolute left-0 right-0 z-10 pointer-events-none flex items-center"
                         style={{ top: `${nowTopPx}px` }}
                       >
                         <span
@@ -473,24 +473,13 @@ export const CalendarView: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Positioned Event Blocks */}
+                    {/* Positioned Event Blocks (exact Y coordinates + clean side-by-side overlap lanes) */}
                     {positioned.map(({ event, col, totalCols }) => {
                       const style = EVENT_CATEGORY_STYLES[event.category];
-                      const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT + 12;
+                      const top = ((event.startMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
                       const height = Math.max(24, (event.durationMinutes / 60) * HOUR_HEIGHT - 2);
-
-                      // In single-day mode (mobile or desktop Day), stagger overlaps cleanly so titles never slice at 50%
-                      const isDayCascade = calendarMode === 'day' && totalCols > 1;
-                      const leftExpr = isDayCascade
-                        ? col === 0
-                          ? '4px'
-                          : '18%'
-                        : `calc(${(col * 100) / totalCols}% + 2px)`;
-                      const widthExpr = isDayCascade
-                        ? col === 0
-                          ? 'calc(84% - 4px)'
-                          : 'calc(80% - 4px)'
-                        : `calc(${100 / totalCols}% - 4px)`;
+                      const leftExpr = `calc(${(col * 100) / totalCols}% + 2px)`;
+                      const widthExpr = `calc(${100 / totalCols}% - 4px)`;
 
                       const isSelected = selection?.type === 'event' && selection.id === event.id;
                       const linkedTask = event.linkedTaskId
@@ -511,9 +500,8 @@ export const CalendarView: React.FC = () => {
                             e.stopPropagation();
                             setSelection({ type: 'event', id: event.id });
                           }}
-                          className="group absolute rounded-md px-1.5 py-1 overflow-hidden cursor-pointer select-none transition-shadow flex flex-col justify-between backdrop-blur-[2px]"
+                          className="group absolute z-20 rounded-md px-1.5 py-1 overflow-hidden cursor-pointer select-none transition-shadow flex flex-col gap-1.5 backdrop-blur-[2px]"
                           style={{
-                            zIndex: 10 + col,
                             top: `${top + 1}px`,
                             height: `${height}px`,
                             left: leftExpr,
@@ -523,12 +511,10 @@ export const CalendarView: React.FC = () => {
                             borderLeftWidth: '2.5px',
                             borderLeftColor: style.bar,
                             color: isDark ? style.textDark : style.textLight,
-                            opacity: isDone ? 0.62 : 1,
+                            opacity: isDone ? 0.65 : 1,
                             boxShadow: isSelected
                               ? '0 0 0 1px rgba(255,255,255,0.28), 0 4px 12px rgba(0,0,0,0.35)'
-                              : isDayCascade && col > 0
-                                ? '0 4px 12px rgba(0,0,0,0.35)'
-                                : 'none',
+                              : 'none',
                           }}
                         >
                           <div className="flex items-start gap-1.5 min-w-0">

@@ -41,6 +41,8 @@ export const AnalyticsSuite: React.FC = () => {
       };
     });
 
+    const timedCount = weekEvents.length;
+
     const dailyBars = weekDates.map((dKey) => {
       const d = new Date(`${dKey}T00:00:00`);
       const mins = weekEvents.filter((e) => e.date === dKey).reduce((a, e) => a + e.durationMinutes, 0);
@@ -100,6 +102,7 @@ export const AnalyticsSuite: React.FC = () => {
       dailyBars,
       habitCompletionPct,
       listBreakdown,
+      timedCount,
     };
   }, [snapshot.events, snapshot.focusHistory, snapshot.habits, snapshot.tasks, todayKey, weekDates]);
 
@@ -184,43 +187,60 @@ export const AnalyticsSuite: React.FC = () => {
           </div>
         </div>
 
-        {/* Monochrome Obsidian KPI Row */}
+        {/* Monochrome Obsidian KPI Row with inline progress strips */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Scheduled this week', value: `${stats.scheduledHours}h`, delta: `${snapshot.events.length} blocks` },
+            {
+              label: 'Scheduled this week',
+              value: `${stats.scheduledHours}h`,
+              delta: `${stats.timedCount} blocks`,
+              pct: Math.min(100, Math.round((stats.scheduledHours / 40) * 100)),
+              accent: 'var(--accent-primary)',
+            },
             {
               label: 'Task completion rate',
               value: `${stats.completionRate}%`,
               delta: `${stats.completedTasks}/${stats.totalTasks} done`,
+              pct: stats.completionRate,
+              accent: 'var(--ink-secondary)',
             },
             {
               label: 'Deep focus logged',
               value: `${stats.focusHours}h`,
               delta: `${snapshot.focusHistory.length} sprints`,
+              pct: Math.min(100, Math.round((stats.focusHours / 10) * 100)),
+              accent: 'var(--accent-primary)',
             },
             {
               label: '7-day habit consistency',
               value: `${stats.habitCompletionPct}%`,
               delta: `${snapshot.habits.length} habits`,
+              pct: stats.habitCompletionPct,
+              accent: 'var(--ink-secondary)',
             },
           ].map((kpi) => (
-            <div key={kpi.label} className="studio-card rounded-xl p-4 flex flex-col justify-between">
+            <div key={kpi.label} className="studio-card rounded-xl p-4 flex flex-col justify-between gap-3">
               <div className="flex items-baseline justify-between gap-2">
-                <div className="font-display font-bold text-[30px] leading-none tracking-tight tabular-nums text-[var(--ink-primary)]">
+                <div className="font-display font-bold text-[28px] leading-none tracking-tight tabular-nums text-[var(--ink-primary)]">
                   {kpi.value}
                 </div>
                 <span className="px-2 py-0.5 rounded-md bg-[var(--bg-elevated)] font-mono-num text-[11px] text-[var(--ink-secondary)]">
                   {kpi.delta}
                 </span>
               </div>
-              <p className="mt-3 text-[12.5px] text-[var(--ink-secondary)]">{kpi.label}</p>
+              <div className="space-y-2">
+                <div className="h-1 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${kpi.pct}%`, backgroundColor: kpi.accent }} />
+                </div>
+                <p className="text-[12.5px] text-[var(--ink-secondary)]">{kpi.label}</p>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Weekly Load with Dedicated Top Label Row & Visible Track Bars */}
+          {/* Weekly Load with Exact Percentage Y-Axis Lines & Directly Anchored Bar Labels */}
           <section className="lg:col-span-7 studio-card rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display font-bold text-[15px]">Weekly Load & Deep Focus Balance</h2>
@@ -239,54 +259,54 @@ export const AnalyticsSuite: React.FC = () => {
               </div>
             </div>
 
-            <div className="pl-9">
-              {/* Top Bar Values Row cleanly ABOVE the 8h axis line */}
-              <div className="grid grid-cols-7 gap-3 pb-2 text-center">
-                {stats.dailyBars.map((bar) => (
-                  <span key={`top-${bar.date}`} className="font-mono-num text-[11px] font-medium text-[var(--ink-secondary)]">
-                    {bar.totalHours}h
-                  </span>
-                ))}
-              </div>
-
-              <div className="relative h-36">
-                {/* Horizontal Y-Axis Guide Lines */}
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                  {[8, 6, 4, 2, 0].map((tick) => (
-                    <div key={tick} className="flex items-center gap-2 w-full">
-                      <span className="-ml-9 w-7 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)]">
-                        {tick}h
-                      </span>
-                      <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)]" />
-                    </div>
-                  ))}
+            <div className="pl-9 pt-4">
+              <div className="relative h-40">
+                {/* Exact Mathematical Percentage Y-Axis Guide Lines */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {[8, 6, 4, 2, 0].map((tick) => {
+                    const bottomPct = (tick / maxDayHours) * 100;
+                    return (
+                      <div
+                        key={tick}
+                        className="absolute left-0 right-0 flex items-center"
+                        style={{ bottom: `${bottomPct}%` }}
+                      >
+                        <span className="-ml-9 w-7 text-right font-mono-num text-[10.5px] text-[var(--ink-muted)] translate-y-1/2">
+                          {tick}h
+                        </span>
+                        <div className="flex-1 border-t border-dashed border-[var(--rule-hairline)] ml-2" />
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="relative z-10 grid grid-cols-7 gap-3 h-full items-end">
                   {stats.dailyBars.map((bar) => {
-                    const totalPct = Math.min(100, Math.round((bar.totalHours / maxDayHours) * 100));
-                    const deepPct = Math.min(100, Math.round((bar.deepHours / maxDayHours) * 100));
+                    const totalPct = Math.min(100, (bar.totalHours / maxDayHours) * 100);
+                    const deepPct = Math.min(100, (bar.deepHours / maxDayHours) * 100);
                     return (
                       <div key={bar.date} className="flex flex-col items-center h-full justify-end">
-                        <div className="w-full max-w-[38px] h-full flex items-end">
-                          <div
-                            className="w-full rounded-t-md relative transition-all"
-                            style={{
-                              height: `${Math.max(5, totalPct)}%`,
-                              backgroundColor: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(15,23,42,0.16)',
-                              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.16)',
-                            }}
-                          >
-                            {bar.deepHours > 0 && (
-                              <div
-                                className="absolute bottom-0 left-0 right-0 rounded-t-sm"
-                                style={{
-                                  height: `${Math.min(100, Math.round((deepPct / Math.max(1, totalPct)) * 100))}%`,
-                                  backgroundColor: 'var(--accent-primary)',
-                                }}
-                              />
-                            )}
-                          </div>
+                        <span className="mb-1 font-mono-num text-[10.5px] font-medium text-[var(--ink-primary)]">
+                          {bar.totalHours}h
+                        </span>
+                        <div
+                          className="w-full max-w-[38px] rounded-t-md relative transition-all"
+                          style={{
+                            height: `${totalPct}%`,
+                            minHeight: bar.totalHours > 0 ? '4px' : '0px',
+                            backgroundColor: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(15,23,42,0.16)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
+                          }}
+                        >
+                          {bar.deepHours > 0 && (
+                            <div
+                              className="absolute bottom-0 left-0 right-0 rounded-t-sm"
+                              style={{
+                                height: `${Math.min(100, (deepPct / Math.max(0.01, totalPct)) * 100)}%`,
+                                backgroundColor: 'var(--accent-primary)',
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     );
@@ -294,7 +314,7 @@ export const AnalyticsSuite: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-3 pt-2 text-center">
+              <div className="grid grid-cols-7 gap-3 pt-2.5 text-center">
                 {stats.dailyBars.map((bar) => (
                   <span key={`lbl-${bar.date}`} className="text-[12px] font-medium text-[var(--ink-secondary)]">
                     {bar.label}
@@ -364,15 +384,17 @@ export const AnalyticsSuite: React.FC = () => {
                         <span>{row.label}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-4 w-48">
+                    <td className="py-3 px-4 w-52">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${Math.max(6, row.pct)}%`, backgroundColor: row.color }}
-                          />
+                        <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-inset)] border overflow-hidden">
+                          {row.pct > 0 && (
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${row.pct}%`, backgroundColor: row.color }}
+                            />
+                          )}
                         </div>
-                        <span className="font-mono-num text-[11px] text-[var(--ink-muted)] w-8 text-right">
+                        <span className="font-mono-num text-[11.5px] text-[var(--ink-secondary)] w-9 text-right">
                           {row.pct}%
                         </span>
                       </div>
