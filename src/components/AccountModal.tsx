@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Check,
+  Cloud,
+  CloudOff,
   Copy,
   Database,
   Download,
@@ -10,6 +12,7 @@ import {
   KeyRound,
   LogOut,
   Plus,
+  RefreshCw,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -20,7 +23,9 @@ import {
   X,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import type { CloudSyncState } from '../types/workspace';
 import { AVATAR_COLORS, formatBytes } from '../utils/authStorage';
+import { hasBuiltInFirebaseConfig, type FirebaseWebConfig } from '../utils/firebaseSync';
 import {
   hasBuiltInGoogleClientId,
   promptGoogleOAuthSignIn,
@@ -46,6 +51,12 @@ export const AccountModal: React.FC = () => {
     setCustomGoogleClientId,
     clearGoogleClientIdConfig,
     signInWithGoogleUser,
+    firebaseConfig,
+    cloudSync,
+    saveFirebaseConfig,
+    clearFirebaseConfig,
+    signInWithFirebaseGooglePopup,
+    syncCloudNow,
     switchToGuest,
     updateProfile,
     changePassword,
@@ -240,15 +251,28 @@ export const AccountModal: React.FC = () => {
                 <h2 className="font-display font-bold text-[15px] text-[var(--ink-primary)] truncate">
                   {currentUser ? currentUser.name : 'Account & Storage Vault'}
                 </h2>
-                {currentUser?.authProvider === 'google' && (
+                {currentUser?.firebaseUid ? (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--accent-emerald-soft)] text-[var(--accent-emerald)] shrink-0">
+                    <Cloud className="w-2.5 h-2.5" />
+                    <span>Cloud Sync</span>
+                  </span>
+                ) : currentUser?.authProvider === 'google' ? (
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--bg-elevated)] border text-[var(--ink-secondary)] shrink-0">
                     Google
                   </span>
-                )}
+                ) : null}
               </div>
               <p className="text-[11.5px] text-[var(--ink-secondary)] truncate">
                 {currentUser
-                  ? `${currentUser.email} · ${formatBytes(storageStats.bytesUsed)} saved`
+                  ? `${currentUser.email} · ${
+                      currentUser.firebaseUid
+                        ? cloudSync.status === 'syncing'
+                          ? 'Syncing...'
+                          : cloudSync.status === 'error'
+                            ? 'Cloud error'
+                            : 'Synced across devices'
+                        : `${formatBytes(storageStats.bytesUsed)} saved`
+                    }`
                   : `Guest Workspace · ${formatBytes(storageStats.bytesUsed)} saved locally`}
               </p>
             </div>
@@ -512,10 +536,16 @@ export const AccountModal: React.FC = () => {
               {profileSection === 'storage' && (
                 <StorageBackupPanel
                   storageStats={storageStats}
+                  cloudSync={cloudSync}
+                  firebaseConfig={firebaseConfig}
+                  isCloudAccount={Boolean(currentUser?.firebaseUid)}
                   formattedSavedTime={formattedSavedTime}
                   snapshot={snapshot}
                   confirmReset={confirmReset}
                   setConfirmReset={setConfirmReset}
+                  onSyncNow={() => void syncCloudNow()}
+                  onSaveFirebaseConfig={saveFirebaseConfig}
+                  onClearFirebaseConfig={clearFirebaseConfig}
                   onExportBundle={exportAccountBundle}
                   onTriggerImport={() => importInputRef.current?.click()}
                   onExportIcs={() => {
@@ -535,8 +565,14 @@ export const AccountModal: React.FC = () => {
               <GoogleAuthSection
                 theme={snapshot.preferences.theme}
                 clientId={googleClientId}
+                firebaseConfigured={Boolean(firebaseConfig)}
                 hasGuestWork={hasGuestWork}
                 carryGuestData={carryGuestData}
+                onFirebaseGoogleClick={async () => {
+                  setErrorMsg(null);
+                  const res = await signInWithFirebaseGooglePopup(hasGuestWork && carryGuestData);
+                  if (!res.ok) setErrorMsg(res.error ?? 'Google Cloud Sign-In failed.');
+                }}
                 onGoogleSuccess={(claims) => void signInWithGoogleUser(claims, hasGuestWork && carryGuestData)}
                 onSaveClientId={(raw) => {
                   const res = setCustomGoogleClientId(raw);
@@ -777,15 +813,32 @@ export const AccountModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Guest Storage & Portable Backup summary */}
+              {/* Guest Storage, Cloud Sync & Portable Backup summary */}
               <div className="pt-3 border-t space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-[var(--ink-muted)]">
                   <span className="inline-flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
-                    <span>{storageStats.engine} · {formatBytes(storageStats.bytesUsed)} used</span>
+                    {firebaseConfig ? (
+                      <>
+                        <Cloud className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+                        <span>Firebase Cloud Sync ready ({firebaseConfig.projectId})</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+                        <span>{storageStats.engine} · {formatBytes(storageStats.bytesUsed)} used</span>
+                      </>
+                    )}
                   </span>
-                  <span>Stored privately in your browser</span>
+                  <span>{firebaseConfig ? 'Sign in to sync across browsers' : 'Local browser only'}</span>
                 </div>
+
+                {!firebaseConfig && (
+                  <FirebaseSetupCard
+                    firebaseConfig={firebaseConfig}
+                    onSave={saveFirebaseConfig}
+                    onClear={clearFirebaseConfig}
+                  />
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -830,6 +883,9 @@ interface StorageBackupPanelProps {
     savedAt: string | null;
     accountCount: number;
   };
+  cloudSync: CloudSyncState;
+  firebaseConfig: FirebaseWebConfig | null;
+  isCloudAccount: boolean;
   formattedSavedTime: string;
   snapshot: {
     events: unknown[];
@@ -840,6 +896,9 @@ interface StorageBackupPanelProps {
   };
   confirmReset: boolean;
   setConfirmReset: (v: boolean) => void;
+  onSyncNow: () => void;
+  onSaveFirebaseConfig: (raw: string) => { ok: boolean; error?: string };
+  onClearFirebaseConfig: () => void;
   onExportBundle: () => void;
   onTriggerImport: () => void;
   onExportIcs: () => void;
@@ -849,10 +908,16 @@ interface StorageBackupPanelProps {
 
 const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
   storageStats,
+  cloudSync,
+  firebaseConfig,
+  isCloudAccount,
   formattedSavedTime,
   snapshot,
   confirmReset,
   setConfirmReset,
+  onSyncNow,
+  onSaveFirebaseConfig,
+  onClearFirebaseConfig,
   onExportBundle,
   onTriggerImport,
   onExportIcs,
@@ -860,16 +925,57 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
   onResetClean,
 }) => (
   <div className="space-y-3.5">
-    <div className="p-3.5 rounded-xl border bg-[var(--bg-elevated)]/45 space-y-2">
-      <div className="flex items-center justify-between text-[12.5px]">
+    <div className="p-3.5 rounded-xl border bg-[var(--bg-elevated)]/45 space-y-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[12.5px]">
         <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink-primary)]">
-          <HardDrive className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-          <span>{storageStats.engine}</span>
+          {isCloudAccount ? (
+            <Cloud className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+          ) : (
+            <HardDrive className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+          )}
+          <span>{isCloudAccount ? `Cloud Sync (${cloudSync.projectId ?? 'Firebase'})` : storageStats.engine}</span>
         </span>
-        <span className="font-mono-num text-[11.5px] text-[var(--accent-emerald)]">
-          {storageStats.persisted ? 'Persistent' : 'Auto-saved'} · {formattedSavedTime}
+        <span
+          className="font-mono-num text-[11.5px]"
+          style={{
+            color:
+              cloudSync.status === 'error'
+                ? 'var(--accent-coral)'
+                : isCloudAccount || storageStats.persisted
+                  ? 'var(--accent-emerald)'
+                  : 'var(--ink-secondary)',
+          }}
+        >
+          {isCloudAccount
+            ? cloudSync.status === 'syncing'
+              ? 'Syncing...'
+              : cloudSync.status === 'error'
+                ? 'Sync error'
+                : cloudSync.lastSyncedAt
+                  ? `Synced ${new Date(cloudSync.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Connected'
+            : `${storageStats.persisted ? 'Persistent' : 'Auto-saved'} · ${formattedSavedTime}`}
         </span>
       </div>
+
+      {cloudSync.errorMessage && (
+        <p className="text-[11.5px] text-[var(--accent-coral)]">{cloudSync.errorMessage}</p>
+      )}
+
+      {isCloudAccount && (
+        <div className="flex items-center justify-between gap-2 text-[11.5px] text-[var(--ink-secondary)]">
+          <span>Your blocks, tasks, habits, and notes sync live across browsers.</span>
+          <button
+            type="button"
+            onClick={onSyncNow}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[11px] font-medium shrink-0"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Sync Now</span>
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-2 pt-1 text-center">
         <div className="p-2 rounded-lg bg-[var(--bg-inset)]">
           <div className="font-mono-num font-bold text-[14px] text-[var(--ink-primary)]">{snapshot.events.length}</div>
@@ -887,6 +993,12 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
         </div>
       </div>
     </div>
+
+    <FirebaseSetupCard
+      firebaseConfig={firebaseConfig}
+      onSave={onSaveFirebaseConfig}
+      onClear={onClearFirebaseConfig}
+    />
 
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       <button
@@ -947,11 +1059,129 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
   </div>
 );
 
+const FIRESTORE_RULES_SNIPPET = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /workspaces/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}`;
+
+const FirebaseSetupCard: React.FC<{
+  firebaseConfig: FirebaseWebConfig | null;
+  onSave: (raw: string) => { ok: boolean; error?: string };
+  onClear: () => void;
+}> = ({ firebaseConfig, onSave, onClear }) => {
+  const [open, setOpen] = useState(false);
+  const [rawSnippet, setRawSnippet] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [copiedRules, setCopiedRules] = useState(false);
+  const builtIn = hasBuiltInFirebaseConfig();
+
+  if (builtIn) {
+    return (
+      <div className="px-3 py-2 rounded-xl border bg-[var(--bg-inset)]/60 flex items-center justify-between gap-2 text-[11.5px] text-[var(--ink-secondary)]">
+        <span className="inline-flex items-center gap-1.5">
+          <Cloud className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+          <span>Cross-Device Cloud Sync enabled ({firebaseConfig?.projectId})</span>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-[var(--bg-inset)]/60 overflow-hidden text-[11.5px]">
+      <div className="px-3 py-2 flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[var(--ink-secondary)]">
+          {firebaseConfig ? (
+            <Cloud className="w-3.5 h-3.5 text-[var(--accent-emerald)] shrink-0" />
+          ) : (
+            <CloudOff className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
+          )}
+          <span className="truncate">
+            {firebaseConfig
+              ? `Cloud Sync active (${firebaseConfig.projectId})`
+              : 'Want cross-browser sync? Connect Firebase Firestore'}
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[11.5px] font-medium text-[var(--accent-primary)] hover:underline shrink-0"
+        >
+          {open ? 'Hide' : firebaseConfig ? 'Settings' : 'Setup Sync'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="p-3 border-t bg-[var(--bg-surface)] space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold text-[var(--ink-primary)]">Firebase Firestore Cloud Sync</span>
+            {firebaseConfig && (
+              <button type="button" onClick={onClear} className="text-[11px] text-[var(--accent-coral)] hover:underline">
+                Disconnect
+              </button>
+            )}
+          </div>
+          <p className="text-[var(--ink-secondary)] leading-relaxed">
+            Attach Firebase to your existing Google Cloud project, enable Authentication (Google) + Firestore, add{' '}
+            <code className="font-mono-num text-[var(--ink-primary)]">nuruddin7hub.github.io</code> under Authorized domains,
+            and paste your Web app config below:
+          </p>
+          <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border bg-[var(--bg-inset)]">
+            <span className="text-[11px] text-[var(--ink-secondary)] truncate">Firestore Rule: allow uid == userId</span>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(FIRESTORE_RULES_SNIPPET);
+                setCopiedRules(true);
+                window.setTimeout(() => setCopiedRules(false), 1800);
+              }}
+              className="inline-flex items-center gap-1 text-[10.5px] text-[var(--accent-primary)] shrink-0"
+            >
+              <Copy className="w-3 h-3" />
+              <span>{copiedRules ? 'Copied' : 'Copy Rules'}</span>
+            </button>
+          </div>
+          <textarea
+            rows={4}
+            value={rawSnippet}
+            onChange={(e) => setRawSnippet(e.target.value)}
+            placeholder={'const firebaseConfig = {\n  apiKey: "...",\n  authDomain: "...",\n  projectId: "...",\n  appId: "..."\n};'}
+            aria-label="Firebase Web Config"
+            className="w-full p-2.5 rounded-lg border bg-[var(--bg-inset)] font-mono-num text-[11px] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+          />
+          {localError && <p className="text-[11px] text-[var(--accent-coral)]">{localError}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              const res = onSave(rawSnippet);
+              if (!res.ok) setLocalError(res.error ?? 'Invalid Firebase config.');
+              else {
+                setLocalError(null);
+                setRawSnippet('');
+                setOpen(false);
+              }
+            }}
+            className="w-full py-2 rounded-lg text-[12px] font-semibold text-white"
+            style={{ backgroundColor: 'var(--accent-primary)' }}
+          >
+            Save & Enable Cloud Sync
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface GoogleAuthSectionProps {
   theme: 'dark' | 'light';
   clientId: string;
+  firebaseConfigured: boolean;
   hasGuestWork: boolean;
   carryGuestData: boolean;
+  onFirebaseGoogleClick: () => Promise<void>;
   onGoogleSuccess: (claims: GoogleUserClaims) => void;
   onSaveClientId: (raw: string) => boolean;
   onClearClientId: () => void;
@@ -982,6 +1212,8 @@ const GoogleGMark: React.FC = () => (
 const GoogleAuthSection: React.FC<GoogleAuthSectionProps> = ({
   theme,
   clientId,
+  firebaseConfigured,
+  onFirebaseGoogleClick,
   onGoogleSuccess,
   onSaveClientId,
   onClearClientId,
@@ -1010,7 +1242,7 @@ const GoogleAuthSection: React.FC<GoogleAuthSectionProps> = ({
   }, [clientId]);
 
   useEffect(() => {
-    if (!clientId || !gsiHostRef.current) {
+    if (firebaseConfigured || !clientId || !gsiHostRef.current) {
       setGsiReady(false);
       return;
     }
@@ -1043,7 +1275,25 @@ const GoogleAuthSection: React.FC<GoogleAuthSectionProps> = ({
     return () => {
       active = false;
     };
-  }, [clientId, theme]);
+  }, [clientId, firebaseConfigured, theme]);
+
+  if (firebaseConfigured) {
+    return (
+      <button
+        type="button"
+        disabled={loadingGsi}
+        onClick={() => {
+          setLoadingGsi(true);
+          void onFirebaseGoogleClick().finally(() => setLoadingGsi(false));
+        }}
+        className="w-full py-2.5 px-4 rounded-xl border bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[13px] font-semibold text-[var(--ink-primary)] flex items-center justify-center gap-2.5 transition-colors disabled:opacity-60"
+        style={{ borderColor: 'var(--rule-strong)' }}
+      >
+        <GoogleGMark />
+        <span>{loadingGsi ? 'Signing in with Google...' : 'Continue with Google (Cloud Sync)'}</span>
+      </button>
+    );
+  }
 
   const handleFallbackClick = async () => {
     if (!clientId) {
@@ -1053,9 +1303,9 @@ const GoogleAuthSection: React.FC<GoogleAuthSectionProps> = ({
     setLoadingGsi(true);
     try {
       const claims = await promptGoogleOAuthSignIn(clientId);
-      onGoogleSuccess(claims);
+      onGoogleSuccessRef.current(claims);
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Google Sign-In failed.');
+      onErrorRef.current(err instanceof Error ? err.message : 'Google Sign-In failed.');
     } finally {
       setLoadingGsi(false);
     }

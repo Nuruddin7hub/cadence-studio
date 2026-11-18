@@ -142,13 +142,22 @@ export interface AccountProfile {
   email: string;
   avatarColor: string;
   avatarUrl?: string;
-  authProvider?: 'local' | 'google';
+  authProvider?: 'local' | 'google' | 'firebase';
   googleSub?: string;
+  firebaseUid?: string;
   roleTitle?: string;
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string;
   hasPassword: boolean;
+}
+
+export interface CloudSyncState {
+  configured: boolean;
+  status: 'local' | 'syncing' | 'synced' | 'error';
+  lastSyncedAt: string | null;
+  projectId?: string;
+  errorMessage?: string;
 }
 
 export interface StorageStats {

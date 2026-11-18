@@ -5,6 +5,7 @@ import {
   Calendar,
   Check,
   CheckSquare,
+  Cloud,
   Command,
   Flame,
   Keyboard,
@@ -71,6 +72,7 @@ export const ProductivityOverview: React.FC = () => {
     setActiveTab,
     setCommandOpen,
     currentUser,
+    cloudSync,
     storageStats,
     openAccountModal,
     starterBannerDismissed,
@@ -561,10 +563,18 @@ export const ProductivityOverview: React.FC = () => {
             </div>
           ) : (
             <div className="mt-1 inline-flex items-center gap-2 text-[11.5px] font-mono-num text-[var(--ink-muted)]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+              {currentUser?.firebaseUid ? (
+                <Cloud className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+              ) : (
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+              )}
               <span>
                 {currentUser ? `${currentUser.name} · ` : 'Guest Vault · '}
-                {storageStats.engine} · {formatBytes(storageStats.bytesUsed)} synced
+                {currentUser?.firebaseUid
+                  ? cloudSync.status === 'syncing'
+                    ? 'Syncing across devices...'
+                    : `Firebase Cloud Sync · ${formatBytes(storageStats.bytesUsed)}`
+                  : `${storageStats.engine} · ${formatBytes(storageStats.bytesUsed)} saved`}
               </span>
             </div>
           )}

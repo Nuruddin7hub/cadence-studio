@@ -6,6 +6,7 @@ import type {
   CalendarEvent,
   CalendarLayerId,
   CalendarMode,
+  CloudSyncState,
   DailyNote,
   EisenhowerQuadrant,
   FocusSessionRecord,
@@ -45,10 +46,28 @@ import {
   saveWorkspaceForAccount,
   setStarterBannerDismissed as persistStarterDismissed,
   signInLocalAccount,
+  signInOrRegisterFirebaseAccount,
   signInOrRegisterGoogleAccount,
   switchToGuestWorkspace,
   updateLocalProfile,
 } from '../utils/authStorage';
+import {
+  bootstrapCloudWorkspace,
+  clearCustomFirebaseConfig,
+  type FirebaseAuthUserInfo,
+  type FirebaseWebConfig,
+  getConfiguredFirebaseConfig,
+  getFriendlyFirebaseError,
+  getOrCreateDeviceId,
+  pushCloudWorkspace,
+  saveCustomFirebaseConfig,
+  signInWithFirebaseEmail,
+  signInWithFirebaseGoogle,
+  signOutFirebaseUser,
+  signUpWithFirebaseEmail,
+  subscribeCloudWorkspace,
+  subscribeFirebaseAuthState,
+} from '../utils/firebaseSync';
 import {
   clearCustomGoogleClientId,
   getConfiguredGoogleClientId,
@@ -128,6 +147,12 @@ interface WorkspaceContextValue {
     claims: GoogleUserClaims,
     carryGuestData?: boolean
   ) => Promise<void>;
+  firebaseConfig: FirebaseWebConfig | null;
+  cloudSync: CloudSyncState;
+  saveFirebaseConfig: (rawInput: string) => { ok: boolean; error?: string };
+  clearFirebaseConfig: () => void;
+  signInWithFirebaseGooglePopup: (carryGuestData?: boolean) => Promise<{ ok: boolean; error?: string }>;
+  syncCloudNow: () => Promise<void>;
   switchToGuest: () => Promise<void>;
   updateProfile: (
     patch: Partial<Pick<AccountProfile, 'name' | 'email' | 'avatarColor' | 'roleTitle'>>
@@ -252,6 +277,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     initialVault.activeAccount ? 'profile' : 'signup'
   );
   const [googleClientId, setGoogleClientIdState] = useState<string>(() => getConfiguredGoogleClientId());
+  const [firebaseConfig, setFirebaseConfigState] = useState<FirebaseWebConfig | null>(() =>
+    getConfiguredFirebaseConfig()
+  );
+  const [cloudSync, setCloudSync] = useState<CloudSyncState>(() => {
+    const cfg = getConfiguredFirebaseConfig();
+    return {
+      configured: Boolean(cfg),
+      status: 'local',
+      lastSyncedAt: null,
+      projectId: cfg?.projectId,
+    };
+  });
   const [storageStats, setStorageStats] = useState<StorageStats>({
     engine: 'IndexedDB Vault',
     persisted: false,
@@ -266,6 +303,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const hasLocalMutationRef = useRef(false);
   const tabIdRef = useRef<string>(makeId('tab'));
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const deviceIdRef = useRef<string>(getOrCreateDeviceId());
+  const snapshotRef = useRef<WorkspaceSnapshot>(snapshot);
+  snapshotRef.current = snapshot;
+  const skipNextCloudPushRef = useRef(false);
+  const boundCloudUidRef = useRef<string | null>(null);
+  const cloudUnsubRef = useRef<(() => void) | null>(null);
+  const carryGuestForNextCloudRef = useRef<boolean>(false);
 
   const initialTab: WorkspaceTab = useMemo(() => {
     if (shotPreset === 'planner-dark' || shotPreset === 'studio-light' || shotPreset === 'mobile-dark') return 'planner';
@@ -404,6 +448,183 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       cancelled = true;
     };
   }, [snapshot, shotPreset, savedAccounts.length]);
+
+  const snapshotHasContent = useCallback((snap: WorkspaceSnapshot): boolean => {
+    return (
+      snap.events.length > 0 ||
+      snap.tasks.length > 0 ||
+      snap.habits.length > 0 ||
+      Object.keys(snap.notes).length > 0 ||
+      snap.focusHistory.length > 0
+    );
+  }, []);
+
+  const attachFirebaseSession = useCallback(
+    async (
+      fbUser: FirebaseAuthUserInfo,
+      opts?: { carryGuestData?: boolean; seedSnapshot?: WorkspaceSnapshot }
+    ) => {
+      if (boundCloudUidRef.current === fbUser.uid) return;
+      boundCloudUidRef.current = fbUser.uid;
+      cloudUnsubRef.current?.();
+      cloudUnsubRef.current = null;
+
+      const candidateLocal = opts?.seedSnapshot ?? snapshotRef.current;
+      const carryGuest = opts?.carryGuestData ?? carryGuestForNextCloudRef.current;
+      carryGuestForNextCloudRef.current = false;
+
+      const res = await signInOrRegisterFirebaseAccount({
+        uid: fbUser.uid,
+        email: fbUser.email,
+        name: fbUser.name,
+        picture: fbUser.picture,
+        provider: fbUser.provider,
+        initialSnapshot: candidateLocal,
+        carryGuestData: carryGuest,
+      });
+
+      activeAccountIdRef.current = res.account.id;
+      hasLocalMutationRef.current = true;
+      undoStackRef.current = [];
+      setCurrentUser(res.account);
+      setSavedAccounts(res.accounts);
+
+      const localBase = opts?.seedSnapshot ?? res.snapshot;
+      setCloudSync((prev) => ({
+        ...prev,
+        configured: true,
+        status: 'syncing',
+        projectId: firebaseConfig?.projectId,
+        errorMessage: undefined,
+      }));
+
+      try {
+        const boot = await bootstrapCloudWorkspace(
+          fbUser.uid,
+          deviceIdRef.current,
+          localBase,
+          snapshotHasContent(localBase)
+        );
+        skipNextCloudPushRef.current = true;
+        setSnapshot(boot.snapshot);
+        setCloudSync({
+          configured: true,
+          status: 'synced',
+          lastSyncedAt: boot.syncedAt,
+          projectId: firebaseConfig?.projectId,
+        });
+      } catch (err) {
+        skipNextCloudPushRef.current = true;
+        setSnapshot(localBase);
+        setCloudSync({
+          configured: true,
+          status: 'error',
+          lastSyncedAt: null,
+          projectId: firebaseConfig?.projectId,
+          errorMessage: getFriendlyFirebaseError(err),
+        });
+      }
+
+      cloudUnsubRef.current = subscribeCloudWorkspace(
+        fbUser.uid,
+        deviceIdRef.current,
+        localBase.preferences.theme,
+        (remoteSnap, syncedAt) => {
+          skipNextCloudPushRef.current = true;
+          hasLocalMutationRef.current = true;
+          setSnapshot(remoteSnap);
+          setCloudSync({
+            configured: true,
+            status: 'synced',
+            lastSyncedAt: syncedAt,
+            projectId: firebaseConfig?.projectId,
+          });
+        },
+        (msg) => {
+          setCloudSync((prev) => ({
+            ...prev,
+            configured: true,
+            status: 'error',
+            errorMessage: msg,
+          }));
+        }
+      );
+    },
+    [firebaseConfig?.projectId, snapshotHasContent]
+  );
+
+  // Bind Firebase Auth session observer when Firebase config is present
+  useEffect(() => {
+    if (shotPreset || !firebaseConfig) {
+      cloudUnsubRef.current?.();
+      cloudUnsubRef.current = null;
+      boundCloudUidRef.current = null;
+      setCloudSync({
+        configured: false,
+        status: 'local',
+        lastSyncedAt: null,
+      });
+      return;
+    }
+
+    setCloudSync((prev) => ({
+      ...prev,
+      configured: true,
+      projectId: firebaseConfig.projectId,
+    }));
+
+    const unsubAuth = subscribeFirebaseAuthState((fbUser) => {
+      if (!fbUser) {
+        cloudUnsubRef.current?.();
+        cloudUnsubRef.current = null;
+        boundCloudUidRef.current = null;
+        return;
+      }
+      if (boundCloudUidRef.current !== fbUser.uid) {
+        void attachFirebaseSession(fbUser);
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      cloudUnsubRef.current?.();
+      cloudUnsubRef.current = null;
+    };
+  }, [attachFirebaseSession, firebaseConfig, shotPreset]);
+
+  // Debounced cloud push to Firestore whenever active workspace updates
+  useEffect(() => {
+    if (shotPreset || !firebaseConfig) return;
+    const uid = currentUser?.firebaseUid;
+    if (!uid) return;
+    if (skipNextCloudPushRef.current) {
+      skipNextCloudPushRef.current = false;
+      return;
+    }
+
+    setCloudSync((prev) => ({ ...prev, configured: true, status: 'syncing', errorMessage: undefined }));
+    const timer = window.setTimeout(() => {
+      void pushCloudWorkspace(uid, deviceIdRef.current, snapshot)
+        .then((syncedAt) => {
+          setCloudSync({
+            configured: true,
+            status: 'synced',
+            lastSyncedAt: syncedAt,
+            projectId: firebaseConfig.projectId,
+          });
+        })
+        .catch((err) => {
+          setCloudSync((prev) => ({
+            ...prev,
+            configured: true,
+            status: 'error',
+            errorMessage: getFriendlyFirebaseError(err),
+          }));
+        });
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [currentUser?.firebaseUid, firebaseConfig, shotPreset, snapshot]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -1035,13 +1256,36 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           habits: starter.habits,
         };
       }
+      const chosenSnapshot = params.includeStarter
+        ? baseSnapshot
+        : params.carryGuestData
+          ? snapshot
+          : createEmptyWorkspace(snapshot.preferences.theme);
+
+      if (firebaseConfig) {
+        try {
+          carryGuestForNextCloudRef.current = Boolean(params.carryGuestData || params.includeStarter);
+          const fbUser = await signUpWithFirebaseEmail(params.name, params.email, params.password);
+          await attachFirebaseSession(fbUser, {
+            carryGuestData: Boolean(params.carryGuestData || params.includeStarter),
+            seedSnapshot: chosenSnapshot,
+          });
+          setSelection(null);
+          setActiveFocusTaskId(null);
+          setSelectedDate(todayKey);
+          setStarterBannerDismissed(Boolean(params.includeStarter));
+          setAccountModalTab('profile');
+          setAccountModalOpen(false);
+          pushToast(`Welcome, ${fbUser.name}`, 'Cloud Sync vault active across your devices', false, 'success');
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: getFriendlyFirebaseError(err) };
+        }
+      }
+
       const res = await createLocalAccount({
         ...params,
-        initialSnapshot: params.includeStarter
-          ? baseSnapshot
-          : params.carryGuestData
-            ? snapshot
-            : createEmptyWorkspace(snapshot.preferences.theme),
+        initialSnapshot: chosenSnapshot,
       });
       if (!res.ok) return { ok: false, error: res.error };
 
@@ -1061,11 +1305,27 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       pushToast(`Welcome, ${res.account.name}`, 'Your encrypted browser vault is active', false, 'success');
       return { ok: true };
     },
-    [nowMinutes, pushToast, snapshot, todayKey]
+    [attachFirebaseSession, firebaseConfig, nowMinutes, pushToast, snapshot, todayKey]
   );
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
+      if (firebaseConfig) {
+        try {
+          const fbUser = await signInWithFirebaseEmail(email, password);
+          await attachFirebaseSession(fbUser, { carryGuestData: false });
+          setSelection(null);
+          setActiveFocusTaskId(null);
+          setSelectedDate(todayKey);
+          setAccountModalTab('profile');
+          setAccountModalOpen(false);
+          pushToast(`Signed in as ${fbUser.name}`, 'Cloud Sync vault loaded', false, 'success');
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: getFriendlyFirebaseError(err) };
+        }
+      }
+
       const res = await signInLocalAccount({ email, password });
       if (!res.ok) return { ok: false, error: res.error };
 
@@ -1084,8 +1344,69 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       pushToast(`Signed in as ${res.account.name}`, 'Workspace loaded from browser vault', false, 'success');
       return { ok: true };
     },
-    [pushToast, todayKey]
+    [attachFirebaseSession, firebaseConfig, pushToast, todayKey]
   );
+
+  const saveFirebaseConfig = useCallback(
+    (rawInput: string): { ok: boolean; error?: string } => {
+      const res = saveCustomFirebaseConfig(rawInput);
+      if (!res.ok || !res.config) return { ok: false, error: res.error };
+      setFirebaseConfigState(res.config);
+      pushToast('Firebase Cloud Sync connected', `Project: ${res.config.projectId}`, false, 'success');
+      return { ok: true };
+    },
+    [pushToast]
+  );
+
+  const clearFirebaseConfig = useCallback(() => {
+    void signOutFirebaseUser();
+    cloudUnsubRef.current?.();
+    cloudUnsubRef.current = null;
+    boundCloudUidRef.current = null;
+    clearCustomFirebaseConfig();
+    setFirebaseConfigState(getConfiguredFirebaseConfig());
+    pushToast('Disconnected custom Firebase config');
+  }, [pushToast]);
+
+  const signInWithFirebaseGooglePopup = useCallback(
+    async (carryGuestData = true): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        carryGuestForNextCloudRef.current = carryGuestData;
+        const fbUser = await signInWithFirebaseGoogle();
+        await attachFirebaseSession(fbUser, { carryGuestData });
+        setSelection(null);
+        setActiveFocusTaskId(null);
+        setSelectedDate(todayKey);
+        setAccountModalTab('profile');
+        setAccountModalOpen(false);
+        pushToast(`Signed in with Google (${fbUser.name})`, 'Cloud Sync enabled across devices', false, 'success');
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: getFriendlyFirebaseError(err) };
+      }
+    },
+    [attachFirebaseSession, pushToast, todayKey]
+  );
+
+  const syncCloudNow = useCallback(async () => {
+    const uid = currentUser?.firebaseUid;
+    if (!uid || !firebaseConfig) return;
+    setCloudSync((prev) => ({ ...prev, configured: true, status: 'syncing', errorMessage: undefined }));
+    try {
+      const syncedAt = await pushCloudWorkspace(uid, deviceIdRef.current, snapshot);
+      setCloudSync({
+        configured: true,
+        status: 'synced',
+        lastSyncedAt: syncedAt,
+        projectId: firebaseConfig.projectId,
+      });
+      pushToast('Cloud Sync complete', 'All blocks, tasks, and habits synced', false, 'success');
+    } catch (err) {
+      const msg = getFriendlyFirebaseError(err);
+      setCloudSync((prev) => ({ ...prev, configured: true, status: 'error', errorMessage: msg }));
+      pushToast('Cloud Sync failed', msg, false, 'warning');
+    }
+  }, [currentUser?.firebaseUid, firebaseConfig, pushToast, snapshot]);
 
   const setCustomGoogleClientId = useCallback(
     (clientId: string): { ok: boolean; error?: string } => {
@@ -1138,6 +1459,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const switchToGuest = useCallback(async () => {
+    if (firebaseConfig) {
+      await signOutFirebaseUser();
+    }
+    cloudUnsubRef.current?.();
+    cloudUnsubRef.current = null;
+    boundCloudUidRef.current = null;
     const guestSnap = await switchToGuestWorkspace();
     activeAccountIdRef.current = GUEST_ACCOUNT_ID;
     hasLocalMutationRef.current = true;
@@ -1147,10 +1474,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSelection(null);
     setActiveFocusTaskId(null);
     setSelectedDate(todayKey);
+    setCloudSync((prev) => ({
+      ...prev,
+      status: 'local',
+      lastSyncedAt: null,
+      errorMessage: undefined,
+    }));
     setStarterBannerDismissed(Boolean(readSyncSessionMeta().dismissedStarterIds?.[GUEST_ACCOUNT_ID]));
     setAccountModalTab('signin');
-    pushToast('Switched to Guest Vault', 'Your signed-in account stays saved in storage');
-  }, [pushToast, todayKey]);
+    pushToast('Switched to Guest Vault', 'Your signed-in account stays saved');
+  }, [firebaseConfig, pushToast, todayKey]);
 
   const updateProfile = useCallback(
     async (
@@ -1332,6 +1665,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setCustomGoogleClientId,
     clearGoogleClientIdConfig,
     signInWithGoogleUser,
+    firebaseConfig,
+    cloudSync,
+    saveFirebaseConfig,
+    clearFirebaseConfig,
+    signInWithFirebaseGooglePopup,
+    syncCloudNow,
     switchToGuest,
     updateProfile,
     changePassword,

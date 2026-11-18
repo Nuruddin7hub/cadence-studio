@@ -183,8 +183,9 @@ function toPublicAccount(rec: StoredAccountRecord): AccountProfile {
     email: rec.email,
     avatarColor: rec.avatarColor,
     avatarUrl: rec.avatarUrl,
-    authProvider: rec.authProvider ?? (rec.googleSub ? 'google' : 'local'),
+    authProvider: rec.authProvider ?? (rec.firebaseUid ? 'firebase' : rec.googleSub ? 'google' : 'local'),
     googleSub: rec.googleSub,
+    firebaseUid: rec.firebaseUid,
     roleTitle: rec.roleTitle,
     createdAt: rec.createdAt,
     updatedAt: rec.updatedAt,
@@ -509,11 +510,13 @@ export async function signInLocalAccount(params: {
   };
 }
 
-export async function signInOrRegisterGoogleAccount(params: {
-  sub: string;
+async function upsertExternalAccount(params: {
+  matchIdKey: 'googleSub' | 'firebaseUid';
+  externalId: string;
   email: string;
   name: string;
   picture?: string;
+  provider: 'google' | 'firebase';
   initialSnapshot: WorkspaceSnapshot;
   carryGuestData: boolean;
 }): Promise<{
@@ -526,7 +529,10 @@ export async function signInOrRegisterGoogleAccount(params: {
   const cleanName = params.name.trim() || cleanEmail.split('@')[0];
   const records = readStoredAccountRecordsSync();
   const existing = records.find(
-    (a) => (a.googleSub && a.googleSub === params.sub) || a.email.toLowerCase() === cleanEmail
+    (a) =>
+      (params.matchIdKey === 'firebaseUid' && a.firebaseUid === params.externalId) ||
+      (params.matchIdKey === 'googleSub' && a.googleSub === params.externalId) ||
+      a.email.toLowerCase() === cleanEmail
   );
 
   const now = new Date().toISOString();
@@ -536,8 +542,9 @@ export async function signInOrRegisterGoogleAccount(params: {
       name: cleanName || existing.name,
       email: cleanEmail,
       avatarUrl: params.picture ?? existing.avatarUrl,
-      googleSub: params.sub,
-      authProvider: 'google',
+      googleSub: params.matchIdKey === 'googleSub' ? params.externalId : existing.googleSub,
+      firebaseUid: params.matchIdKey === 'firebaseUid' ? params.externalId : existing.firebaseUid,
+      authProvider: params.provider,
       lastLoginAt: now,
       updatedAt: now,
     };
@@ -559,15 +566,17 @@ export async function signInOrRegisterGoogleAccount(params: {
     };
   }
 
-  const id = `acct-g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const prefix = params.matchIdKey === 'firebaseUid' ? 'acct-fb' : 'acct-g';
+  const id = `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const created: StoredAccountRecord = {
     id,
     name: cleanName,
     email: cleanEmail,
     avatarColor: AVATAR_COLORS[records.length % AVATAR_COLORS.length],
     avatarUrl: params.picture,
-    authProvider: 'google',
-    googleSub: params.sub,
+    authProvider: params.provider,
+    googleSub: params.matchIdKey === 'googleSub' ? params.externalId : undefined,
+    firebaseUid: params.matchIdKey === 'firebaseUid' ? params.externalId : undefined,
     createdAt: now,
     updatedAt: now,
     lastLoginAt: now,
@@ -594,6 +603,47 @@ export async function signInOrRegisterGoogleAccount(params: {
     snapshot: accountSnapshot,
     isNewAccount: true,
   };
+}
+
+export function signInOrRegisterGoogleAccount(params: {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+  initialSnapshot: WorkspaceSnapshot;
+  carryGuestData: boolean;
+}) {
+  return upsertExternalAccount({
+    matchIdKey: 'googleSub',
+    externalId: params.sub,
+    email: params.email,
+    name: params.name,
+    picture: params.picture,
+    provider: 'google',
+    initialSnapshot: params.initialSnapshot,
+    carryGuestData: params.carryGuestData,
+  });
+}
+
+export function signInOrRegisterFirebaseAccount(params: {
+  uid: string;
+  email: string;
+  name: string;
+  picture?: string;
+  provider: 'google' | 'firebase';
+  initialSnapshot: WorkspaceSnapshot;
+  carryGuestData: boolean;
+}) {
+  return upsertExternalAccount({
+    matchIdKey: 'firebaseUid',
+    externalId: params.uid,
+    email: params.email,
+    name: params.name,
+    picture: params.picture,
+    provider: params.provider,
+    initialSnapshot: params.initialSnapshot,
+    carryGuestData: params.carryGuestData,
+  });
 }
 
 export async function switchToGuestWorkspace(): Promise<WorkspaceSnapshot> {

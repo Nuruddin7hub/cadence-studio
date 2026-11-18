@@ -68,6 +68,18 @@ try {
   await page.getByRole('button', { name: /Continue with Google/i }).click();
   await page.waitForTimeout(100);
 
+  // Also verify Firebase Cloud Sync setup panel validation cleanly
+  await page.getByRole('button', { name: 'Setup Sync' }).click();
+  await page.waitForTimeout(100);
+  await page.getByLabel('Firebase Web Config').fill('{ invalid: true }');
+  await page.getByRole('button', { name: 'Save & Enable Cloud Sync' }).click();
+  await page.waitForTimeout(100);
+  if (!(await page.locator('[role="dialog"]').innerText()).includes('apiKey')) {
+    throw new Error('Firebase config validation message did not render');
+  }
+  await page.getByRole('button', { name: 'Hide' }).click();
+  await page.waitForTimeout(100);
+
   await page.getByPlaceholder('Alex Rivera').fill('Nadia Chen');
   await page.getByPlaceholder('you@domain.com').fill('nadia@studio.dev');
   const pwInputs = page.getByPlaceholder('••••••');
