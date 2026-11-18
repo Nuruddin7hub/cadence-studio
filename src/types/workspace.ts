@@ -126,6 +126,19 @@ export interface WorkspacePreferences {
   workingHourEnd: number;
 }
 
+export interface WorkspaceProgression {
+  xp: number;
+  streakFreezes: number;
+  streakFreezeDates: string[];
+  checkInDates: string[];
+  unlockedAchievements: Record<string, string>;
+  dailyAnchors: Record<string, string>;
+  reminderEnabled: boolean;
+  reminderHour: number;
+  lastRemindedDate?: string;
+  pwaInstalled?: boolean;
+}
+
 export interface WorkspaceSnapshot {
   events: CalendarEvent[];
   tasks: TodoTask[];
@@ -134,6 +147,7 @@ export interface WorkspaceSnapshot {
   focusHistory: FocusSessionRecord[];
   enabledLayers: Record<CalendarLayerId, boolean>;
   preferences: WorkspacePreferences;
+  progression?: WorkspaceProgression;
 }
 
 export interface AccountProfile {

@@ -4,6 +4,19 @@ import { addDays, SEED_TODAY } from '../utils/date';
 /**
  * Brand-new blank production workspace with zero template items.
  */
+export function createDefaultProgression() {
+  return {
+    xp: 0,
+    streakFreezes: 1,
+    streakFreezeDates: [] as string[],
+    checkInDates: [] as string[],
+    unlockedAchievements: {} as Record<string, string>,
+    dailyAnchors: {} as Record<string, string>,
+    reminderEnabled: false,
+    reminderHour: 9,
+  };
+}
+
 export function createEmptyWorkspace(theme: ThemeMode = 'dark'): WorkspaceSnapshot {
   return {
     events: [],
@@ -29,6 +42,7 @@ export function createEmptyWorkspace(theme: ThemeMode = 'dark'): WorkspaceSnapsh
       workingHourStart: 8,
       workingHourEnd: 18,
     },
+    progression: createDefaultProgression(),
   };
 }
 

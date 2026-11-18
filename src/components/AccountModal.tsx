@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Settings2,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Trash2,
   Upload,
@@ -66,6 +67,8 @@ export const AccountModal: React.FC = () => {
     importStarterChecklist,
     resetToSeed,
     pushToast,
+    pwaInstalled,
+    triggerPwaInstall,
   } = useWorkspace();
 
   const [mode, setMode] = useState<'signup' | 'signin' | 'profile'>(accountModalTab);
@@ -557,6 +560,8 @@ export const AccountModal: React.FC = () => {
                     resetToSeed();
                     setConfirmReset(false);
                   }}
+                  pwaInstalled={pwaInstalled}
+                  onInstallApp={() => void triggerPwaInstall()}
                 />
               )}
             </>
@@ -908,6 +913,8 @@ interface StorageBackupPanelProps {
   onExportIcs: () => void;
   onImportStarter: () => void;
   onResetClean: () => void;
+  pwaInstalled: boolean;
+  onInstallApp: () => void;
 }
 
 const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
@@ -927,6 +934,8 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
   onExportIcs,
   onImportStarter,
   onResetClean,
+  pwaInstalled,
+  onInstallApp,
 }) => (
   <div className="space-y-3.5">
     <div className="p-3.5 rounded-xl border bg-[var(--bg-elevated)]/45 space-y-2.5">
@@ -1037,6 +1046,20 @@ const StorageBackupPanel: React.FC<StorageBackupPanelProps> = ({
       >
         <Sparkles className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
         <span>Add Starter Checklist</span>
+      </button>
+    </div>
+
+    <div className="p-3 rounded-xl border bg-[var(--bg-inset)] flex items-center justify-between gap-2 text-[12px]">
+      <div className="inline-flex items-center gap-2 text-[var(--ink-secondary)]">
+        <Smartphone className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+        <span>{pwaInstalled ? 'Cadence Web App installed on device' : 'Download Cadence onto your phone or desktop'}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onInstallApp}
+        className="px-3 py-1.5 rounded-lg border bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[11.5px] font-semibold text-[var(--ink-primary)] shrink-0"
+      >
+        {pwaInstalled ? 'Shortcuts' : 'Install App'}
       </button>
     </div>
 

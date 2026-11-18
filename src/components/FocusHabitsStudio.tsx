@@ -13,6 +13,7 @@ import {
 import { useWorkspace } from '../context/WorkspaceContext';
 import type { HabitItem } from '../types/workspace';
 import { addDays, formatReadableDate, WEEKDAY_TWO } from '../utils/date';
+import { StreakAchievementsPanel } from './StreakAchievementsPanel';
 import {
   AnimatedContent,
   BellToggle,
@@ -629,6 +630,8 @@ export const FocusHabitsStudio: React.FC = () => {
             </div>
           </SpotlightCard>
         </AnimatedContent>
+
+        <StreakAchievementsPanel variant="hub" />
       </div>
     </div>
   );

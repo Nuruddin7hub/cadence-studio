@@ -7,15 +7,20 @@ import {
   CheckSquare,
   Cloud,
   Command,
+  Download,
   Flame,
   Keyboard,
+  Laptop,
   Layers,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Timer,
   UserPlus,
+  WifiOff,
   X,
 } from 'lucide-react';
+import { StreakAchievementsPanel } from './StreakAchievementsPanel';
 import { useWorkspace } from '../context/WorkspaceContext';
 import {
   addDays,
@@ -80,6 +85,9 @@ export const ProductivityOverview: React.FC = () => {
     importStarterChecklist,
     focusSecondsLeft,
     activeFocusTaskId,
+    pwaInstalled,
+    pwaCanPrompt,
+    triggerPwaInstall,
   } = useWorkspace();
 
   const isDark = snapshot.preferences.theme === 'dark';
@@ -528,6 +536,18 @@ export const ProductivityOverview: React.FC = () => {
                 Ctrl+K
               </kbd>
             </button>
+
+            {!pwaInstalled && (
+              <button
+                type="button"
+                onClick={() => void triggerPwaInstall()}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[13px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)]/75 hover:bg-[var(--bg-surface)] transition-colors"
+                style={{ borderColor: pwaCanPrompt ? 'rgba(231, 64, 4, 0.45)' : 'var(--rule-strong)' }}
+              >
+                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>Install Web App</span>
+              </button>
+            )}
           </div>
 
           {/* Clean Slate Status + Optional 1-Click Starter Banner */}
@@ -843,6 +863,9 @@ export const ProductivityOverview: React.FC = () => {
         </div>
       </section>
 
+      {/* Research-Backed Daily Momentum, Streak Freeze & Cross-Day Return Loop */}
+      <StreakAchievementsPanel variant="strip" />
+
       {/* 4-Stat Live Telemetry Strip with React Bits CountUp & FadeContent */}
       <section className="max-w-6xl mx-auto px-6 sm:px-10 py-14 border-y">
         <FadeContent duration={0.4} threshold={0.02}>
@@ -1068,6 +1091,61 @@ export const ProductivityOverview: React.FC = () => {
               </kbd>
             </div>
           ))}
+        </SpotlightCard>
+
+        {/* Dedicated Install Web App Promotion Band */}
+        <SpotlightCard
+          theme={isDark ? 'dark' : 'light'}
+          spotlightColor={isDark ? 'rgba(231, 64, 4, 0.16)' : 'rgba(231, 64, 4, 0.08)'}
+          className="studio-card rounded-2xl p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+        >
+          <div className="flex items-start gap-4 max-w-2xl">
+            <img
+              src="./icons/icon-192.png"
+              alt="Cadence Studio App Icon"
+              className="w-12 h-12 rounded-2xl border border-white/15 shrink-0"
+            />
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--accent-primary)]">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Progressive Web App · Offline Ready</span>
+              </div>
+              <h2 className="font-display font-bold text-[20px] tracking-tight text-[var(--ink-primary)]">
+                {pwaInstalled ? 'Cadence Studio App is Installed' : 'Download Cadence onto your Phone or Desktop'}
+              </h2>
+              <p className="text-[13px] text-[var(--ink-secondary)] leading-relaxed">
+                Install in seconds from Chrome, Edge, Android, or iOS Safari. Runs in its own standalone window with offline IndexedDB storage, instant Dock or Home Screen shortcuts, and live Cloud Sync.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-[11.5px] text-[var(--ink-muted)]">
+                <span className="inline-flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-[var(--accent-sky)]" />
+                  <span>iOS & Android Home Screen</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Laptop className="w-3.5 h-3.5 text-[var(--accent-emerald)]" />
+                  <span>Windows & Mac Standalone Window</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <WifiOff className="w-3.5 h-3.5 text-[var(--accent-amber)]" />
+                  <span>Offline App Shell</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <GlareHover glareColor="#ffffff" glareOpacity={0.2} borderRadius="12px" className="inline-flex">
+              <button
+                type="button"
+                onClick={() => void triggerPwaInstall()}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[13px] font-semibold text-white transition-transform hover:scale-[1.02]"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              >
+                <Download className="w-4 h-4" />
+                <span>{pwaInstalled ? 'View Installed Shortcuts' : 'Download Web App'}</span>
+              </button>
+            </GlareHover>
+          </div>
         </SpotlightCard>
       </section>
     </div>

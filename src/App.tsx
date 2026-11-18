@@ -10,6 +10,7 @@ import { AnalyticsSuite } from './components/AnalyticsSuite';
 import { ProductivityOverview } from './components/ProductivityOverview';
 import { CommandPalette } from './components/CommandPalette';
 import { AccountModal } from './components/AccountModal';
+import { InstallAppModal } from './components/InstallAppModal';
 import { FocusCurtain } from './components/FocusCurtain';
 import { MobileDock } from './components/MobileDock';
 import { ToastStack } from './components/ToastStack';
@@ -54,6 +55,7 @@ const WorkspaceShell: React.FC = () => {
         <MobileInspectorSheet />
         <CommandPalette />
         <AccountModal />
+        <InstallAppModal />
         <FocusCurtain />
         <ToastStack />
       </div>

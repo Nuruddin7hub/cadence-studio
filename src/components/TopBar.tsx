@@ -7,6 +7,8 @@ import {
   CheckSquare,
   Command,
   Compass,
+  Download,
+  Flame,
   Menu,
   Moon,
   Plus,
@@ -49,6 +51,9 @@ export const TopBar: React.FC = () => {
     pushToast,
     currentUser,
     openAccountModal,
+    progression,
+    pwaInstalled,
+    triggerPwaInstall,
   } = useWorkspace();
 
   const [quickDraft, setQuickDraft] = useState('');
@@ -128,6 +133,19 @@ export const TopBar: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {!pwaInstalled && (
+              <button
+                type="button"
+                onClick={() => void triggerPwaInstall()}
+                aria-label="Download Cadence Web App"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[12px] font-medium text-[var(--ink-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] transition-colors shrink-0"
+                style={{ borderColor: 'var(--rule-hairline)' }}
+              >
+                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <span>Get App</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={toggleTheme}
@@ -307,8 +325,42 @@ export const TopBar: React.FC = () => {
         </form>
       )}
 
-      {/* Right: Availability share, Notifications, Theme toggle */}
+      {/* Right: Momentum streak, Install App, Availability share, Notifications, Theme toggle */}
       <div className="flex items-center gap-1.5 shrink-0 relative">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('focus');
+            window.setTimeout(() => {
+              document.getElementById('achievements-hub')?.scrollIntoView({ behavior: 'smooth' });
+            }, 80);
+          }}
+          aria-label={`Momentum streak ${progression.currentStreak} days and achievements`}
+          title={`Level ${progression.level} ${progression.rankTitle} · ${progression.unlockedCount}/${progression.achievements.length} badges`}
+          className="hidden sm:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[12px] font-mono-num font-semibold transition-colors hover:bg-[var(--bg-hover)]"
+          style={{
+            backgroundColor: progression.activeToday ? 'var(--accent-primary-soft)' : 'var(--bg-elevated)',
+            borderColor: progression.activeToday ? 'rgba(231, 64, 4, 0.35)' : 'var(--rule-hairline)',
+            color: progression.activeToday ? 'var(--accent-primary)' : 'var(--ink-secondary)',
+          }}
+        >
+          <Flame className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+          <span>{progression.currentStreak}d</span>
+        </button>
+
+        {!pwaInstalled && (
+          <button
+            type="button"
+            onClick={() => void triggerPwaInstall()}
+            aria-label="Install Web App"
+            title="Download Cadence Studio as a standalone app"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-medium bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--ink-primary)] transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            <span>Get App</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => {

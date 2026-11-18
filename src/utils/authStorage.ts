@@ -259,6 +259,8 @@ export function normalizeSnapshot(
 ): WorkspaceSnapshot {
   const base = createEmptyWorkspace(fallbackTheme);
   if (!candidate || typeof candidate !== 'object') return base;
+  const fallbackProgression = base.progression!;
+  const candProg = candidate.progression;
   return {
     events: Array.isArray(candidate.events) ? candidate.events : [],
     tasks: Array.isArray(candidate.tasks) ? candidate.tasks : [],
@@ -267,6 +269,20 @@ export function normalizeSnapshot(
     focusHistory: Array.isArray(candidate.focusHistory) ? candidate.focusHistory : [],
     enabledLayers: { ...base.enabledLayers, ...(candidate.enabledLayers ?? {}) },
     preferences: { ...base.preferences, ...(candidate.preferences ?? {}) },
+    progression: {
+      ...fallbackProgression,
+      ...(candProg && typeof candProg === 'object' ? candProg : {}),
+      streakFreezeDates: Array.isArray(candProg?.streakFreezeDates) ? candProg.streakFreezeDates : [],
+      checkInDates: Array.isArray(candProg?.checkInDates) ? candProg.checkInDates : [],
+      unlockedAchievements:
+        candProg?.unlockedAchievements && typeof candProg.unlockedAchievements === 'object'
+          ? candProg.unlockedAchievements
+          : {},
+      dailyAnchors:
+        candProg?.dailyAnchors && typeof candProg.dailyAnchors === 'object'
+          ? candProg.dailyAnchors
+          : {},
+    },
   };
 }
 

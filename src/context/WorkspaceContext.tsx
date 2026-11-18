@@ -76,6 +76,17 @@ import {
   saveCustomGoogleClientId,
 } from '../utils/googleAuth';
 import { triggerFileDownload } from '../utils/ics';
+import {
+  type EvaluatedProgression,
+  evaluateProgression,
+  normalizeProgression,
+} from '../utils/gamification';
+import {
+  type BeforeInstallPromptEvent,
+  detectPwaPlatform,
+  isRunningAsInstalledPwa,
+  type PwaPlatform,
+} from '../utils/pwaInstall';
 import { parseQuickInput } from '../utils/nlp';
 import { playSubtleChime } from '../utils/sound';
 
@@ -204,6 +215,23 @@ interface WorkspaceContextValue {
   activeFocusTaskId: string | null;
   setActiveFocusTaskId: (id: string | null) => void;
 
+  // Progression, streaks & achievements
+  progression: EvaluatedProgression;
+  claimDailyCheckIn: () => void;
+  setTomorrowAnchor: (title: string) => void;
+  promoteTodayAnchorToTask: () => void;
+  toggleDailyReminder: (enabled: boolean, hour?: number) => Promise<void>;
+
+  // PWA Install promotion & offline app shell
+  pwaInstalled: boolean;
+  pwaCanPrompt: boolean;
+  pwaPlatform: PwaPlatform;
+  installModalOpen: boolean;
+  setInstallModalOpen: (open: boolean) => void;
+  installBannerDismissed: boolean;
+  dismissInstallBanner: () => void;
+  triggerPwaInstall: () => Promise<void>;
+
   // Undo, toast, import/export
   toasts: ToastItem[];
   dismissToast: (id: string) => void;
@@ -319,6 +347,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (shotPreset === 'focus-light') return 'focus';
     if (shotPreset === 'analytics-dark') return 'analytics';
     if (shotPreset === 'overview-dark') return 'overview';
+    if (typeof window !== 'undefined') {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam === 'planner' || tabParam === 'tasks' || tabParam === 'focus' || tabParam === 'analytics' || tabParam === 'overview') {
+        return tabParam;
+      }
+    }
     return 'overview';
   }, [shotPreset]);
 
@@ -350,6 +384,41 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => window.clearInterval(id);
   }, [shotPreset]);
 
+  // Listen for native PWA install prompt & appinstalled transition
+  useEffect(() => {
+    if (typeof window === 'undefined' || shotPreset) return;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      deferredInstallPromptRef.current = e as BeforeInstallPromptEvent;
+      setPwaCanPrompt(true);
+    };
+
+    const handleAppInstalled = () => {
+      deferredInstallPromptRef.current = null;
+      setPwaCanPrompt(false);
+      setPwaInstalled(true);
+      setInstallModalOpen(false);
+    };
+
+    const media = window.matchMedia?.('(display-mode: standalone)');
+    const handleDisplayChange = () => {
+      if (isRunningAsInstalledPwa()) {
+        setPwaInstalled(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    media?.addEventListener?.('change', handleDisplayChange);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      media?.removeEventListener?.('change', handleDisplayChange);
+    };
+  }, [shotPreset]);
+
   const todayKey = clockState.todayKey;
   const nowMinutes = clockState.nowMinutes;
 
@@ -379,6 +448,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Toasts
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  // PWA Web App Installability & Standalone detection
+  const deferredInstallPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const [pwaInstalled, setPwaInstalled] = useState<boolean>(() => isRunningAsInstalledPwa());
+  const [pwaCanPrompt, setPwaCanPrompt] = useState<boolean>(false);
+  const [pwaPlatform] = useState<PwaPlatform>(() => detectPwaPlatform());
+  const [installModalOpen, setInstallModalOpen] = useState<boolean>(false);
+  const [installBannerDismissed, setInstallBannerDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem('cadence_install_banner_dismissed') === '1';
+    } catch {
+      return false;
+    }
+  });
 
   // Reconcile durable IndexedDB storage cleanly on mount & listen for cross-tab sync
   useEffect(() => {
@@ -824,6 +908,246 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return { kind: 'task', id: newTask.id };
     },
     [activeList, addEvent, addTask, pushToast, todayKey]
+  );
+
+  // Evaluation engine: streaks, streak freezes, daily quests, anchors & 12-week heatmap
+  const progression = useMemo(
+    () => evaluateProgression(snapshot, todayKey, pwaInstalled),
+    [pwaInstalled, snapshot, todayKey]
+  );
+
+  // Automatic achievement unlock + XP grant (fires only when genuine actions meet milestone)
+  useEffect(() => {
+    if (shotPreset) return;
+    const needsPwaSync = pwaInstalled && !snapshot.progression?.pwaInstalled;
+    if (progression.newlyUnlocked.length === 0 && !needsPwaSync) return;
+
+    const nowIso = new Date().toISOString();
+    const newlyEarned = progression.newlyUnlocked;
+
+    hasLocalMutationRef.current = true;
+    setSnapshot((prev) => {
+      const prevProg = normalizeProgression(prev.progression);
+      const nextUnlocked = { ...prevProg.unlockedAchievements };
+      let addedXp = 0;
+      let shieldBonus = 0;
+      for (const def of newlyEarned) {
+        if (!nextUnlocked[def.id]) {
+          nextUnlocked[def.id] = nowIso;
+          addedXp += def.xpReward;
+          if (def.id === 'streak-3' || def.id === 'streak-7' || def.id === 'daily-trio') {
+            shieldBonus += 1;
+          }
+        }
+      }
+      return {
+        ...prev,
+        progression: {
+          ...prevProg,
+          xp: Math.max(prevProg.xp, progression.totalXp) + addedXp,
+          streakFreezes: Math.min(3, prevProg.streakFreezes + shieldBonus),
+          unlockedAchievements: nextUnlocked,
+          pwaInstalled: prevProg.pwaInstalled || pwaInstalled,
+        },
+      };
+    });
+
+    if (newlyEarned.length > 0) {
+      const first = newlyEarned[0];
+      const extra = newlyEarned.length > 1 ? ` (+${newlyEarned.length - 1} more)` : '';
+      pushToast(
+        `Achievement unlocked: ${first.title}${extra}`,
+        `+${first.xpReward} XP · ${first.description}`,
+        false,
+        'success'
+      );
+      playSubtleChime('complete', snapshot.preferences.soundEnabled);
+    }
+  }, [progression.newlyUnlocked, progression.totalXp, pwaInstalled, pushToast, shotPreset, snapshot.preferences.soundEnabled, snapshot.progression?.pwaInstalled]);
+
+  // Auto-apply a Streak Freeze Shield if user had a run ending 2 days ago and skipped yesterday
+  useEffect(() => {
+    if (shotPreset) return;
+    const prog = normalizeProgression(snapshot.progression);
+    const yesterdayKey = addDays(todayKey, -1);
+    const twoDaysAgoKey = addDays(todayKey, -2);
+    const hadPriorRun =
+      (progression.activityByDate[twoDaysAgoKey] ?? 0) > 0 || prog.streakFreezeDates.includes(twoDaysAgoKey);
+    const missedYesterday = (progression.activityByDate[yesterdayKey] ?? 0) === 0;
+    const alreadyProtected = prog.streakFreezeDates.includes(yesterdayKey);
+
+    if (hadPriorRun && missedYesterday && !alreadyProtected && prog.streakFreezes > 0) {
+      hasLocalMutationRef.current = true;
+      setSnapshot((prev) => {
+        const curProg = normalizeProgression(prev.progression);
+        if (curProg.streakFreezeDates.includes(yesterdayKey) || curProg.streakFreezes <= 0) return prev;
+        return {
+          ...prev,
+          progression: {
+            ...curProg,
+            streakFreezes: curProg.streakFreezes - 1,
+            streakFreezeDates: [...curProg.streakFreezeDates, yesterdayKey],
+          },
+        };
+      });
+      pushToast(
+        'Streak Freeze Shield protected yesterday',
+        'Complete 1 small action today to keep your momentum rolling',
+        false,
+        'success'
+      );
+    }
+  }, [progression.activityByDate, pushToast, shotPreset, snapshot.progression, todayKey]);
+
+  // Opt-in daily reminder notification when enabled by user
+  useEffect(() => {
+    if (shotPreset || typeof window === 'undefined') return;
+    const prog = normalizeProgression(snapshot.progression);
+    if (!prog.reminderEnabled) return;
+    if (prog.lastRemindedDate === todayKey) return;
+    if (progression.todayQuestsCompletedCount === progression.todayQuests.length) return;
+    const currentHour = Math.floor(nowMinutes / 60);
+    if (currentHour < prog.reminderHour) return;
+
+    hasLocalMutationRef.current = true;
+    setSnapshot((prev) => ({
+      ...prev,
+      progression: {
+        ...normalizeProgression(prev.progression),
+        lastRemindedDate: todayKey,
+      },
+    }));
+
+    if ('Notification' in window && window.Notification.permission === 'granted') {
+      try {
+        new window.Notification('Cadence Studio Daily Check-In', {
+          body: progression.todayAnchor
+            ? `Today's Anchor: ${progression.todayAnchor}`
+            : `Keep your ${progression.currentStreak}d momentum streak alive with 1 quick task.`,
+          icon: './icons/icon-192.png',
+        });
+      } catch {
+        // Ignore browsers blocking background notification constructors
+      }
+    }
+  }, [
+    nowMinutes,
+    progression.currentStreak,
+    progression.todayAnchor,
+    progression.todayQuests.length,
+    progression.todayQuestsCompletedCount,
+    shotPreset,
+    snapshot.progression,
+    todayKey,
+  ]);
+
+  const dismissInstallBanner = useCallback(() => {
+    setInstallBannerDismissed(true);
+    try {
+      window.localStorage.setItem('cadence_install_banner_dismissed', '1');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const triggerPwaInstall = useCallback(async () => {
+    const promptEv = deferredInstallPromptRef.current;
+    if (promptEv) {
+      try {
+        await promptEv.prompt();
+        const choice = await promptEv.userChoice;
+        if (choice.outcome === 'accepted') {
+          deferredInstallPromptRef.current = null;
+          setPwaCanPrompt(false);
+          setPwaInstalled(true);
+          pushToast('Cadence Studio installed', 'Launch directly from your home screen or desktop dock', false, 'success');
+          return;
+        }
+      } catch {
+        // Fallback to manual install guide modal below
+      }
+    }
+    setInstallModalOpen(true);
+  }, [pushToast]);
+
+  const claimDailyCheckIn = useCallback(() => {
+    commit((prev) => {
+      const prog = normalizeProgression(prev.progression);
+      if (prog.checkInDates.includes(todayKey)) return prev;
+      return {
+        ...prev,
+        progression: {
+          ...prog,
+          xp: prog.xp + 15,
+          checkInDates: [...prog.checkInDates, todayKey],
+        },
+      };
+    });
+    playSubtleChime('complete', snapshot.preferences.soundEnabled);
+    pushToast('Daily check-in claimed (+15 XP)', 'Your streak stays locked for today', false, 'success');
+  }, [commit, pushToast, snapshot.preferences.soundEnabled, todayKey]);
+
+  const setTomorrowAnchor = useCallback(
+    (title: string) => {
+      const tomorrowKey = addDays(todayKey, 1);
+      const clean = title.trim();
+      commit((prev) => {
+        const prog = normalizeProgression(prev.progression);
+        const nextAnchors = { ...prog.dailyAnchors };
+        if (clean) nextAnchors[tomorrowKey] = clean;
+        else delete nextAnchors[tomorrowKey];
+        return {
+          ...prev,
+          progression: {
+            ...prog,
+            dailyAnchors: nextAnchors,
+          },
+        };
+      });
+      if (clean) {
+        pushToast('Tomorrow’s #1 anchor saved', `"${clean}" will greet you first thing tomorrow`, false, 'success');
+      }
+    },
+    [commit, pushToast, todayKey]
+  );
+
+  const promoteTodayAnchorToTask = useCallback(() => {
+    const text = progression.todayAnchor.trim();
+    if (!text) return;
+    addTaskFromText(`${text} today !p1`);
+    setActiveTab('focus');
+  }, [addTaskFromText, progression.todayAnchor]);
+
+  const toggleDailyReminder = useCallback(
+    async (enabled: boolean, hour = 9) => {
+      if (enabled && typeof window !== 'undefined' && 'Notification' in window) {
+        if (window.Notification.permission === 'default') {
+          try {
+            const res = await window.Notification.requestPermission();
+            if (res === 'denied') {
+              pushToast('Notifications blocked in browser', 'Allow notifications in browser settings for reminders', false, 'warning');
+            }
+          } catch {
+            // proceed saving preference cleanly
+          }
+        }
+      }
+      commit((prev) => ({
+        ...prev,
+        progression: {
+          ...normalizeProgression(prev.progression),
+          reminderEnabled: enabled,
+          reminderHour: hour,
+        },
+      }));
+      pushToast(
+        enabled ? `Daily reminder set (${String(hour).padStart(2, '0')}:00)` : 'Daily reminder paused',
+        enabled ? 'Cadence will prompt your daily check-in when open' : undefined,
+        false,
+        enabled ? 'success' : 'default'
+      );
+    },
+    [commit, pushToast]
   );
 
   const updateTask = useCallback(
@@ -1761,6 +2085,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     completeFocusNow,
     activeFocusTaskId,
     setActiveFocusTaskId,
+    progression,
+    claimDailyCheckIn,
+    setTomorrowAnchor,
+    promoteTodayAnchorToTask,
+    toggleDailyReminder,
+    pwaInstalled,
+    pwaCanPrompt,
+    pwaPlatform,
+    installModalOpen,
+    setInstallModalOpen,
+    installBannerDismissed,
+    dismissInstallBanner,
+    triggerPwaInstall,
     toasts,
     dismissToast,
     pushToast,

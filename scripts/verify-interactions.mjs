@@ -240,6 +240,44 @@ try {
     throw new Error('Found banned em-dash character in rendered UI');
   }
 
+  // 8b. PWA Installability (manifest + icons + SW), Install Promotion Modal, Daily Check-In, Tomorrow Anchor & Achievements
+  const manifestInfo = await page.evaluate(async () => {
+    const res = await fetch('./manifest.webmanifest');
+    const json = await res.json();
+    const iconRes = await fetch('./icons/icon-192.png');
+    const swReg = await navigator.serviceWorker?.getRegistration?.('./');
+    return {
+      ok: res.ok && iconRes.ok,
+      name: json.name,
+      icons: json.icons?.length ?? 0,
+      hasSw: Boolean(swReg),
+    };
+  });
+  if (!manifestInfo.ok || manifestInfo.name !== 'Cadence Studio' || manifestInfo.icons < 3) {
+    throw new Error(`PWA manifest or icons invalid: ${JSON.stringify(manifestInfo)}`);
+  }
+
+  await page.getByRole('button', { name: /Install Web App/i }).first().click();
+  await page.waitForTimeout(180);
+  if (!(await page.getByRole('dialog', { name: 'Install Cadence Web App' }).isVisible())) {
+    throw new Error('Install Web App promotion dialog did not open');
+  }
+  await page.getByRole('button', { name: 'Android' }).click();
+  await page.getByLabel('Close install guide').click();
+
+  await page.getByRole('button', { name: /Claim Daily Check-In/i }).click();
+  await page.waitForTimeout(200);
+  await page.getByLabel('Tomorrow priority anchor').fill('Review Q4 design doc');
+  await page.getByRole('button', { name: 'Lock', exact: true }).click();
+  await page.waitForTimeout(200);
+
+  await page.getByRole('button', { name: /Achievements & Mosaic/i }).click();
+  await page.waitForTimeout(250);
+  const hubText = await page.locator('#achievements-hub').innerText();
+  if (!hubText.includes('First Spark') || !hubText.includes('Unlocked') || !hubText.includes('12-Week Momentum Mosaic')) {
+    throw new Error('Achievements Hub or 12-week mosaic missing');
+  }
+
   // 9. Mobile 375x812 responsive check: opens Overview cleanly, starter checklist, touch drag & zero overflow
   const mobileCtx = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true });
   const mPage = await mobileCtx.newPage();
