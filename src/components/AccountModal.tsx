@@ -587,7 +587,7 @@ export const AccountModal: React.FC = () => {
               <div className="relative flex items-center py-0.5">
                 <div className="flex-1 border-t border-[var(--rule-hairline)]" />
                 <span className="px-3 text-[11px] font-medium text-[var(--ink-muted)]">
-                  or continue with email vault
+                  {firebaseConfig ? 'or continue with email & password' : 'or continue with email vault'}
                 </span>
                 <div className="flex-1 border-t border-[var(--rule-hairline)]" />
               </div>
@@ -752,7 +752,7 @@ export const AccountModal: React.FC = () => {
                     className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white transition-opacity disabled:opacity-60"
                     style={{ backgroundColor: 'var(--accent-primary)' }}
                   >
-                    Create Local Vault Account
+                    {firebaseConfig ? 'Create Account & Save' : 'Create Local Vault Account'}
                   </button>
                 </form>
               ) : (
@@ -829,7 +829,11 @@ export const AccountModal: React.FC = () => {
                       </>
                     )}
                   </span>
-                  <span>{firebaseConfig ? 'Sign in to sync across browsers' : 'Local browser only'}</span>
+                  <span>
+                    {firebaseConfig
+                      ? 'Guest progress saves in this browser. Sign in to sync across devices.'
+                      : 'Local browser only'}
+                  </span>
                 </div>
 
                 {!firebaseConfig && (

@@ -212,12 +212,20 @@ function mapFirebaseUser(user: User): FirebaseAuthUserInfo {
   };
 }
 
+export function isFirebaseEmailProviderDisabled(err: unknown): boolean {
+  const code = typeof err === 'object' && err && 'code' in err ? String((err as { code?: unknown }).code) : '';
+  return code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation' || code === 'auth/network-request-failed';
+}
+
 export function getFriendlyFirebaseError(err: unknown): string {
   const code = typeof err === 'object' && err && 'code' in err ? String((err as { code?: unknown }).code) : '';
   if (code === 'auth/popup-closed-by-user') return 'Sign-in popup was closed before finishing.';
   if (code === 'auth/popup-blocked') return 'Sign-in popup was blocked by browser settings. Please allow popups for this site.';
   if (code === 'auth/unauthorized-domain') {
     return `Domain not authorized yet. Add ${window.location.hostname} in Firebase Console -> Authentication -> Settings -> Authorized domains.`;
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Email/Password sign-in is not enabled yet in Firebase Console -> Authentication -> Sign-in method.';
   }
   if (code === 'auth/email-already-in-use') return 'An account with that email already exists. Try Sign In instead.';
   if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {

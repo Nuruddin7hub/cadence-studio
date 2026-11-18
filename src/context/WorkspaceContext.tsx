@@ -59,6 +59,7 @@ import {
   getConfiguredFirebaseConfig,
   getFriendlyFirebaseError,
   getOrCreateDeviceId,
+  isFirebaseEmailProviderDisabled,
   pushCloudWorkspace,
   saveCustomFirebaseConfig,
   signInWithFirebaseEmail,
@@ -1262,6 +1263,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           ? snapshot
           : createEmptyWorkspace(snapshot.preferences.theme);
 
+      let localFallbackNote: string | null = null;
       if (firebaseConfig) {
         try {
           carryGuestForNextCloudRef.current = Boolean(params.carryGuestData || params.includeStarter);
@@ -1279,7 +1281,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           pushToast(`Welcome, ${fbUser.name}`, 'Cloud Sync vault active across your devices', false, 'success');
           return { ok: true };
         } catch (err) {
-          return { ok: false, error: getFriendlyFirebaseError(err) };
+          if (!isFirebaseEmailProviderDisabled(err)) {
+            return { ok: false, error: getFriendlyFirebaseError(err) };
+          }
+          localFallbackNote = 'Saved in this browser vault (enable Email/Password in Firebase for cloud sync)';
         }
       }
 
@@ -1302,7 +1307,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setStarterBannerDismissed(Boolean(params.includeStarter) || dismissed);
       setAccountModalTab('profile');
       setAccountModalOpen(false);
-      pushToast(`Welcome, ${res.account.name}`, 'Your encrypted browser vault is active', false, 'success');
+      pushToast(
+        `Welcome, ${res.account.name}`,
+        localFallbackNote ?? 'Your encrypted browser vault is active',
+        false,
+        'success'
+      );
       return { ok: true };
     },
     [attachFirebaseSession, firebaseConfig, nowMinutes, pushToast, snapshot, todayKey]
@@ -1322,7 +1332,35 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           pushToast(`Signed in as ${fbUser.name}`, 'Cloud Sync vault loaded', false, 'success');
           return { ok: true };
         } catch (err) {
-          return { ok: false, error: getFriendlyFirebaseError(err) };
+          // Allow signing into existing local-only email accounts too
+          const localAttempt = await signInLocalAccount({ email, password });
+          if (localAttempt.ok) {
+            activeAccountIdRef.current = localAttempt.account.id;
+            hasLocalMutationRef.current = true;
+            undoStackRef.current = [];
+            setCurrentUser(localAttempt.account);
+            setSavedAccounts(localAttempt.accounts);
+            setSnapshot(localAttempt.snapshot);
+            setSelection(null);
+            setActiveFocusTaskId(null);
+            setSelectedDate(todayKey);
+            setStarterBannerDismissed(
+              Boolean(readSyncSessionMeta().dismissedStarterIds?.[localAttempt.account.id])
+            );
+            setAccountModalTab('profile');
+            setAccountModalOpen(false);
+            pushToast(
+              `Signed in as ${localAttempt.account.name}`,
+              'Loaded from this browser vault',
+              false,
+              'success'
+            );
+            return { ok: true };
+          }
+          if (!isFirebaseEmailProviderDisabled(err)) {
+            return { ok: false, error: getFriendlyFirebaseError(err) };
+          }
+          return { ok: false, error: localAttempt.error };
         }
       }
 
